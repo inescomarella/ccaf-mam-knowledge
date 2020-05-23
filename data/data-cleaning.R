@@ -1,3 +1,16 @@
+##################
+####### Para fazer
+
+#1. Organizar as datas
+#2. Padronizar as cidades
+#3. Padronizar as reservas
+#4. Converter as coordenadas geograficas
+#5. Plotar no mapa
+#6. Remover os pontos fora do CCMA
+#7. Salvar os registros limpos e padronizados, eles serão usados para o resto das análises
+#
+##################
+
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 library("tidyverse")
@@ -6,7 +19,6 @@ library("lubridate")
 
 
 data_raw <- read.csv("raw-data.csv")
-View(data_raw)
 glimpse(data_raw)
 
 # retirando registros marinhos
@@ -14,7 +26,7 @@ data_modif <- data_raw[!(data_raw$order == "Cetartiodactyla" | data_raw$order ==
 
 # basisOfRecord -----
 unique(data_modif$basisOfRecord)
-View(filter(data_modif, data_modif$basisOfRecord == "S"))
+filter(data_modif, data_modif$basisOfRecord == "S")
 
 # dataSetName -----
 unique(data_modif$datasetName)
@@ -173,7 +185,6 @@ year_bar_sep <- separate(data = year_bar, col = year_bar, into = c("A", "B"), se
 year_bar_correct <- year_bar_sep$B # retirando o primeiro ano
 year_bar_correct <- as.data.frame(year_bar_correct)
 data_bar$eventYear <- year_bar_correct$year_bar_correct # retornando os anos corrigidos para a coluna
-View(data_bar)
 
 to_remove <- data_modif %>% filter(str_detect(eventYear, "[/]")) # separando as linhas erradas
 data_bar_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) # removendo as linhas erradas
@@ -181,17 +192,6 @@ data_modif  <- rbind(data_bar_less, data_bar) # adicionando as linhas corrigidas
 
 nrow(data_modif)
 nrow(data_bar) + nrow(data_bar_less) # confirmando os tamanhos das tabelas
-
-# CORRIGINDO AS DATAS -----
-
-datas <- as.data.frame(data_modif$reference)
-datas[2] <- data_modif$PublicationYear
-datas[3] <- data_modif$eventDate
-datas[4] <- data_modif$eventYear
-colnames(datas) <- c("reference", "PublicationYear", "eventDate", "eventYear")
-View(datas)
-View(filter(datas, datas$reference == "S"))
-unique(datas$reference)
 
 # country -----
 unique(data_modif$country)
@@ -427,8 +427,6 @@ accep_sp$acceptedNameUsage[accep_sp$scientificName == "Sciurus alphonsei"] <- "G
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Mycetes ursinus"] <- "Alouatta guariba"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tapirus"] <- "Tapirus terrestris"
 
-View(accep_sp)
-
 # genus -----
 
 accep_sp$genus <- word(accep_sp$acceptedNameUsage, 1)
@@ -436,7 +434,6 @@ genus <- unique(word(accep_sp$acceptedNameUsage, 1))
 genus <- as.data.frame(genus)
 
 # family -----
-View(genus)
 genus$family <- NA
 genus$family[1] <- "Dasyproctidae"
 genus$family[2] <- "Cricetidae"
@@ -637,25 +634,183 @@ data_modif <- merge(data_sp_less, taxon, by = 'scientificName')
 # Reordenando as colunas
 data_modif <- data_modif[, c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 1)]
 
-################################################################################################################
-# Calicebus[13] e Callicebus[14]
-# conferir qual espécie do genero Cavis[21]
-# conferir qual a espécie do gênero Coelogenys[31]
-# Leontophitecus[70] e Leontopithecus[71]
-# conferir Mycetes[92]
-# Oligoryzomys[103] e  Olygoryzomys[104]
-# remove Ziphiidae --> do mar
+# CORRIGINDO AS DATAS -----
 
+datas <- as.data.frame(data_modif$reference)
+datas[2] <- data_modif$PublicationYear
+datas[3] <- data_modif$eventDate
+datas[4] <- data_modif$eventYear
+colnames(datas) <- c("reference", "PublicationYear", "eventDate", "eventYear")
+
+#Corrigindo as datas de acordo com a referência
+datas$PublicationYear[datas$reference == unique(datas$reference)[1]] <- "1999"
+datas$eventDate[datas$reference == unique(datas$reference)[3]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[10]] <- "1998"
+datas$eventDate[datas$reference == unique(datas$reference)[12]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[29]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[30]] <- "1991"
+datas$PublicationYear[datas$reference == unique(datas$reference)[32]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[33]] <- "1997"
+datas$PublicationYear[datas$reference == unique(datas$reference)[34]] <- "1997"
+datas$PublicationYear[datas$reference == unique(datas$reference)[35]] <- "1991"
+datas$PublicationYear[datas$reference == unique(datas$reference)[36]] <- "1990"
+datas$PublicationYear[datas$reference == unique(datas$reference)[37]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[38]] <- "2001"
+datas$PublicationYear[datas$reference == unique(datas$reference)[39]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[40]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[41]] <- "1991"
+datas$PublicationYear[datas$reference == unique(datas$reference)[43]] <- "1988"
+datas$PublicationYear[datas$reference == unique(datas$reference)[44]] <- "1982"
+datas$PublicationYear[datas$reference == unique(datas$reference)[45]] <- "1988"
+datas$PublicationYear[datas$reference == unique(datas$reference)[46]] <- "1976"
+datas$PublicationYear[datas$reference == unique(datas$reference)[49]] <- "2006"
+datas$PublicationYear[datas$reference == unique(datas$reference)[50]] <- "1996"
+datas$PublicationYear[datas$reference == unique(datas$reference)[51]] <- "1979"
+datas$PublicationYear[datas$reference == unique(datas$reference)[52]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[53]] <- "1994"
+datas$PublicationYear[datas$reference == unique(datas$reference)[55]] <- "1958"
+datas$PublicationYear[datas$reference == unique(datas$reference)[57]] <- "1987"
+datas$PublicationYear[datas$reference == unique(datas$reference)[58]] <- "1964"
+datas$PublicationYear[datas$reference == unique(datas$reference)[61]] <- "1985"
+datas$PublicationYear[datas$reference == unique(datas$reference)[63]] <- "1955"
+datas$PublicationYear[datas$reference == unique(datas$reference)[65]] <- "1996"
+datas$PublicationYear[datas$reference == unique(datas$reference)[66]] <- "1993"
+datas$PublicationYear[datas$reference == unique(datas$reference)[67]] <- "1990"
+datas$PublicationYear[datas$reference == unique(datas$reference)[74]] <- "1997"
+datas$eventDate[datas$reference == unique(datas$reference)[75]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[77]] <- "2006"
+datas$eventYear[datas$reference == unique(datas$reference)[77]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[79]] <- "2009"
+datas$eventDate[datas$reference == unique(datas$reference)[80]] <- ""
+datas$eventDate[datas$reference == unique(datas$reference)[81]] <- ""
+datas$eventDate[datas$reference == unique(datas$reference)[82]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[84]] <- "1971"
+datas$PublicationYear[datas$reference == unique(datas$reference)[85]] <- "1998"
+datas$eventDate[datas$reference == unique(datas$reference)[86]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[88]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[91]] <- "2007"
+datas$PublicationYear[datas$reference == unique(datas$reference)[92]] <- "1977"
+datas$PublicationYear[datas$reference == unique(datas$reference)[93]] <- "2005"
+datas$PublicationYear[datas$reference == unique(datas$reference)[94]] <- "2005"
+datas$PublicationYear[datas$reference == unique(datas$reference)[95]] <- "1820"
+datas$PublicationYear[datas$reference == unique(datas$reference)[96]] <- "1986"
+datas$PublicationYear[datas$reference == unique(datas$reference)[97]] <- "1987"
+datas$PublicationYear[datas$reference == unique(datas$reference)[99]] <- "2005"
+datas$PublicationYear[datas$reference == unique(datas$reference)[100]] <- "2005"
+datas$PublicationYear[datas$reference == unique(datas$reference)[101]] <- "1982"
+datas$PublicationYear[datas$reference == unique(datas$reference)[102]] <- "2006"
+datas$PublicationYear[datas$reference == unique(datas$reference)[104]] <- "1997"
+datas$eventDate[datas$reference == unique(datas$reference)[105]] <- ""
+datas$eventDate[datas$reference == unique(datas$reference)[107]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[108]] <- "2009"
+datas$PublicationYear[datas$reference == unique(datas$reference)[121]] <- "1999"
+datas$PublicationYear[datas$reference == unique(datas$reference)[122]] <- "1998"
+datas$PublicationYear[datas$reference == unique(datas$reference)[123]] <- "1997"
+datas$PublicationYear[datas$reference == unique(datas$reference)[124]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[125]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[126]] <- "1994"
+datas$PublicationYear[datas$reference == unique(datas$reference)[127]] <- "2012"
+datas$PublicationYear[datas$reference == unique(datas$reference)[129]] <- "1999"
+datas$PublicationYear[datas$reference == unique(datas$reference)[130]] <- "1990"
+datas$PublicationYear[datas$reference == unique(datas$reference)[131]] <- "1989"
+datas$PublicationYear[datas$reference == unique(datas$reference)[132]] <- "1993"
+datas$PublicationYear[datas$reference == unique(datas$reference)[133]] <- "1991"
+datas$PublicationYear[datas$reference == unique(datas$reference)[134]] <- "1997"
+datas$PublicationYear[datas$reference == unique(datas$reference)[135]] <- "2002"
+datas$PublicationYear[datas$reference == unique(datas$reference)[136]] <- "1983"
+datas$PublicationYear[datas$reference == unique(datas$reference)[137]] <- "1977"
+datas$PublicationYear[datas$reference == unique(datas$reference)[138]] <- "1981"
+datas$PublicationYear[datas$reference == unique(datas$reference)[139]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[140]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[141]] <- "1991"
+datas$PublicationYear[datas$reference == unique(datas$reference)[142]] <- "2011"
+datas$PublicationYear[datas$reference == unique(datas$reference)[143]] <- "2012"
+datas$PublicationYear[datas$reference == unique(datas$reference)[144]] <- "1999"
+datas$PublicationYear[datas$reference == unique(datas$reference)[145]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[146]] <- "1969"
+datas$PublicationYear[datas$reference == unique(datas$reference)[147]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[148]] <- "1988"
+datas$PublicationYear[datas$reference == unique(datas$reference)[149]] <- "1980"
+datas$PublicationYear[datas$reference == unique(datas$reference)[150]] <- "1988"
+datas$PublicationYear[datas$reference == unique(datas$reference)[151]] <- "1993"
+datas$PublicationYear[datas$reference == unique(datas$reference)[152]] <- "1995"
+datas$PublicationYear[datas$reference == unique(datas$reference)[153]] <- "2011"
+datas$PublicationYear[datas$reference == unique(datas$reference)[154]] <- "2013"
+datas$PublicationYear[datas$reference == unique(datas$reference)[155]] <- "1996"
+datas$PublicationYear[datas$reference == unique(datas$reference)[156]] <- "2016"
+datas$PublicationYear[datas$reference == unique(datas$reference)[158]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[159]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[160]] <- "2009"
+datas$PublicationYear[datas$reference == unique(datas$reference)[161]] <- "2000"
+datas$PublicationYear[datas$reference == unique(datas$reference)[162]] <- "2015"
+datas$PublicationYear[datas$reference == unique(datas$reference)[163]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[164]] <- "2015"
+datas$PublicationYear[datas$reference == unique(datas$reference)[165]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[166]] <- "1992"
+datas$PublicationYear[datas$reference == unique(datas$reference)[167]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[168]] <- "2017"
+datas$eventDate[datas$reference == unique(datas$reference)[176]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[177]] <- "1955"
+datas$eventDate[datas$reference == unique(datas$reference)[178]] <- ""
+datas$eventDate[datas$reference == unique(datas$reference)[181]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[182]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[189]] <- "1992"
+datas$PublicationYear[datas$reference == unique(datas$reference)[190]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[191]] <- "2009"
+datas$PublicationYear[datas$reference == unique(datas$reference)[192]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[193]] <- "2007"
+datas$PublicationYear[datas$reference == unique(datas$reference)[194]] <- "2004"
+datas$PublicationYear[datas$reference == unique(datas$reference)[195]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[196]] <- "2007"
+datas$PublicationYear[datas$reference == unique(datas$reference)[197]] <- "2004"
+datas$PublicationYear[datas$reference == unique(datas$reference)[198]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[199]] <- "2002"
+datas$PublicationYear[datas$reference == unique(datas$reference)[200]] <- "2009"
+datas$PublicationYear[datas$reference == unique(datas$reference)[201]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[202]] <- "2006"
+datas$PublicationYear[datas$reference == unique(datas$reference)[203]] <- "2011"
+datas$PublicationYear[datas$reference == unique(datas$reference)[204]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[205]] <- "2009"
+datas$eventDate[datas$reference == unique(datas$reference)[208]] <- ""
+datas$eventYear[datas$reference == unique(datas$reference)[208]] <- "2012"
+datas$eventDate[datas$reference == unique(datas$reference)[209]] <- ""
+datas$PublicationYear[datas$reference == unique(datas$reference)[211]] <- "1983"
+datas$PublicationYear[datas$reference == unique(datas$reference)[212]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[213]] <- "2008"
+datas$PublicationYear[datas$reference == unique(datas$reference)[214]] <- "2010"
+datas$PublicationYear[datas$reference == unique(datas$reference)[215]] <- "2014"
+datas$PublicationYear[datas$reference == unique(datas$reference)[216]] <- "2012"
+datas$PublicationYear[datas$reference == unique(datas$reference)[217]] <- "2015"
+datas$PublicationYear[datas$reference == unique(datas$reference)[218]] <- "2009"
+datas$PublicationYear[datas$reference == unique(datas$reference)[219]] <- "2011"
+datas$eventDate[datas$reference == unique(datas$reference)[220]] <- ""
+
+
+ ########## ADICIONAR O ANO ###########
+View(filter(datas, datas$reference == unique(datas$reference)[13]))
+datas_reference_less <- datas %>% filter(reference == unique(datas$reference)[13])
+datas_reference_less$eventYear <- format(as.Date(datas_reference_less$eventDate, format = "%m/%d/%y"), "%Y") 
+
+datas <- datas %>% filter(!reference == unique(datas$reference)[13]) # removendo registros
+datas <- rbind(datas, datas_reference_less)
+
+for (i in 1:nrow(datas)) {
+  if (datas$eventYear[i] == "" && is.na(datas$PublicationYear[i]) == FALSE) {
+    datas$eventYear[i] <- datas$PublicationYear[i]
+  }
+}
+
+View(datas)
+
+#if(eventYear = ""){eventYear <- PublicationYear}
+#filter(datas, datas$reference == unique(datas$reference)[69]) ## eventDate =  mes/dia/ano --> ano-mes-dia
+
+datas$eventYear <- as.numeric(as.character(datas$eventYear))
+################################################################################################################
 
 # DANI
 # O QUE FAZER COM O *ATELEX HYPOXANTHUS*?
 
-#1. Organizar as datas
-#2. Padronizar as cidades
-#3. Padronizar as reservas
-#4. Converter as coordenadas geograficas
-#5. Plotar no mapa
-#6. Remover os pontos fora do CCMA
-#7. Salvar os registros limpos e padronizados, eles serão usados para o resto das análises
+
 
 write_csv(data_modif, 'data_0520.csv')
