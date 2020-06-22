@@ -3,21 +3,17 @@
 
 #2. Padronizar as cidades
 #3. Padronizar as reservas
-#4. Converter as coordenadas geograficas
-#5. Plotar no mapa
-#6. Remover os pontos fora do CCMA
-#7. Salvar os registros limpos e padronizados, eles serão usados para o resto das análises
 #
 ##################
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+setwd('../data')
 
 library("tidyverse")
 library("CoordinateCleaner")
 library("lubridate")
 
 
-data_raw <- read.csv("raw-data.csv")
+data_raw <- read.csv("data-raw.csv")
 glimpse(data_raw)
 
 # retirando registros marinhos
@@ -800,7 +796,7 @@ for (i in 1:nrow(data_modif)) {
 
 # Removendo registros sem ano 
 data_modif <- data_modif %>% filter(!eventYear == "") # removendo registros
-View(data_modif)
+
 
 # Coordenadas geográficas -----
 View(select(data_modif, 23:27))
@@ -937,11 +933,26 @@ data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verb
 #sputm <- SpatialPoints(d, proj4string = CRS("+proj=utm +zone=24 +datum=SAD69"))
 #spgeo <- spTransform(sputm, CRS("+proj=longlat +datum=WGS84"))
 #coordinates(spgeo)
+data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) #removendo registros sem coordenadas geográfica
+
+# Corrigindo latitude/longitude invertida ------
+to_remove <- data_modif %>% filter(decimalLatitude == "")
+data_modif <- anti_join(data_modif, to_remove)
+
+
+corrigir_latlong <- data_modif %>% filter(decimalLongitude < -30)
+long <- corrigir_latlong$decimalLatitude
+lat <- corrigir_latlong$decimalLongitude
+
+correto_latlong <- corrigir_latlong
+correto_latlong$decimalLatitude <- lat
+correto_latlong$decimalLongitude <- long
+
+data_modif <- anti_join(data_modif, corrigir_latlong)
+data_modif <- rbind(data_modif, correto_latlong)
+
+
 ################################################################################################################
+View(data_modif)
 
-# DANI
-# O QUE FAZER COM O *ATELEX HYPOXANTHUS*?
-
-
-
-write_csv(data_modif, 'data_clean.csv')
+write_csv(data_modif, 'data-clean.csv')
