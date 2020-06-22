@@ -6,7 +6,7 @@
 #
 ##################
 
-setwd('../data')
+setwd('./data')
 
 library("tidyverse")
 library("CoordinateCleaner")
@@ -319,6 +319,10 @@ to_remove <- c("DD",
                "Pseudalopex vetulus",
                "Lycalopex gymnocercus", #Fora da área de ocorrência e todos os registros neste BD são do mesmo data_modifet CAMTRAP e alguns dados não batem com a referência, ou seja não são confiáveis
                "Ziphius cavirostris", #Marinho
+               "Mazama nana",
+               "Cebus apella",
+               "Cebus flavius",
+               "Cebus libidinosus",
                "")
 data_modif <- data_modif %>% filter(!scientificName %in% to_remove) # removendo registros
 
@@ -368,6 +372,7 @@ data_modif$scientificName[data_modif$scientificName == "Tapirus terrestris "] <-
 data_modif$scientificName[data_modif$scientificName == "Trinomys miraptanga"] <- "Trinomys mirapitanga"
 data_modif$scientificName[data_modif$scientificName == "Calicebus personatus"] <- "Callicebus personatus"
 data_modif$scientificName[data_modif$scientificName == "Guerlinguetus  aestuans"] <- "Guerlinguetus aestuans"
+data_modif$scientificName[data_modif$scientificName == "Micoureus  paraguayanus"] <- "Micoureus paraguayanus"
 
 ####
 data_modif$scientificName[data_modif$scientificName == "Sapajus libidinosus libidinosus"] <- "Sapajus libidinosus"
@@ -418,6 +423,29 @@ accep_sp$acceptedNameUsage[accep_sp$scientificName == "Sciurus aestuans"] <- "Gu
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Sciurus alphonsei"] <- "Guerlinguetus ingrami"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Mycetes ursinus"] <- "Alouatta guariba"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tapirus"] <- "Tapirus terrestris"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tamandua tetradactyla tetradactyla"] <- "Tamandua tetradactyla"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Myrmecophaga jubata"] <- "Myrmecophaga tetradatyla"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Myotis nigracans nigracans"] <- "Myotis nigracans"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Dasypus novemcinctus novemcinctus"] <- "Dasypus novemcinctus"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus nigritus"] <- "Sapajus nigritus"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus canthosternos"] <- "Sapajus xanthosternos"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus xanthosternos"] <- "Sapajus xanthosternos"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus variegatus"] <- "Sapajus xanthosternos" #Rylands, 2005, Notes on the taxonomy and distributions of the tufted capuchinmonkeys (Cebus, Cebidae) of South America
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus frontatus"] <- "Sapajus nigritus" #Rylands, 2005, Notes on the taxonomy and distributions of the tufted capuchinmonkeys (Cebus, Cebidae) of South America
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Cebus nigritus robustus"] <- "Sapajus robustus"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Mazama simplicicornis"] <- "Mazama gouazoubira"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tamandua tetradactyla tetradactyla"] <- "Tamandua tetradactyla"
+accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tapirus americanus"] <- "Tapirus terrestris"
+
+#Cebus apella #                      
+#Cebus canthosternos #
+#Cebus flavius #                     
+#Cebus frontatus #
+#Cebus libidinosus #                  
+#Cebus nigritus #
+#Cebus nigritus robustus #            
+#Cebus variegatus #
+#Cebus xanthosternos #
 
 # genus -----
 
@@ -427,150 +455,105 @@ genus <- as.data.frame(genus)
 
 # family -----
 genus$family <- NA
-genus$family[1] <- "Dasyproctidae"
-genus$family[2] <- "Cricetidae"
-genus$family[3] <- "Atelidae"
-genus$family[4] <- "Phyllostomidae"
-genus$family[5] <- "Phyllostomidae"
-genus$family[6] <- "Atelidae"
-genus$family[7] <- "Cricetidae"
-genus$family[8] <- "Cricetidae"
-genus$family[9] <- "Atelidae"
-
-genus$family[10] <- "Bradypodidae"
-genus$family[11] <- "Chlamyphoridae"
-genus$family[12] <- "Cebidae"
-genus$family[13] <- "Callitrichidae"
-genus$family[14] <- "Cricetidae"
-genus$family[15] <- "Didelphidae"
-genus$family[16] <- "Phyllostomidae"
-genus$family[17] <- "Caviidae"
-genus$family[18] <- "Cebidae"
-genus$family[19] <- "Emballonuridae"
-
-genus$family[20] <- "Canidae"
-genus$family[21] <- "Cricetidae"
-genus$family[22] <- "Phyllostomidae"
-genus$family[23] <- "Didelphidae"
-genus$family[24] <- "Phyllostomidae"
-genus$family[25] <- "Phyllostomidae"
-genus$family[26] <- "Canidae"
-genus$family[27] <- "Erethizontidae"
-genus$family[28] <- "Mephitidae"
-genus$family[29] <- "Molossidae"
-
-genus$family[30] <- "Dasyproctidae"
-genus$family[31] <- "Dasypodidae"
-genus$family[32] <- "Cricetidae"
-genus$family[33] <- "Phyllostomidae"
-genus$family[34] <- "Phyllostomidae"
-genus$family[35] <- "Phyllostomidae"
-genus$family[36] <- "Emballonuridae"
-genus$family[37] <- "Tayassuidae"
-genus$family[38] <- "Didelphidae"
-genus$family[39] <- "Phyllostomidae"
-
-genus$family[40] <- "Phyllostomidae"
-genus$family[41] <- "Mustelidae"
-genus$family[42] <- "Vespertilionidae"
-genus$family[43] <- "Molossidae"
-genus$family[44] <- "Chlamyphoridae"
-genus$family[45] <- "Cricetidae"
-genus$family[46] <- "Felidae"
-genus$family[47] <- "Felidae"
-genus$family[48] <- "Felidae"
-genus$family[49] <- "Felidae"
-
-genus$family[50] <- "Mustelidae"
-genus$family[51] <- "Phyllostomidae"
-genus$family[52] <- "Phyllostomidae"
-genus$family[53] <- "Phyllostomidae"
-genus$family[54] <- "Didelphidae"
-genus$family[55] <- "Sciuridae"
-genus$family[56] <- "Vespertilionidae"
-genus$family[57] <- "Caviidae"
-genus$family[58] <- "Cricetidae"
-genus$family[59] <- "Cricetidae"
-
-genus$family[60] <- "Echimyidae"
-genus$family[61] <- "Phyllostomidae"
-genus$family[62] <- "Vespertilionidae"
-genus$family[63] <- "Callitrichidae"
-genus$family[64] <- "Phyllostomidae"
-genus$family[65] <- "Phyllostomidae"
-genus$family[66] <- "Phyllostomidae"
-genus$family[67] <- "Mustelidae"
-genus$family[68] <- "Phyllostomidae"
-genus$family[69] <- "Mustelidae"
-
-genus$family[70] <- "Phyllostomidae"
-genus$family[71] <- "Didelphidae"
-genus$family[72] <- "Didelphidae"
-genus$family[73] <- "Cervidae"
-genus$family[74] <- "Didelphidae"
-genus$family[75] <- "Didelphidae"
-genus$family[76] <- "Phyllostomidae"
-genus$family[77] <- "Phyllostomidae"
-genus$family[78] <- "Molossidae"
-genus$family[79] <- "Didelphidae"
-
-genus$family[80] <- "Vespertilionidae"
-genus$family[81] <- "Myrmecophagidae"
-genus$family[82] <- "Procyonidae"
-genus$family[83] <- "Natalidae"
-genus$family[84] <- "Cricetidae"
-genus$family[85] <- "Cricetidae"
-genus$family[86] <- "Noctilionidae"
-genus$family[87] <- "Molossidae"
-genus$family[88] <- "Cricetidae"
-genus$family[89] <- "Cricetidae"
-
-genus$family[90] <- "Cricetidae"
-genus$family[91] <- "Cricetidae"
-genus$family[92] <- "Tayassuidae"
-genus$family[93] <- "Emballonuridae"
-genus$family[94] <- "Didelphidae"
-genus$family[95] <- "Phyllostomidae"
-genus$family[96] <- "Echimyidae"
-genus$family[97] <- "Phyllostomidae"
-genus$family[98] <- "Phyllostomidae"
-genus$family[99] <- "Procyonidae"
-
-genus$family[100] <- "Dasypodidae"
-genus$family[101] <- "Procyonidae"
-genus$family[102] <- "Echimyidae"
-genus$family[103] <- "Phyllostomidae"
-genus$family[104] <- "Phyllostomidae"
-genus$family[105] <- "Cricetidae"
-genus$family[106] <- "Vespertilionidae"
-genus$family[107] <- "Emballonuridae"
-genus$family[108] <- "Emballonuridae"
-genus$family[109] <- "Cebidae"
-
-genus$family[110] <- "Canidae"
-genus$family[111] <- "Erethizontidae"
-genus$family[112] <- "Phyllostomidae"
-genus$family[113] <- "Leporidae"
-genus$family[114] <- "Molossidae"
-genus$family[115] <- "Myrmecophagidae"
-genus$family[116] <- "Tapiridae"
-genus$family[117] <- "Mustelidae"
-genus$family[118] <- "Cricetidae"
-genus$family[119] <- "Echimyidae"
-
-genus$family[120] <- "Thyropteridae"
-genus$family[121] <- "Phyllostomidae"
-genus$family[122] <- "Phyllostomidae"
-genus$family[123] <- "Trichechidae"
-genus$family[124] <- "Echimyidae"
-genus$family[125] <- "Phyllostomidae"
-genus$family[126] <- "Phyllostomidae"
-genus$family[127] <- "Phyllostomidae"
-genus$family[128] <- "Phyllostomidae"
-
 colnames(genus) <- c("genus", "family")
 
-family <- sort(unique(genus$family))
+
+Atelidae <- genus %>% filter(genus == "Alouatta" | genus == "Ateles" | genus == "Brachyteles")
+Atelidae$family <- 'Atelidae'
+
+Bradypodidae <- genus %>% filter(genus == "Bradypus")
+Bradypodidae$family <- 'Bradypodidae'
+
+
+Callitrichidae <- genus %>% filter(genus == "Callithrix" | genus == 'Leontopithecus')
+Callitrichidae$family <- 'Callitrichidae'
+
+Canidae <- genus %>% filter(genus == 'Cerdocyon' | genus == 'Chrysocyon' | genus == 'Speothos')
+Canidae$family <- 'Canidae'
+
+Caviidae <- genus %>% filter(genus == 'Cavia' | genus == 'Hydrochoerus')
+Caviidae$family <- 'Caviidae'
+
+Cebidae <- genus %>% filter(genus == 'Callicebus' | genus == 'Cebus' | genus == 'Sapajus')
+Cebidae$family <- 'Cebidae'
+
+Cervidae <- genus %>% filter(genus == 'Mazama')
+Cervidae$family <- 'Cervidae'
+
+Chlamyphoridae <- genus %>% filter(genus == 'Cabassous' | genus == 'Euphractus' | genus == 'Priodontes')
+Chlamyphoridae$family <- 'Chlamyphoridae'
+
+Cricetidae <- genus %>% filter(genus == "Akodon" | genus == "Blarinomys" | genus == 'Bolomys' | genus == 'Calomys' | genus == 'Cerradomys' | genus == 'Delomys' | genus == 'Euryoryzomys' | genus == 'Hylaeamys' | genus == 'Juliomys' | genus == 'Natalus' | genus == 'Necromys' | genus == 'Nyctinomops' | genus == 'Oecomys' | genus == 'Oligoryzomys' | genus == 'Oryzomys' | genus == 'Rhinophylla' | genus == 'Sooretamys' | genus == 'Nectomys' | genus == 'Oxymycterus' | genus == 'Thaptomys' | genus == 'Rhipidomys')
+Cricetidae$family <- 'Cricetidae'
+
+Dasypodidae <- genus %>% filter(genus == 'Dasypus')
+Dasypodidae$family <- 'Dasypodidae'
+
+Dasyproctidae <- genus %>% filter(genus == 'Agouti' | genus == 'Dasyprocta')
+Dasyproctidae$family <- 'Dasyproctidae'
+
+Didelphidae <- genus %>% filter(genus == "Caluromys" | genus == 'Chironectes' | genus == 'Chironectes' | genus == 'Didelphis' | genus == 'Gracilinanus' | genus == 'Marmosa' | genus == 'Marmosops' | genus == 'Metachirus' | genus == 'Micoureus' | genus == 'Monodelphis')
+Didelphidae$family <- 'Didelphidae'
+
+Echimyidae <- genus %>% filter(genus == 'Kannabateomys' | genus == 'Thrichomys' | genus == 'Trinomys' | genus == 'Myocastor')
+Echimyidae$family <- 'Echimyidae'
+
+Emballonuridae <- genus %>% filter(genus == 'Centronycteris' | genus == 'Diclidurus' | genus == 'Rhynchonycteris' | genus == 'Peropteryx' | genus == 'Saccopteryx')
+Emballonuridae$family <- 'Emballonuridae'
+
+Erethizontidae <- genus %>% filter(genus == 'Coendou' | genus == 'Sphiggurus')
+Erethizontidae$family <- 'Erethizontidae'
+
+Felidae <- genus %>% filter(genus == 'Leopardus' | genus == 'Panthera' | genus == 'Herpailurus' | genus == 'Puma')
+Felidae$family <- 'Felidae'
+
+Leporidae <- genus %>% filter(genus == 'Sylvilagus')
+Leporidae$family <- 'Leporidae'
+
+Mephitidae <- genus %>% filter(genus == 'Conepatus')
+Mephitidae$family <- 'Mephitidae'
+
+Molossidae <- genus %>% filter(genus == 'Cynomops' | genus == 'Eumops' | genus == 'Molossus' | genus == 'Tadarida')
+Molossidae$family <- 'Molossidae'
+
+Mustelidae <- genus %>% filter(genus == 'Eira' | genus == 'Tayra' | genus == 'Galictis' | genus == "Lontra" | genus == 'Pteronura' | genus == 'Nasua')
+Mustelidae$family <- 'Mustelidae'
+
+Myrmecophagidae <- genus %>% filter(genus == 'Myrmecophaga' |  genus == "Tamandua")
+Myrmecophagidae$family <- 'Myrmecophagidae'
+
+Noctilionidae <- genus %>% filter(genus == 'Noctilio')
+Noctilionidae$family <- 'Noctilionidae'
+
+Phyllostomidae <- genus %>% filter(genus == 'Anoura' | genus == 'Artibeus' | genus == 'Carollia' | genus == 'Chiroderma' | genus == 'Choeroniscus' | genus == 'Chrotopterus' | genus == 'Dermanura' | genus == 'Desmodus' | genus == 'Diaemus' | genus == 'Diphylla' | genus == 'Dryadonycteris' | genus == 'Gardnerycteris' | genus == 'Glossophaga' | genus == 'Glyphonycteris' | genus == 'Lampronycteris' | genus == 'Lichonycteris' | genus == 'Lonchophylla' | genus == 'Lophostoma' | genus == 'Macrophyllum' | genus == 'Micronycteris' | genus == 'Mimon' | genus == 'Philander' | genus == 'Phyllomys' | genus == 'Phyllostomus' | genus == 'Proechimys' | genus == 'Pygoderma' | genus == 'Trinycteris' | genus == 'Uroderma' | genus == 'Phylloderma' | genus == 'Trachops' | genus == 'Sturnira' | genus == 'Platyrrhinus' | genus == 'Tonatia' | genus == 'Vampyressa' | genus == 'Vampyrodes' | genus == 'Lonchorhina')
+Phyllostomidae$family <- 'Phyllostomidae'
+
+Procyonidae <- genus %>% filter(genus == 'Potos' | genus == 'Procyon')
+Procyonidae$family <- 'Procyonidae'
+
+Sciuridae <- genus %>% filter(genus == 'Guerlinguetus')
+Sciuridae$family <- 'Sciuridae'
+
+Tapiridae <- genus %>% filter(genus == 'Tapirus')
+Tapiridae$family <- 'Tapiridae'
+
+Tayassuidae <- genus %>% filter(genus == 'Pecari' | genus == 'Tayassu')
+Tayassuidae$family <- 'Tayassuidae'
+
+Thyropteridae <- genus %>% filter(genus == 'Thyroptera')
+Thyropteridae$family <- 'Thyropteridae'
+
+Trichechidae <- genus %>% filter(genus == 'Trichechus')
+Trichechidae$family <- 'Trichechidae'
+
+Vespertilionidae <- genus %>% filter(genus == 'Rhogeessa' | genus == 'Myotis' | genus == 'Eptesicus' | genus == 'Histiotus' | genus == 'Lasiurus')
+Vespertilionidae$family <- 'Vespertilionidae'
+
+genus_family <- bind_rows(Atelidae, Bradypodidae, Callitrichidae, Caviidae, Canidae, Cebidae, Cervidae, Chlamyphoridae, Cricetidae, Dasypodidae, Dasyproctidae, Didelphidae, Echimyidae, Emballonuridae, Erethizontidae, Felidae, Leporidae, Mephitidae, Molossidae, Mustelidae, Myrmecophagidae, Noctilionidae, Phyllostomidae, Procyonidae, Sciuridae, Tapiridae, Tayassuidae, Thyropteridae, Trichechidae, Vespertilionidae)
+
+#summary(arsenal::comparedf(genus, genus_family, by = 'genus')) # comparando dataframes
+
+family <- sort(unique(genus_family$family))
 family <- as.data.frame(family)
 
 # order ----
@@ -580,45 +563,37 @@ data_modif$order[data_modif$order == "notPrecise"] <- ""
 data_modif$order[data_modif$order == "Precise"] <- ""
 
 family$order <- NA
+family
+Primates <- family %>% filter(family == 'Atelidae' | family == 'Callitrichidae' | family == 'Cebidae')
+Primates$order <- 'Primates'
+Carnivora <- family %>% filter(family == 'Canidae' | family == 'Felidae' | family == 'Mustelidae' | family == 'Procyonidae' | family == 'Felidae' | family == 'Mephitidae')
+Carnivora$order <- 'Carnivora'
+Pilosa <- family %>% filter(family == 'Bradypodidae' | family == 'Myrmecophagidae')
+Pilosa$order <- 'Pilosa'
+Rodentia <- family %>% filter(family == 'Caviidae' | family == 'Cricetidae' | family == 'Dasyproctidae' | family == 'Echimyidae' | family == 'Erethizontidae' | family == 'Sciuridae')
+Rodentia$order <- 'Rodentia'
+Cetartiodactyla <- family %>% filter(family == 'Cervidae' | family == 'Tayassuidae')
+Cetartiodactyla$order <- 'Cetartiodactyla'
+Cingulata <- family %>% filter(family == 'Chlamyphoridae' | family == 'Dasypodidae')
+Cingulata$order <- 'Cingulata'
+Didelphimorphia <- family %>% filter(family == 'Didelphidae')
+Didelphimorphia$order <- 'Cingulata'
+Chiroptera <- family %>% filter(family == 'Emballonuridae' | family == 'Molossidae' | family == 'Noctilionidae' | family == 'Phyllostomidae' | family == 'Thyropteridae' | family == 'Vespertilionidae')
+Chiroptera$order <- 'Chiroptera'
+Lagomorpha <- family %>% filter(family == 'Leporidae')
+Lagomorpha$order <- 'Lagomorpha'
+Perissodactyla <- family %>% filter(family == 'Tapiridae')
+Perissodactyla$order <- 'Perissodatyla'
+Sirenia <- family %>% filter(family == 'Trichechidae')
+Sirenia$order <- 'Sirenia'
 
-family$order[1] <- "Primates"
-family$order[2] <- "Pilosa"
-family$order[3] <- "Primates"
-family$order[4] <- "Carnivora"
-family$order[5] <- "Rodentia"
-family$order[6] <- "Primates"
-family$order[7] <- "Cetartiodactyla"
-family$order[8] <- "Cingulata"
-family$order[9] <- "Rodentia"
-family$order[10] <- "Cingulata"
-family$order[11] <- "Rodentia"
-family$order[12] <- "Didelphimorphia"
-family$order[13] <- "Rodentia"
-family$order[14] <- "Chiroptera"
-family$order[15] <- "Rodentia"
-family$order[16] <- "Carnivora"
-family$order[17] <- "Lagomorpha"
-family$order[18] <- "Carnivora"
-family$order[19] <- "Chiroptera"
-family$order[20] <- "Carnivora"
-family$order[21] <- "Pilosa"
-family$order[22] <- "Chiroptera"
-family$order[23] <- "Chiroptera"
-family$order[24] <- "Chiroptera"
-family$order[25] <- "Carnivora"
-family$order[26] <- "Rodentia"
-family$order[27] <- "Perissodactyla"
-family$order[28] <- "Cetartiodactyla"
-family$order[29] <- "Chiroptera"
-family$order[30] <- "Sirenia"
-family$order[31] <- "Chiroptera"
-
+order <- bind_rows(Primates, Carnivora, Pilosa, Rodentia, Cetartiodactyla, Cingulata, Didelphimorphia, Chiroptera, Lagomorpha, Perissodactyla, Sirenia)
 # Taxon ID ----
 taxon <- merge(accep_sp, species, by = 'scientificName')
-taxon <- merge(taxon, genus, by = 'genus')
-taxon <- merge(taxon, family, by = 'family')
+taxon <- merge(taxon, genus_family, by = 'genus')
+taxon <- merge(taxon, order, by = 'family')
 taxon <- taxon[, c('order', 'family', 'genus', 'acceptedNameUsage', 'scientificName')]
-
+View(taxon)
 data_sp_less <- data_modif[1:29]
 data_sp_less[30] <- data_modif[34]
 data_modif <- merge(data_sp_less, taxon, by = 'scientificName')
@@ -956,3 +931,7 @@ data_modif <- rbind(data_modif, correto_latlong)
 View(data_modif)
 
 write_csv(data_modif, 'data-clean.csv')
+
+
+
+
