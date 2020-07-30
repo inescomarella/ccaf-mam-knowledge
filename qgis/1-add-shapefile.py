@@ -11,16 +11,25 @@ path_to_corredores_layer = "/home/ines/tcc-ccma/maps/MMA/corredores_ppg7/corredo
 
 # The format is:
 # vlayer = QgsVectorLayer(data_source, layer_name, provider_name)
-brasil_uf_layer = QgsVectorLayer(path_to_brasil_uf_layer, "Brazil map", "ogr")
+brasil_uf_layer = QgsVectorLayer(path_to_brasil_uf_layer, "brazil_map", "ogr")
 if not brasil_uf_layer.isValid():
     print("Layer failed to load!")
 else:
     QgsProject.instance().addMapLayer(brasil_uf_layer)
 
-corredores_layer = QgsVectorLayer(path_to_corredores_layer, "Corridors map", "ogr")
+corredores_layer = QgsVectorLayer(path_to_corredores_layer, "corridors_map", "ogr")
 if not corredores_layer.isValid():
     print("Layer failed to load!")
 else:
     QgsProject.instance().addMapLayer(corredores_layer)
 
+from qgis.core import *
+from qgis.gui import *
+
+# Setting Coordinate Reference System do cooredores_layer
+
+crs = corredores_layer.crs()
+crs.createFromId(4326)
+corredores_layer.setCrs(crs)
+QgsProject.instance().addMapLayer(corredores_layer)
 
