@@ -1,18 +1,19 @@
-##################
-####### Para fazer
+######################### 
+### Para fazer ##########
 
 #2. Padronizar as cidades
 #3. Padronizar as reservas
 #
-##################
+##########################
+
+library(tidyverse)
+library(CoordinateCleaner)
+library(lubridate)
+library(biogeo)
 
 setwd('./data')
 
-library("tidyverse")
-library("CoordinateCleaner")
-library("lubridate")
-
-
+# Base de dados
 data_raw <- read.csv("data-raw.csv")
 glimpse(data_raw)
 
@@ -26,23 +27,31 @@ filter(data_modif, data_modif$basisOfRecord == "S")
 # datasetName -----
 unique(data_modif$datasetName)
 
-# Removendo caracteres especiais
+# Removendo caracteres especiais para evitar bugs
 data_modif$data_modifetName <- str_replace_all(data_modif$datasetName, "[^[:alnum:]]", "")
 
-data_modif <- data_modif[!(str_detect(data_modif$datasetName, "Lima  F   Beca  G   Muylaert  R L   Jenkins  C N   Perilli  M L L   Paschoal  A M O   Massara  R L   Paglia  A P   Chiarello  A G   Graipel  M E   Cherem  J J   Regolin  A L   Oliveira Santos  L G R   Brocardo  C R   Paviolo  A   Di Bitetti  M S   Scoss  L M   Rocha  F L   Fusco Costa  R   Rosa  C A   Da Silva  M X   Hufnagell  L   Santos  P M   Duarte  G T   Guimarães  L N   Bailey  L L   Rodrigues  F H G   Cunha  H M   Fantacini  F M   Batista  G O   Bogoni  J A   Tortato  M A   Luiz  M R   Peroni  N   De Castilho  P V   Maccarini  T B   Filho  V P   Angelo  C D   Cruz  P   Quiroga  V   Iezzi  M E   Varela  D   Cavalcanti  S M C   Martensen  A C   Maggiorini  E V   Keesen  F F   Nunes  A V   Lessa  G M   Cordeiro Estrela  P   Beltrão  M G   De Albuquerque  A C F   Ingberman  B   Cassano  C R   Junior  L C   Ribeiro  M C  and Galetti  M   2017   ATLANTIC CAMTRAPS  a data_modifet of medium and large terrestrial mammal communities in the Atlantic Forest of South America  Ecology  98  2979 2979  doi 10 1002 ecy 1998")), ] # removendo registros desse data_modifet pois contém muitos registros errados
+# Rremovendo registros desse dataset pois contém muitos registros errados
+data_modif <- data_modif[!(str_detect(data_modif$datasetName, "Lima  F   Beca  G   Muylaert  R L   Jenkins  C N   Perilli  M L L   Paschoal  A M O   Massara  R L   Paglia  A P   Chiarello  A G   Graipel  M E   Cherem  J J   Regolin  A L   Oliveira Santos  L G R   Brocardo  C R   Paviolo  A   Di Bitetti  M S   Scoss  L M   Rocha  F L   Fusco Costa  R   Rosa  C A   Da Silva  M X   Hufnagell  L   Santos  P M   Duarte  G T   Guimarães  L N   Bailey  L L   Rodrigues  F H G   Cunha  H M   Fantacini  F M   Batista  G O   Bogoni  J A   Tortato  M A   Luiz  M R   Peroni  N   De Castilho  P V   Maccarini  T B   Filho  V P   Angelo  C D   Cruz  P   Quiroga  V   Iezzi  M E   Varela  D   Cavalcanti  S M C   Martensen  A C   Maggiorini  E V   Keesen  F F   Nunes  A V   Lessa  G M   Cordeiro Estrela  P   Beltrão  M G   De Albuquerque  A C F   Ingberman  B   Cassano  C R   Junior  L C   Ribeiro  M C  and Galetti  M   2017   ATLANTIC CAMTRAPS  a data_modifet of medium and large terrestrial mammal communities in the Atlantic Forest of South America  Ecology  98  2979 2979  doi 10 1002 ecy 1998")), ] 
 
 # language -----
 unique(data_modif$language)
 
 # institutionCode -----
 unique(data_modif$institutionCode)
+
+# Mudando formato para evitar bug
 data_modif$institutionCode <- as.character(data_modif$institutionCode)
+
+# Padronizando para sigla
 data_modif$institutionCode[data_modif$institutionCode == "Berkeley Natural History Museum"] <- "BNHM"
 
 # collectionCode -----
 unique(data_modif$collectionCode)
 
+# Mudando formato para evitar bug
 data_modif$collectionCode <- as.character(data_modif$collectionCode)
+
+# Padronizando nomes
 data_modif$collectionCode[data_modif$collectionCode == "Coleção de Mamíferos  do Museu Nacional (MN)"] <- "MN - Mammal Collection"
 data_modif$collectionCode[data_modif$collectionCode == "Cole��o de Mam�feros, Universidade Estadual de Santa Cruz (UESC), Ilh�us, BA, Brazil"] <- "UESC - Mammal Collection"
 data_modif$collectionCode[data_modif$collectionCode == "Cole��o Adriano L�cio Peracchi (ALP), Universidade Federal Rural do Rio de Janeiro, Serop�dica, RJ, Brazil"] <- "UFRRJ - ALP Collection"
@@ -51,13 +60,15 @@ data_modif$collectionCode[data_modif$collectionCode == "Museum of Vertebrate Zoo
 data_modif$collectionCode[data_modif$collectionCode == "Not located"] <- ""
 
 
-#data_modif$collectionCode <- str_replace_all(data_modif$collectionCode, "[^[:alnum:]]", " ")
+#data_modif$collectionCode <- str_replace_all(data_modif$collectionCode, "[^[:alnum:]]", " ") #substituindo caracteres especiais por espaço
 
 # reference -----
 unique(data_modif$reference)
+
+# Mudando formato para evitar bug
 data_modif$reference <- as.character(data_modif$reference)
 
-data_modif %>% filter(str_detect(reference, "entrevista"))
+# Padronizando preenchimento da coluna
 data_modif$reference[data_modif$reference == "Foi enviado um questionário sobre registros de presença de mamíferos para a Unidade de Conservação. Responsável pelo preenchimento: Sérgio Fernandes Freitas"] <- "S. F. Freitas, personal communication"
 data_modif$reference[data_modif$reference == "Foi enviado um questionário sobre registros de presença de mamíferos para a Unidade de Conservação. Responsável pelo preenchimento: Sheila Rancura"] <- "S. Rancura, personal communication"
 data_modif$reference[data_modif$reference == "Foi enviado um questionário sobre registros de presença de mamíferos para a Unidade de Conservação. Responsável pelo preenchimento: Osmar Borges"] <- "O. Borges, personal communication"
@@ -91,6 +102,8 @@ data_modif$reference[data_modif$reference == "Fábio Falcão. 2011. Entrevista f
 
 # typeOfPublication -----
 unique(data_modif$typeOfPublication)
+
+# Padronizando coluna
 data_modif$typeOfPublication[data_modif$typeOfPublication == "Unpublish"] <- "Unpublished"
 
 # catalogNumber -----
@@ -101,14 +114,22 @@ unique(data_modif$recordedBy)
 
 # fieldNumber -----
 unique(data_modif$fieldNumber)
+
+# Mudando formato para evitar bug
 data_modif$fieldNumber <- as.character(data_modif$fieldNumber)
+
+# Padronizando coluna
 data_modif$fieldNumber[data_modif$fieldNumber == "?"] <- " "
 data_modif$fieldNumber[data_modif$fieldNumber == " Daniela Rossoni"] <- " "
 data_modif$fieldNumber[data_modif$fieldNumber == " Valéria Fagundes"] <- " "
 
 # preparations -----
 unique(data_modif$preparations)
+
+# Mudando formato para evitar bug
 data_modif$preparations <- as.character(data_modif$preparations)
+
+# Padronizando coluna
 data_modif$preparations[data_modif$preparations == "pele"] <- "Skin"
 data_modif$preparations[data_modif$preparations == "skin, study"] <- "Skin"
 data_modif$preparations[data_modif$preparations == "skin (dry)"] <- "Skin"
@@ -155,35 +176,64 @@ unique(data_modif$eventDate)
 unique(data_modif$eventYear)
 
 # Corrigindo as data_modif no formato ano-mes-dia
-data_trace <- data_modif %>% filter(str_detect(eventYear, "[-]")) # separando as linhas erradas
-year_trace <- data_trace$eventYear # separando a coluna eventYear
+
+# separando as linhas erradas
+data_trace <- data_modif %>% filter(str_detect(eventYear, "[-]")) 
+
+# separando a coluna eventYear
+year_trace <- data_trace$eventYear 
 year_trace <- as.data.frame(year_trace)
-year_trace_sep <- format(as.Date(year_trace$year_trace, format = "%Y-%m-%d"), "%Y") # extraindo o ano das data_modif
+
+# extraindo o ano das data_modif
+year_trace_sep <- format(as.Date(year_trace$year_trace, format = "%Y-%m-%d"), "%Y") 
 year_trace_sep <- as.data.frame(year_trace_sep)
-data_trace$eventYear <- year_trace_sep$year_trace_sep # retornando os anos corrigidos para a coluna
 
-to_remove <- data_modif %>% filter(str_detect(eventYear, "[-]")) # separando as linhas erradas
-data_trace_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) # removendo as linhas erradas
-data_modif  <- rbind(data_trace_less, data_trace) # adicionando as linhas corrigidas
+# retornando os anos corrigidos para a coluna
+data_trace$eventYear <- year_trace_sep$year_trace_sep 
 
+# separando as linhas erradas
+to_remove <- data_modif %>% filter(str_detect(eventYear, "[-]")) 
+
+# removendo as linhas erradas
+data_trace_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) 
+
+# adicionando as linhas corrigidas
+data_modif  <- rbind(data_trace_less, data_trace) 
+
+# confirmando os tamanhos das tabelas
 nrow(data_modif)
-nrow(data_trace_less) + nrow(data_trace) # confirmando os tamanhos das tabelas
+nrow(data_trace_less) + nrow(data_trace) 
 
 # Corrigindo as data_modif no formato ano/ano
-data_bar <- data_modif %>% filter(str_detect(eventYear, "[/]")) # separando as linhas erradas
-year_bar <- data_bar$eventYear # separando a coluna eventYear
+# separando as linhas erradas
+data_bar <- data_modif %>% filter(str_detect(eventYear, "[/]")) 
+
+# separando a coluna eventYear
+year_bar <- data_bar$eventYear 
 year_bar <- as.data.frame(year_bar)
-year_bar_sep <- separate(data = year_bar, col = year_bar, into = c("A", "B"), sep = "[/]") # separando primeiro/ultimo ano
-year_bar_correct <- year_bar_sep$B # retirando o primeiro ano
+
+# separando primeiro/ultimo ano em duas colunas
+year_bar_sep <- separate(data = year_bar, col = year_bar, into = c("A", "B"), sep = "[/]") 
+
+# retirando o primeiro ano
+year_bar_correct <- year_bar_sep$B 
 year_bar_correct <- as.data.frame(year_bar_correct)
-data_bar$eventYear <- year_bar_correct$year_bar_correct # retornando os anos corrigidos para a coluna
 
-to_remove <- data_modif %>% filter(str_detect(eventYear, "[/]")) # separando as linhas erradas
-data_bar_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) # removendo as linhas erradas
-data_modif  <- rbind(data_bar_less, data_bar) # adicionando as linhas corrigidas
+# retornando os anos corrigidos para a coluna
+data_bar$eventYear <- year_bar_correct$year_bar_correct 
 
+# separando as linhas erradas
+to_remove <- data_modif %>% filter(str_detect(eventYear, "[/]")) 
+
+# removendo as linhas erradas
+data_bar_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) 
+
+# adicionando as linhas corrigidas
+data_modif  <- rbind(data_bar_less, data_bar) 
+
+# confirmando os tamanhos das tabelas
 nrow(data_modif)
-nrow(data_bar) + nrow(data_bar_less) # confirmando os tamanhos das tabelas
+nrow(data_bar) + nrow(data_bar_less) 
 
 # country -----
 unique(data_modif$country)
@@ -192,6 +242,8 @@ data_modif$country <- "Brazil"
 # stateProvince -----
 unique(data_modif$stateProvince)
 data_modif$stateProvince <- as.character(data_modif$stateProvince)
+
+# Padronizando preenchimento da coluna
 data_modif$stateProvince[data_modif$stateProvince == "Espírito Santo"] <- "Espirito Santo"
 data_modif$stateProvince[data_modif$stateProvince == "ES"] <- "Espirito Santo"
 data_modif$stateProvince[data_modif$stateProvince == "Espiríto Santo"] <- "Espirito Santo"
@@ -205,6 +257,8 @@ unique(data_modif$county)
 # UC ----
 unique(data_modif$UC)
 data_modif$UC <- as.character(data_modif$UC)
+
+# Padronizando preenchimento da coluna
 data_modif$UC[data_modif$UC == "yes"] <- "Yes"
 data_modif$UC[data_modif$UC == "no"] <- "No"
 data_modif$UC[data_modif$UC == "Parque Estadual da Fonte Grande"] <- "Yes"
@@ -213,6 +267,8 @@ data_modif$UC[is.na(data_modif$UC)] <- ""
 # georeferencePrecision ----
 unique(data_modif$georeferencePrecision)
 data_modif$georeferencePrecision <- as.character(data_modif$georeferencePrecision)
+
+# Padronizando preenchimento da coluna
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "precise"] <- "Precise"
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "localidade"] <- "Precise"
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Localidade"] <- "Precise"
@@ -222,7 +278,7 @@ data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Not precis
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "[no data]"] <- ""
 
 # scientificName ----
-# corrigindo o nome da coluna
+# corrigindo o nome da coluna 'scientificName'
 col_names <- colnames(data_modif)
 col_names[34] <- "scientificName"
 colnames(data_modif) <- col_names
@@ -230,12 +286,16 @@ colnames(data_modif) <- col_names
 # Removendo caracteres especiais
 data_modif$scientificName <- str_replace_all(data_modif$scientificName, "[^[:alnum:]]", " ")
 
-# Removendo ponto em espécie tipo Genero.epiteto
 data_modif$scientificName <- as.character(data_modif$scientificName)
-data_modif$scientificName <- gsub("[.]", " ", data_modif$scientificName) # corrigido nomes separados por ponto
-data_modif <- data_modif[!is.na(data_modif$scientificName), ] #removendo registros sem espécies
-data_modif <- data_modif[!(str_detect(data_modif$scientificName, "sp.")), ] # removendo registros sem ID da espécie
 
+# Corrigindo nome científico de espécie tipo 'Genero.epiteto'
+data_modif$scientificName <- gsub("[.]", " ", data_modif$scientificName)
+
+# Removendo registros sem espécie
+data_modif <- data_modif[!is.na(data_modif$scientificName), ] 
+data_modif <- data_modif[!(str_detect(data_modif$scientificName, "sp.")), ] # ou só a nível de gênero
+
+# Registros para sere removidos com base na espécie
 to_remove <- c("DD", 
                "EN", 
                "NT", 
@@ -373,14 +433,12 @@ data_modif$scientificName[data_modif$scientificName == "Trinomys miraptanga"] <-
 data_modif$scientificName[data_modif$scientificName == "Calicebus personatus"] <- "Callicebus personatus"
 data_modif$scientificName[data_modif$scientificName == "Guerlinguetus  aestuans"] <- "Guerlinguetus aestuans"
 data_modif$scientificName[data_modif$scientificName == "Micoureus  paraguayanus"] <- "Micoureus paraguayanus"
-
-####
 data_modif$scientificName[data_modif$scientificName == "Sapajus libidinosus libidinosus"] <- "Sapajus libidinosus"
 data_modif$scientificName[data_modif$scientificName == "Peropteryx cf. kappleri"] <- "Peropteryx kappleri"
 data_modif$scientificName[data_modif$scientificName == "Peropteryx trinitatis trinitatis"] <- "Peropteryx trinitatis"
 data_modif$scientificName[data_modif$scientificName == "Sciurus alphonsei alphonsei"] <- "Sciurus alphonsei"
-###
 
+# Lista de todas as espécies registradas
 species <- sort(unique(data_modif$scientificName))
 species <- as.data.frame(species)
 colnames(species) <- "scientificName"
@@ -391,6 +449,7 @@ accep_sp <- as.data.frame(accep_sp)
 colnames(accep_sp) <- "scientificName"
 accep_sp$acceptedNameUsage <- accep_sp$scientificName # assumindo que a maioria dos nomes ainda é válido
 
+# Corrigindo sinonimias e adotando nomenclatura mais recente
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Akodon gr. cursor"] <- "Akodon cursor"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Alouatta guariba clamitans"] <- "Alouatta clamitans"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Alouatta guariba guariba"] <- "Alouatta guariba"
@@ -437,19 +496,11 @@ accep_sp$acceptedNameUsage[accep_sp$scientificName == "Mazama simplicicornis"] <
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tamandua tetradactyla tetradactyla"] <- "Tamandua tetradactyla"
 accep_sp$acceptedNameUsage[accep_sp$scientificName == "Tapirus americanus"] <- "Tapirus terrestris"
 
-#Cebus apella #                      
-#Cebus canthosternos #
-#Cebus flavius #                     
-#Cebus frontatus #
-#Cebus libidinosus #                  
-#Cebus nigritus #
-#Cebus nigritus robustus #            
-#Cebus variegatus #
-#Cebus xanthosternos #
-
 # genus -----
-
+# Coluna gênero a partir da primeira palavra da coluna com nome atual das espécies
 accep_sp$genus <- word(accep_sp$acceptedNameUsage, 1)
+
+# Lista dos gêneros registrados
 genus <- unique(word(accep_sp$acceptedNameUsage, 1))
 genus <- as.data.frame(genus)
 
@@ -457,7 +508,7 @@ genus <- as.data.frame(genus)
 genus$family <- NA
 colnames(genus) <- c("genus", "family")
 
-
+# Identificação das famílias dos gêneros
 Atelidae <- genus %>% filter(genus == "Alouatta" | genus == "Ateles" | genus == "Brachyteles")
 Atelidae$family <- 'Atelidae'
 
@@ -549,10 +600,12 @@ Trichechidae$family <- 'Trichechidae'
 Vespertilionidae <- genus %>% filter(genus == 'Rhogeessa' | genus == 'Myotis' | genus == 'Eptesicus' | genus == 'Histiotus' | genus == 'Lasiurus')
 Vespertilionidae$family <- 'Vespertilionidae'
 
+# Unindo as listas de famílias e gêneros numa única tabela
 genus_family <- bind_rows(Atelidae, Bradypodidae, Callitrichidae, Caviidae, Canidae, Cebidae, Cervidae, Chlamyphoridae, Cricetidae, Dasypodidae, Dasyproctidae, Didelphidae, Echimyidae, Emballonuridae, Erethizontidae, Felidae, Leporidae, Mephitidae, Molossidae, Mustelidae, Myrmecophagidae, Noctilionidae, Phyllostomidae, Procyonidae, Sciuridae, Tapiridae, Tayassuidae, Thyropteridae, Trichechidae, Vespertilionidae)
 
 #summary(arsenal::comparedf(genus, genus_family, by = 'genus')) # comparando dataframes
 
+# Lista com todas as famílias registradas
 family <- sort(unique(genus_family$family))
 family <- as.data.frame(family)
 
@@ -563,7 +616,8 @@ data_modif$order[data_modif$order == "notPrecise"] <- ""
 data_modif$order[data_modif$order == "Precise"] <- ""
 
 family$order <- NA
-family
+
+# Identificação das ordens das famílias
 Primates <- family %>% filter(family == 'Atelidae' | family == 'Callitrichidae' | family == 'Cebidae')
 Primates$order <- 'Primates'
 Carnivora <- family %>% filter(family == 'Canidae' | family == 'Felidae' | family == 'Mustelidae' | family == 'Procyonidae' | family == 'Felidae' | family == 'Mephitidae')
@@ -587,26 +641,31 @@ Perissodactyla$order <- 'Perissodatyla'
 Sirenia <- family %>% filter(family == 'Trichechidae')
 Sirenia$order <- 'Sirenia'
 
+# Unindo as listas de famílias e gêneros numa única tabela
 order <- bind_rows(Primates, Carnivora, Pilosa, Rodentia, Cetartiodactyla, Cingulata, Didelphimorphia, Chiroptera, Lagomorpha, Perissodactyla, Sirenia)
+
 # Taxon ID ----
+
+# Unindo as listas com os dados taxonômicos
 taxon <- merge(accep_sp, species, by = 'scientificName')
 taxon <- merge(taxon, genus_family, by = 'genus')
 taxon <- merge(taxon, order, by = 'family')
 taxon <- taxon[, c('order', 'family', 'genus', 'acceptedNameUsage', 'scientificName')]
-View(taxon)
+
 data_sp_less <- data_modif[1:29]
 data_sp_less[30] <- data_modif[34]
+
+# Passando dados taxonomicos para a planilha principal
 data_modif <- merge(data_sp_less, taxon, by = 'scientificName')
 
-# Reordenando as colunas
+# Reordenando as colunas da planilha principal
 data_modif <- data_modif[, c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 1)]
 
 # Corrigindo as datas -----
 # publicationYear -----
 unique(data_modif$PublicationYear)
 
-
-#Corrigindo as datas de acordo com a referência
+# Corrigindo as datas de acordo com a referência ##### Se adicionar referência nova isso aqui tem que ser refeito
 data_modif$eventDate[data_modif$reference == unique(data_modif$reference)[2]] <- ""
 data_modif$PublicationYear[data_modif$reference == unique(data_modif$reference)[5]] <- "1999"
 data_modif$PublicationYear[data_modif$reference == unique(data_modif$reference)[10]] <- "1998"
@@ -756,11 +815,18 @@ data_modif$eventDate[data_modif$reference == unique(data_modif$reference)[227]] 
 
 # eventYear (2/2) ----
 #View(filter(data_modif, data_modif$eventYear == ""))
+
+# Separando registros sem referencia da tabela principal
 data_modif_reference_less <- data_modif %>% filter(reference == "")
+
+# Padronizando a data dos registros sem referencia
 data_modif_reference_less$eventYear <- format(as.Date(data_modif_reference_less$eventDate, format = "%m/%d/%y"), "%Y") 
 
-data_modif <- data_modif %>% filter(!reference == "") # removendo registros da tabela principal
-data_modif <- rbind(data_modif, data_modif_reference_less) # retornando os registros corrigidos
+# removendo registros sem referência da tabela principal
+data_modif <- data_modif %>% filter(!reference == "") 
+
+# retornando os registros sem referencia com as datas corrigidas
+data_modif <- rbind(data_modif, data_modif_reference_less) 
 
 # Na ausência de ano de coleta, considerar o ano de publicação
 for (i in 1:nrow(data_modif)) {
@@ -771,7 +837,6 @@ for (i in 1:nrow(data_modif)) {
 
 # Removendo registros sem ano 
 data_modif <- data_modif %>% filter(!eventYear == "") # removendo registros
-
 
 # Coordenadas geográficas -----
 View(select(data_modif, 23:27))
@@ -806,20 +871,26 @@ x_data_modif <- data_modif %>% select(verbatimLatitude, verbatimLongitude) %>% f
 utm_data_modif <- data_modif %>% filter(verbatimLatitude == "240487949 N") # separando coordenadas em UTM
 x_data_modif <- x_data_modif %>% filter(!verbatimLatitude %in% utm_data_modif$verbatimLatitude) # removendo as linhas com coordenadas em UTM
 
-# Preparando as colunas para convertes graus para decimais
+# Preparando as colunas para converter de graus para decimais
 x <- x_data_modif
+
+# Separado grau
 x <- separate(as.data.frame(x), col = verbatimLatitude, into = c("grau_lat", "verbatimLatitude"), sep = "[º]")
 x <- separate(as.data.frame(x), col = verbatimLongitude, into = c("grau_long", "verbatimLongitude"), sep = "[º]")
 
+# Retirando caracteres especiais
 x$verbatimLongitude <- str_replace_all(x$verbatimLongitude, "[[:alpha:] ]+", "")
 x$verbatimLatitude <- str_replace_all(x$verbatimLatitude, "[[:alpha:] ]+", "")
 
+# Separando minuto e segundo
 x <- separate(as.data.frame(x), col = verbatimLatitude, into = c("min_lat", "seg_lat"), sep = "[^[:alnum:]]")
 x <- separate(as.data.frame(x), col = verbatimLongitude, into = c("min_long", "seg_long"), sep = "[^[:alnum:]]")
 
+# Retirando caracteres especiais
 x$grau_lat <- str_replace_all(x$grau_lat, "[[:alpha:] ]+", "")
 x$grau_long <- str_replace_all(x$grau_long, "[[:alpha:] ]+", "")
 
+# Corrigindo alguns erros pontuais
 x$seg_lat[x$grau_lat == unique(x$grau_lat)[2]] <- "20"
 x$min_lat[x$grau_lat == unique(x$grau_lat)[2]] <- "16"
 x$grau_lat[x$grau_lat == unique(x$grau_lat)[2]] <- "18"
@@ -832,8 +903,8 @@ x$seg_lat[x$seg_lat == ""] <- "0"
 x$seg_long[x$seg_long == ""] <- "0"
 
 # Convertendo as coordenadas em graus para UTM
-lat_x <- biogeo::dms2dd(as.numeric(x$grau_lat), as.numeric(x$min_lat), as.numeric(x$seg_lat), "S")
-long_x <- biogeo::dms2dd(as.numeric(x$grau_long), as.numeric(x$min_long), as.numeric(x$seg_long), "W")
+lat_x <- dms2dd(as.numeric(x$grau_lat), as.numeric(x$min_lat), as.numeric(x$seg_lat), "S")
+long_x <- dms2dd(as.numeric(x$grau_long), as.numeric(x$min_long), as.numeric(x$seg_long), "W")
 
 coord <- data.frame(lat = as.data.frame(lat_x),
                     long = as.data.frame(long_x))
@@ -851,6 +922,8 @@ utm_data_modif <- data_modif %>% select(verbatimLatitude, verbatimLongitude, dec
 unique(utm_data_modif$geodeticDatum)
 
 d <- utm_data_modif %>% select(verbatimLatitude, verbatimLongitude)
+
+# Os calculos das coordenadas foram feitar num site (acho que IBGE)
 utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(d$verbatimLatitude)[1]] <- "-16.324448"
 utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(d$verbatimLatitude)[1]] <- "-39.121001"
 utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(d$verbatimLatitude)[2]] <- "-14.018092"
@@ -900,38 +973,38 @@ utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(d$verb
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLatitude
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLongitude
 
-#d$verbatimLatitude <- as.numeric(as.character(d$verbatimLatitude))
-#d$verbatimLongitude <- as.numeric(as.character(d$verbatimLongitude))
+# Removendo registros sem coordenadas geográfica
+data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) 
 
-#library('sp')
-#coordinates(d) <- ~verbatimLongitude + verbatimLatitude
-#sputm <- SpatialPoints(d, proj4string = CRS("+proj=utm +zone=24 +datum=SAD69"))
-#spgeo <- spTransform(sputm, CRS("+proj=longlat +datum=WGS84"))
-#coordinates(spgeo)
-data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) #removendo registros sem coordenadas geográfica
-
-# Corrigindo latitude/longitude invertida ------
 to_remove <- data_modif %>% filter(decimalLatitude == "")
 data_modif <- anti_join(data_modif, to_remove)
 
+# Corrigindo latitude/longitude trocada ------
 
+# Separando dados trocados
 corrigir_latlong <- data_modif %>% filter(decimalLongitude < -30)
 long <- corrigir_latlong$decimalLatitude
 lat <- corrigir_latlong$decimalLongitude
 
+# Corrigindo a troca
 correto_latlong <- corrigir_latlong
 correto_latlong$decimalLatitude <- lat
 correto_latlong$decimalLongitude <- long
 
+# Removendo registros com os dados trocados
 data_modif <- anti_join(data_modif, corrigir_latlong)
+
+# Adicionando registros com os dados corrigidos
 data_modif <- rbind(data_modif, correto_latlong)
 
-
-################################################################################################################
+# Checando
 View(data_modif)
 
+# Exportando -----
+
+# Exportando tabela padronizada
 write_csv(data_modif, 'data-clean.csv')
 
-
-
+# Exportando lista das espécies registradas
+write_csv(as.data.frame(unique(data_modif$acceptedNameUsage)), 'species.csv') #lista de espécies
 
