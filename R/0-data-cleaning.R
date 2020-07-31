@@ -59,7 +59,6 @@ data_modif$collectionCode[data_modif$collectionCode == "Laboratorio de Diversida
 data_modif$collectionCode[data_modif$collectionCode == "Museum of Vertebrate Zoology"] <- "MVZ"
 data_modif$collectionCode[data_modif$collectionCode == "Not located"] <- ""
 
-
 #data_modif$collectionCode <- str_replace_all(data_modif$collectionCode, "[^[:alnum:]]", " ") #substituindo caracteres especiais por espaço
 
 # reference -----
@@ -514,7 +513,6 @@ Atelidae$family <- 'Atelidae'
 
 Bradypodidae <- genus %>% filter(genus == "Bradypus")
 Bradypodidae$family <- 'Bradypodidae'
-
 
 Callitrichidae <- genus %>% filter(genus == "Callithrix" | genus == 'Leontopithecus')
 Callitrichidae$family <- 'Callitrichidae'
