@@ -998,6 +998,9 @@ data_modif <- rbind(data_modif, correto_latlong)
 # Checando
 View(data_modif)
 
+# Removing entrevistas ----
+data_modif <- data_modif %>% filter(!str_detect(typeOfPublication, 'Unpublished'))
+
 # Exportando -----
 
 # Exportando tabela padronizada
