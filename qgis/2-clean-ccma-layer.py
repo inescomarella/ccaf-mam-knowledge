@@ -17,20 +17,24 @@ QgsProject.instance().addMapLayer(corridors_mem_layer)
 corridors_mem_layer.startEditing()
 res = corridors_mem_layer.dataProvider().deleteFeatures([1])
 
-# Path to the clipped output
-path_to_ccma_clipped_output = "/home/ines/tcc-ccma/outputs/ccma-clipped.shp"
-
 # Input layer to clip
 ccma_layer = QgsProject.instance().mapLayersByName("ccma")[0]
 
 # Overlay layer to clip
 brazil_layer = QgsProject.instance().mapLayersByName("brazil_map")[0]
 
+# Path to the clipped output
+output = "/home/ines/tcc-ccma/outputs/ccma-clipped.shp"
+
+params = {'INPUT': ccma_layer,
+            'OVERLAY': brazil_layer,
+            'OUTPUT': output}
+
 # Clip funtion
-processing.run("qgis:clip", {'INPUT': ccma_layer,'OVERLAY': brazil_layer, 'OUTPUT': path_to_ccma_clipped_output})
+processing.run("qgis:clip", params)
 
 # Clipped layer
-ccma_clipped_layer = QgsVectorLayer(path_to_ccma_clipped_output, "ccma_clipped", "ogr")
+ccma_clipped_layer = QgsVectorLayer(output, "ccma_clipped", "ogr")
 
 # Add clipped layer
 QgsProject.instance().addMapLayer(ccma_clipped_layer)
