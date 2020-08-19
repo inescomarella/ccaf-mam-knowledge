@@ -2,21 +2,7 @@ import os # This is is needed in the pyqgis console too
 from qgis.core import *
 from qgis.gui import *
 
-# Select the layer - Corredores
-ucba_layer = QgsProject.instance().mapLayersByName("ucs_ba")[0]
-ucba_feats = [feat for feat in ucba_layer.getFeatures()]
-
-# Duplicate the layer, so you can edit the memory layer
-ucba_mem_layer = QgsVectorLayer("Polygon?crs=epsg:4326", "ucsba_mem", "memory")
-ucba_mem_layer_data = ucba_mem_layer.dataProvider()
-ucba_attr = ucba_layer.dataProvider().fields().toList()
-ucba_mem_layer_data.addAttributes(ucba_attr)
-ucba_mem_layer.updateFields()
-ucba_mem_layer_data.addFeatures(ucba_feats)
-
-QgsProject.instance().addMapLayer(ucba_mem_layer)
-
-# Select the layer - Corredores
+# Select the layer
 overlay_layer = QgsProject.instance().mapLayersByName("ccma_clipped")[0]
 ucba_layer = QgsProject.instance().mapLayersByName("ucs_ba")[0]
 ucst_layer = QgsProject.instance().mapLayersByName("ucs_todas")[0]
@@ -53,3 +39,8 @@ ucsf_clipped_layer = QgsVectorLayer(ucsf_output, "ucs_federais_clipped", "ogr")
 QgsProject.instance().addMapLayer(ucba_clipped_layer)
 QgsProject.instance().addMapLayer(ucst_clipped_layer)
 QgsProject.instance().addMapLayer(ucsf_clipped_layer)
+
+# Remove old layer
+QgsProject.instance().removeMapLayer(ucba_layer)
+QgsProject.instance().removeMapLayer(ucst_layer)
+QgsProject.instance().removeMapLayer(ucsf_layer)

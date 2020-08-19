@@ -5,9 +5,9 @@ from qgis.gui import *
 # get the path to the shapefile e.g. /home/project/data/ports.shp
 path_to_ucf_layer = "/home/ines/tcc-ccma/maps/ICMBio/UC_fed_julho_2019/UC_fed_julho_2019.shp"
 path_to_uce_es_layer = "/home/ines/tcc-ccma/maps/IEMA/20190510_UCs_estaduais090519shp/UCs_Estaduais190418.shp"
-path_to_uc_ba_layer = "/home/ines/tcc-ccma/maps/ICMBio/BA/BA.shp"
+path_to_uc_ba_layer = "/home/ines/tcc-ccma/maps/ICMBio/BA/BA-geometry-fixed.shp"
 path_to_uc_es_layer = "/home/ines/tcc-ccma/maps/ICMBio/ES/ES.shp"
-path_to_ucs_layer = "/home/ines/tcc-ccma/maps/MMA/ucstodas/ucstodas.shp"
+path_to_ucs_layer = "/home/ines/tcc-ccma/maps/MMA/ucstodas/ucstodas-geometry-fixed.shp"
 
 # The format is:
 # vlayer = QgsVectorLayer(data_source, layer_name, provider_name)
