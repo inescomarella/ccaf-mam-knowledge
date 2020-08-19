@@ -19,3 +19,6 @@ params = {
 processing.run("qgis:joinbylocationsummary", params)
 output_layer = QgsVectorLayer(output, "grid_joined_unique", "ogr")
 QgsProject.instance().addMapLayer(output_layer)
+
+# Remove layers
+QgsProject.instance().removeMapLayer(layer1)
