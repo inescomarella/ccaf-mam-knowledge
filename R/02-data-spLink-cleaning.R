@@ -1,4 +1,4 @@
-x <- c("rgdal", "raster", "rgeos", "tidyverse", "spatialEco", "rocc")
+x <- c("rgdal", "tidyverse", "rocc")
 lapply(x, library, character.only = TRUE)
 
 setwd('./data')
