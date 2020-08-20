@@ -3,37 +3,57 @@ lapply(x, library, character.only = TRUE)
 
 setwd('./data')
 
-# Get occurence data from GBIF 1500-2020
-data_downloaded <- data.frame()
-for (i in seq(1500, 2020, 1))
-  data_downloaded <-
-  bind_rows(data_downloaded,
-    occ_data(country = 'BR', #apenas no BR
-      hasCoordinate = TRUE, #com coordenadas geograficas
-      classKey = '359', #mamiferos
-      year = i)$data) #apenas os dados
+# Solicitando dados de ocorrencia de mamiferos no anos 1500-2020
+# Acessar o site do GBIF e baixar
+res <- occ_download(user = 'inescomarella',
+                    pwd = '*****',
+                    email = 'inesmottacomarella@gmail.com',
+                    format = "SIMPLE_CSV",
+                    pred('country', 'BR'),
+                    pred('taxonKey', 359),
+                    pred("hasCoordinate", TRUE),
+                    pred_gte("year", 1500), #greaterThanOrEquals
+                    pred_lte("year", 2020) #lessThanOrEquals
+                    )
+
+# Input
+data_downloaded <-
+  read.table(
+    './results/0042756-200613084148143.csv',
+    sep = "\t",
+    header = TRUE,
+    comment.char = "#",
+    na.strings = ".",
+    stringsAsFactors = FALSE,
+    quote = "",
+    fill = TRUE
+  )
 
 # Apenas registros no Espirito Santo e Bahia
-data_ba_es <- data_downloaded %>% filter(is.na(stateProvince) | str_detect(stateProvince, 'anto') | str_detect(stateProvince, 'ahia'))
+data_ba_es <-
+  data_downloaded %>% filter(
+    is.na(locality) |
+      str_detect(locality, 'anto') |
+      str_detect(locality, 'ahia') |
+      is.na(stateProvince) |
+      str_detect(stateProvince, 'anto') |
+      str_detect(stateProvince, 'ahia')
+  )
 
-# Removendo registros fosseis
-to_remove <- data_ba_es %>% filter(basisOfRecord == "FOSSIL_SPECIMEN")
+# Removendo registros fosseis e do iNaturalist
+to_remove <-
+  data_ba_es %>% filter(basisOfRecord == "FOSSIL_SPECIMEN" |
+                          str_detect(institutionCode, "iNaturalist"))
 data_clean <- anti_join(data_ba_es, to_remove)
 
-# Removendo colunas com códigos do GBIF
-data_clean <- select(data_clean, -ends_with("Key"))
-
-# Removendo colunas com formato incompativel
-data_clean <- select(data_clean, -c(identifiedByIDs, recordedByIDs, dynamicProperties))
-data_clean <- select(data_clean, -starts_with("http"))
-
-
-
-try <- data.frame()
-for (i in 1:ncol(data_clean))
-  print(vapply(data_clean[,i], paste, collapse = ", ", character(1L)))
-
-colnames(data_clean)
+# Identificando stateProvince
+for (i in 1:nrow(data_clean)) {
+  if (str_detect(data_clean$locality[i], 'anto'))
+    data_clean$stateProvince[i] <- 'Espirito Santo'
+  
+  if (str_detect(data_clean$locality[i], 'ahia'))
+    data_clean$stateProvince[i] <- 'Bahia'
+}
 
 # Output
 write.csv(data_clean, './data-gbif.csv')
