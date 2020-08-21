@@ -1,5 +1,5 @@
 # Path to csv file
-path_to_csv = "file:/home/ines/tcc-ccma/data/data-clean.csv?encoding=%s&delimiter=%s&xField=%s&yField=%s&crs=%s" % ("UTF-8",",", "decimalLongitude", "decimalLatitude","epsg:4326")
+path_to_csv = "file:/home/ines/tcc-ccma/data/data-all-clean.csv?encoding=%s&delimiter=%s&xField=%s&yField=%s&crs=%s" % ("UTF-8",",", "decimalLongitude", "decimalLatitude","epsg:4326")
 
 # Make a vector layer
 vlayer = QgsVectorLayer(path_to_csv,"raw_mammal_data","delimitedtext")
@@ -25,10 +25,13 @@ params = {'INPUT': layer,
 processing.run("qgis:clip", params)
 
 # Add clipped layer
-layer_clipped = QgsVectorLayer(path_to_mammal_data_clipped_output, "mammal_data", "ogr")
+layer_clipped = QgsVectorLayer(output, "mammal_data", "ogr")
 QgsProject.instance().addMapLayer(layer_clipped)
 
 # Remove raw_mammal_data
 to_be_deleted = QgsProject.instance().mapLayersByName('raw_mammal_data')[0]
 QgsProject.instance().removeMapLayer(to_be_deleted.id())
+
+# Export attribute table
+QgsVectorFileWriter.writeAsVectorFormat(layer_clipped, "/home/ines/tcc-ccma/data/data-ccma.csv", "utf-8", layer_clipped.crs(),"CSV", layerOptions = ['GEOMETRY=AS_XYZ'])
 

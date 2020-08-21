@@ -8,7 +8,7 @@ QgsProject.instance().addMapLayer(layer)
 
 # define ranges: label, lower value, upper value, color name
 # in the field named 'random' (attributes table) 
-idx = layer.fields().indexFromName('acceptedNa')
+idx = layer.fields().indexFromName('species_co')
 max = layer.maximumValue(idx)
 int = max/7
 int2 = 2*int
@@ -18,13 +18,13 @@ int5 = 5*int
 int6 = 6*int
 
 values = (
-    ('10-171', 10, int, '#FFCDD2'),
-    ('172-342', int+1, int2, '#EF9A9A'),
-    ('343-513', int2+1, int3, '#EF5350'),
-    ('514-685', int3+1, int4, '#F44226'),
-    ('686-855', int4+1, int5, '#E53935'),
-    ('911-1026', int5+1, int6, '#C62828'),
-    ('1027-1200', int6+1, max, '#B71C1C')
+    ('10-235', 10, int, '#FFCDD2'),
+    ('236-470', int+1, int2, '#EF9A9A'),
+    ('471-706', int2+1, int3, '#EF5350'),
+    ('707-941', int3+1, int4, '#F44226'),
+    ('942-1177', int4+1, int5, '#E53935'),
+    ('1178-1412', int5+1, int6, '#C62828'),
+    ('1413-1650', int6+1, max, '#B71C1C')
 )
 
 # create a category for each item in values
@@ -36,7 +36,7 @@ for label, lower, upper, color in values:
     ranges.append(rng)
 
 # create the renderer and assign it to a layer
-expression = 'acceptedNa' # field name
+expression = 'species_co' # field name
 renderer = QgsGraduatedSymbolRenderer(expression, ranges)
 layer.setRenderer(renderer)
 
