@@ -10,7 +10,7 @@ res <- occ_download(user = 'inescomarella',
                     email = 'inesmottacomarella@gmail.com',
                     format = "SIMPLE_CSV",
                     pred('country', 'BR'),
-                    pred('taxonKey', 359),
+                    pred('taxonKey', 359), #apenas mamiferos
                     pred("hasCoordinate", TRUE),
                     pred_gte("year", 1500), #greaterThanOrEquals
                     pred_lte("year", 2020) #lessThanOrEquals
