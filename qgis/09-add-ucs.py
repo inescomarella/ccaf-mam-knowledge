@@ -8,6 +8,7 @@ path_to_uce_es_layer = "/home/ines/tcc-ccma/maps/IEMA/20190510_UCs_estaduais0905
 path_to_uc_ba_layer = "/home/ines/tcc-ccma/maps/ICMBio/BA/BA-geometry-fixed.shp"
 path_to_uc_es_layer = "/home/ines/tcc-ccma/maps/ICMBio/ES/ES.shp"
 path_to_ucs_layer = "/home/ines/tcc-ccma/maps/MMA/ucstodas/ucstodas-geometry-fixed.shp"
+path_to_ucs_ma_layer = "/home/ines/tcc-ccma/maps/Dani/ucs_ma/ucs_ma-geometry-fixed.shp"
 
 # The format is:
 # vlayer = QgsVectorLayer(data_source, layer_name, provider_name)
@@ -35,6 +36,11 @@ ucs_layer = QgsVectorLayer(path_to_ucs_layer, "ucs_todas", "ogr")
 if not ucs_layer.isValid():
     print("Layer failed to load ucs_layer!")
 QgsProject.instance().addMapLayer(ucs_layer)
+
+ucsma_layer = QgsVectorLayer(path_to_ucs_ma_layer, "ucs_ma", "ogr")
+if not ucsma_layer.isValid():
+    print("Layer failed to load ucsma_layer!")
+QgsProject.instance().addMapLayer(ucsma_layer)
 
 # Setting Coordinate Reference System do cooredores_layer
 crs = ucs_layer.crs()
