@@ -7,36 +7,47 @@ setwd('./data')
 data <- read.csv("data-ccma.csv")
 
 # Ordena por ordem de ano
-data_sorted <- arrange(data, eventYear)
+data_sorted <- arrange(data, as.numeric(eventYear))
 
 # Mantem apenas o primeiro registro da especie
 earlier_register <- data_sorted[!duplicated(data_sorted$species, fromLast = FALSE),]
 
-# Anos de registro
-registered_per_year <- data.frame('year' = as.character(unique(earlier_register$eventYear)),
-                         'n.species' = "",
-                         stringsAsFactors = FALSE)
+# Mantem apenas o ultimo registro da especie
+last_register <- data_sorted[!duplicated(data_sorted$species, fromLast = TRUE),]
 
-# Adicionando numero de registros novos em cada ano
-for (i in 1:nrow(earlier_register))
-  registered_per_year$n.species[i] <- nrow(earlier_register %>% 
-                                             filter(eventYear == registered_per_year$year[i]))
+# Unindo primeiro e ultimo registro em um unico data.frame
+df <- data.frame('earlier' = earlier_register$eventYear,
+                 'last' = last_register$eventYear)
 
-years <- as.character(seq(min(earlier_register$eventYear), max(earlier_register$eventYear), 1))
+# Plotando
+plot <- ggplot(df) + 
+  geom_bar(aes(earlier, fill = 'Primeiro registro')) + 
+  geom_bar(aes(last, fill = 'Ultimo registro')) +
+  labs(y = "Número de espécies", 
+       x = "Anos",
+       fill = "") +
+  theme_linedraw() +
+  theme(legend.position = "bottom")
+
+plot
+
+# Tabela - frequencia de registros
+freq_table <- data.frame(table(earlier_register$eventYear))
+colnames(freq_table) <- c('year', 'N species')
+
+# Tabela - Sequencia completa de anos desde o primeiro registro até o último
+years <-
+  as.character(seq(
+    as.numeric(as.character(freq_table$year[1])),
+    2020,
+    1
+  ))
 registers_through_years <- data.frame('year' = years,
                                   stringsAsFactors = FALSE)
+registers_through_years <-
+  merge(registers_through_years,
+        freq_table,
+        by = 'year',
+        all.x = TRUE)
 
-registers_through_years <- merge(registers_through_years, registered_per_year, by = 'year', all.x = TRUE)
 
-# Output
-jpeg('../figs/registros-anos.jpg')
-
-barplot(
-  height = as.numeric(registers_through_years$n.species),
-  names = registers_through_years$year,
-  col = "#69b3a2",
-  horiz = F ,
-  las = 1
-)
-
-dev.off()
