@@ -1,4 +1,4 @@
-x <- c("tidyverse", "rgbif")
+x <- c("tidyverse", "rgbif", "plyr")
 lapply(x, library, character.only = TRUE)
 
 setwd('./data')
@@ -8,27 +8,33 @@ data_paper <- read.csv('data-papers.csv')
 data_splink <- read.csv('data-spLink.csv')
 data_gbif <- read.csv('data-gbif.csv')
 
-# Mudando coluna do gbif
+# Mudando colunas
 data_gbif$scientificName <- data_gbif$species
 colnames(data_gbif)[34] <- 'eventYear'
 colnames(data_splink)[11] <- 'eventYear'
 
 # Unindo dados
-data_all_raw <- plyr::rbind.fill(data_paper, data_splink, data_gbif)
+data_all_raw <- rbind.fill(data_paper, data_splink, data_gbif)
 
-# Mantendo apenas as colunas da planilha qu eelaborei
+# Mantendo apenas as colunas da planilha que elaborei
 data_all <- select(data_all_raw, colnames(data_paper))
 
 # Removendo dados sem identificação da especie
 data_all$scientificName <- as.character(data_all$scientificName)
+to_remove <- data_all %>% filter(is.na(scientificName),
+                                 str_detect(scientificName, " ") == FALSE,
+                                 str_detect(scientificName, 'sp.'))
+data_all <- anti_join(data_all, to_remove)
 data_all <- data_all %>% filter(!is.na(scientificName))
-data_all <- data_all %>% filter(!str_detect(scientificName, " ") == FALSE)
-data_all <- data_all %>% filter(!str_detect(scientificName, 'sp.'))
-data_all$scientificName <- str_replace_all(data_all$scientificName, "[.]", "") # retirando os pontos para remover especies com nomes usando caracteres especiais
-data_all <- data_all %>% filter(!str_detect(scientificName, "[[:punct:]]"))
-data_all <- data_all %>% filter(!str_detect(scientificName, "híbrido"))
 
-# Removendo especies fora da área de ocorrência
+# Retirando os pontos para remover especies com nomes usando caracteres especiais (e.g. '?')
+data_all$scientificName <- str_replace_all(data_all$scientificName, "[.]", "")
+data_all <- data_all %>% filter(!str_detect(scientificName, "[[:punct:]]"))
+
+# Retirando híbridos
+data_all <- data_all %>% filter(!str_detect(scientificName, "íbrido"))
+
+# Removendo nomes antigos de especies fora da área de ocorrência
 data_all <- data_all %>% filter(!str_detect(scientificName, "iseoargenteus"))
 data_all <- data_all %>% filter(!str_detect(scientificName, "Samiris sciurea"))
 data_all <- data_all %>% filter(!str_detect(scientificName, "azzarae"))
@@ -72,24 +78,30 @@ for (i in 1:nrow(sp_data_all))
 sp_taxon <- cbind(sp_data_all, sp_backbone)
 colnames(sp_taxon)[1] <- "Especie"
 
-sp_taxon_clean <- sp_taxon %>% select(Especie, order, family, genus, species)
+sp_taxon_clean <- sp_taxon %>% 
+  select(Especie, order, family, genus, species)
 colnames(sp_taxon_clean)[1] <- 'scientificName'
 
 # Identificando espécies não reconhecidas pelo GBIF --> assumindo o scientificName
-sp_taxon_to_correct <- sp_taxon_clean %>% filter(is.na(species)) %>% select(scientificName, order, family, genus, species)
+sp_taxon_to_correct <- sp_taxon_clean %>% 
+  filter(is.na(species)) %>% 
+  select(scientificName, order, family, genus, species)
 sp_taxon_clean <- anti_join(sp_taxon_clean, sp_taxon_to_correct)
 sp_taxon_to_correct$species <- sp_taxon_to_correct$scientificName
-sp_taxon_clean_correct <- bind_rows(sp_taxon_to_correct,sp_taxon_clean)
+sp_taxon_clean_correct <- bind_rows(sp_taxon_to_correct, sp_taxon_clean)
 
 # Identificação taxonomica das especies na tabela principal
-data_all <- data_all %>% select(-c(order, family, genus))
+data_all <- data_all %>% 
+  select(-c(order, family, genus))
 data_all_sp_added <- merge(data_all, sp_taxon_clean_correct, by = 'scientificName')
 
 # Corrigindo a ordem das colunas
-data_all_sp_added <- data_all_sp_added %>% relocate(scientificName, .after = species)
+data_all_sp_added <- data_all_sp_added %>% 
+  relocate(scientificName, .after = species)
 
 # Retirando a coluna acceptedNameUsage, assumindo a coluna species como o nome mais atual
-data_all_sp_added <- data_all_sp_added %>% select(-acceptedNameUsage)
+data_all_sp_added <- data_all_sp_added %>% 
+  select(-acceptedNameUsage)
 
 exotic_sp_list <- data.frame('species' = c('Canis lupus',
                                            'Rattus rattus',
@@ -131,10 +143,12 @@ exotic_sp_list <- data.frame('species' = c('Canis lupus',
                                            'Sapajus flavius'))
 
 # Removendo registros de especies exoticas
-data_all_sp_clean <- data_all_sp_added %>% filter(!species %in% exotic_sp_list$species)
+data_all_sp_clean <- data_all_sp_added %>% 
+  filter(!species %in% exotic_sp_list$species)
 
 # Removendo registros marinhos
-data_all_sp_clean <- data_all_sp_clean %>% filter(!str_detect(order, 'Cetacea'))
+data_all_sp_clean <- data_all_sp_clean %>% 
+  filter(!str_detect(order, 'Cetacea'))
 
 # Output
 write.csv(data_all_sp_clean, './data-all-clean.csv')

@@ -16,10 +16,10 @@ rspeciesLink(filename = 'data-spLink',
 # Input
 data_downloaded <- read.csv('./results/data-spLink.csv')
 
-# Apenas dados de mamiferos
+# Just mammal data
 data_mammal_raw <- data_downloaded %>% filter(class == 'Mammalia')
 
-# Removendo dados sem coordenada geografica
+# Remove data without geographic coordinates
 data_mammal <- data_mammal_raw %>% filter(!is.na(decimalLatitude))
 
 # Output

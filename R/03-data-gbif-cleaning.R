@@ -48,11 +48,15 @@ data_clean <- anti_join(data_ba_es, to_remove)
 
 # Identificando stateProvince
 for (i in 1:nrow(data_clean)) {
-  if (str_detect(data_clean$locality[i], 'anto'))
+  if (str_detect(data_clean$locality[i], 'anto')) {
     data_clean$stateProvince[i] <- 'Espirito Santo'
+    data_clean$locality[i] <- 'Brazil'
+  }
   
-  if (str_detect(data_clean$locality[i], 'ahia'))
+  if (str_detect(data_clean$locality[i], 'ahia')) {
     data_clean$stateProvince[i] <- 'Bahia'
+    data_clean$locality[i] <- 'Brazil'
+  }
 }
 
 # Output

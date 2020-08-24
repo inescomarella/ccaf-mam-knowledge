@@ -16,13 +16,13 @@ int5 = 5*int
 int6 = 6*int
 
 values = (
-    ('1-19', 1, int, '#FFCDD2'),
-    ('20-39', int+1, int2, '#EF9A9A'),
-    ('40-58', int2+1, int3, '#EF5350'),
-    ('59-78', int3+1, int4, '#F44226'),
-    ('79-97', int4+1, int5, '#E53935'),
-    ('98-117', int5+1, int6, '#C62828'),
-    ('118-137', int6+1, max, '#B71C1C')
+    ('1-30', 1, int, '#FFCDD2'),
+    ('31-60', int+1, int2, '#EF9A9A'),
+    ('61-90', int2+1, int3, '#EF5350'),
+    ('91-120', int3+1, int4, '#F44226'),
+    ('121-150', int4+1, int5, '#E53935'),
+    ('151-180', int5+1, int6, '#C62828'),
+    ('181-210', int6+1, max, '#B71C1C')
 )
 
 # create a category for each item in values
