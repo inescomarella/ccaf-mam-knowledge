@@ -40,4 +40,5 @@ res2 = processing.run("qgis:joinbylocationsummary", params2, feedback = feedback
 
 output_layer = QgsVectorLayer(output, "grid_joined_unique", "ogr")
 QgsProject.instance().addMapLayer(output_layer)
+
 print("Done!")
