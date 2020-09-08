@@ -30,6 +30,7 @@ params = {'INPUT': ccma_layer,
             'OVERLAY': brazil_layer,
             'OUTPUT': output}
 
+print("Running the fix clip algorithm...")
 # Clip funtion
 processing.run("qgis:clip", params)
 
@@ -39,12 +40,9 @@ ccma_clipped_layer = QgsVectorLayer(output, "ccma_clipped", "ogr")
 # Add clipped layer
 QgsProject.instance().addMapLayer(ccma_clipped_layer)
 
+print("Removing previous layers!")
 # Remove old layer
 QgsProject.instance().removeMapLayer(corridors_mem_layer)
 QgsProject.instance().removeMapLayer(corridors_layer)
 
-#to_be_deleted = QgsProject.instance().mapLayersByName('corridors_map')[0]
-#QgsProject.instance().removeMapLayer(to_be_deleted.id())
-
-#to_be_deleted = QgsProject.instance().mapLayersByName('ccma')[0]
-#QgsProject.instance().removeMapLayer(to_be_deleted.id())
+print("Done!")
