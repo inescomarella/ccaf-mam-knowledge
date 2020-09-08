@@ -5,7 +5,7 @@ Processing.initialize()
 QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
 
 # Select the layer
-mun_layer1 = QgsProject.instance().mapLayersByName("municipios_ba")[0]
+mun_layer1 = QgsProject.instance().mapLayersByName("municipios_ba_clipped")[0]
 mun_layer2 = QgsProject.instance().mapLayersByName("municipios_es")[0]
 
 uc_layer1 = QgsProject.instance().mapLayersByName("ucs_ma_clipped")[0]
@@ -17,8 +17,8 @@ uc_layer6 = QgsProject.instance().mapLayersByName("ucs_estaduais_es")[0]
 
 # Create list
 mun_layers = []
-mun_layers.append(mun_layers1)
-mun_layers.append(mun_layers2)
+mun_layers.append(mun_layer1)
+mun_layers.append(mun_layer2)
 
 uc_layers = []
 uc_layers.append(uc_layer1)
@@ -49,7 +49,7 @@ processing.run("qgis:mergevectorlayers", uc_params)
 
 # Merged layer
 mun_merged_layer = QgsVectorLayer(mun_output, "municipios_ccma", "ogr")
-uc_merged_layer = QgsVectorLayer(output, "ucs_ccma_merged", "ogr")
+uc_merged_layer = QgsVectorLayer(uc_output, "ucs_ccma_merged", "ogr")
 
 QgsProject.instance().addMapLayer(mun_merged_layer)
 QgsProject.instance().addMapLayer(uc_merged_layer)
