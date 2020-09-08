@@ -38,7 +38,7 @@ out_file_ucsma = "/home/ines/tcc-ccma/maps/Dani/ucs_ma/ucs_ma-geometry-fixed.shp
 params_ucst = {
     'INPUT': QgsVectorLayer(in_file_ucst, 'layer1', 'ogr'),
     'OUTPUT': out_file_ucst
-}
+    }
 
 params_ucba = {
     'INPUT': QgsVectorLayer(in_file_ucba, 'layer2', 'ogr'),
