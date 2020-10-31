@@ -65,3 +65,4 @@ testDispersion(num_reg_nbm_sim, alternative = 'greater') # testing overdispersio
 ggplot(data_df_std, aes(x = num_reg)) + geom_bar()
 
 
+# For details on overdispersion test check: Overdispersion, and how to deal with it in R and JAGS
