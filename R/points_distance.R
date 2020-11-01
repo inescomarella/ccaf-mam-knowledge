@@ -1,4 +1,4 @@
-x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'GISTools', 'FNN', 'vegan', 'MASS', 'DHARMa')
+x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'GISTools', 'FNN', 'vegan', 'corrplot')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
@@ -21,8 +21,6 @@ count.sp.in.polygons <- function(pts, polygons){
 }
 
 data <- read.csv('./data/data-all-clean.csv')
-grid_015 <- readOGR(dsn = './outputs', layer = 'grid_015_ucs_joined')
-grid_020 <- readOGR(dsn = './outputs', layer = 'grid_020_ucs_joined')
 grid_025 <- readOGR(dsn = './outputs', layer = 'grid_025_ucs_joined')
 grid_050 <- readOGR(dsn = './outputs', layer = 'grid_050_ucs_joined')
 inst_df <-
@@ -50,8 +48,6 @@ proj4string(data_layer) <- CRS("+proj=longlat +datum=WGS84")
 crs <- CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 data_points_spT <- spTransform(data_layer, crs)
 inst_points_spT <- spTransform(inst_layer, crs)
-grid_015_spT <- spTransform(grid_015, crs)
-grid_020_spT <- spTransform(grid_020, crs)
 grid_025_spT <- spTransform(grid_025, crs)
 grid_050_spT <- spTransform(grid_050, crs)
 
@@ -60,174 +56,112 @@ data_clipped <- intersect(data_points_spT, grid_015_spT)
 data_clipped_spT <- spTransform(data_clipped, crs)
 
 # Count registers per cell
-grid_015_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_015_spT)
-grid_020_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_020_spT)
 grid_025_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_025_spT)
 grid_050_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_050_spT)
 
 # Count species per cell
-grid_015_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_015_spT)
-grid_020_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_020_spT)
 grid_025_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_025_spT)
 grid_050_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_050_spT)
 
 # Converting objects from sf to SpatialPolygonDataFrame to get centre point using coordinates()
-grid_015_sp_counted_SPDF <- as(grid_015_sp_counted, 'Spatial')
-grid_020_sp_counted_SPDF <- as(grid_020_sp_counted, 'Spatial')
 grid_025_sp_counted_SPDF <- as(grid_025_sp_counted, 'Spatial')
 grid_050_sp_counted_SPDF <- as(grid_050_sp_counted, 'Spatial')
 
 # Grid centre point distance to nearest the institution
-dist_knnx_015 <-
-  get.knnx(coordinates(inst_points_spT), coordinates(grid_015_sp_counted_SPDF), k = 1)
-dist_knnx_020 <-
-  get.knnx(coordinates(inst_points_spT), coordinates(grid_020_sp_counted_SPDF), k = 1)
 dist_knnx_025 <-
   get.knnx(coordinates(inst_points_spT), coordinates(grid_025_sp_counted_SPDF), k = 1)
 dist_knnx_050 <-
   get.knnx(coordinates(inst_points_spT), coordinates(grid_050_sp_counted_SPDF), k = 1)
 
 # Add distance to grid attribute table
-grid_015_sp_counted$dist_inst <- as.data.frame(dist_knnx_015)$nn.dist
-grid_020_sp_counted$dist_inst <- as.data.frame(dist_knnx_020)$nn.dist
 grid_025_sp_counted$dist_inst <- as.data.frame(dist_knnx_025)$nn.dist
 grid_050_sp_counted$dist_inst <- as.data.frame(dist_knnx_050)$nn.dist
 
 # Adding centre point to attribute table (to be used as covariate in GLM)
-grid_015_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_015_sp_counted_SPDF))$V1
-grid_015_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_015_sp_counted_SPDF))$V2
-
-grid_020_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_020_sp_counted_SPDF))$V1
-grid_020_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_020_sp_counted_SPDF))$V2
-
 grid_025_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_025_sp_counted_SPDF))$V1
 grid_025_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_025_sp_counted_SPDF))$V2
 
 grid_050_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_050_sp_counted_SPDF))$V1
 grid_050_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_050_sp_counted_SPDF))$V2
 
-
-# Statistics -----
 # Extract dataframe
-grid_015_df <- st_set_geometry(grid_015_sp_counted, NULL)
-grid_020_df <- st_set_geometry(grid_020_sp_counted, NULL)
 grid_025_df <- st_set_geometry(grid_025_sp_counted, NULL)
 grid_050_df <- st_set_geometry(grid_050_sp_counted, NULL)
 
-# Selecting the continuous covariates
-grid_015_df_continuous <-
-  grid_015_df %>% select(dist_inst, centre_point_lon, centre_point_lat,)
-grid_020_df_continuous <-
-  grid_020_df %>% select(dist_inst, centre_point_lon, centre_point_lat,)
-grid_025_df_continuous <-
-  grid_025_df %>% select(dist_inst, centre_point_lon, centre_point_lat,)
-grid_050_df_continuous <-
-  grid_050_df %>% select(dist_inst, centre_point_lon, centre_point_lat,)
+# Selecting the continuous variables
+grid_025_df_seleted <-
+  grid_025_df %>% select(countPts, n_reg, dist_inst, centre_point_lon, centre_point_lat)
+grid_050_df_seleted <-
+  grid_050_df %>% select(countPts, n_reg, dist_inst, centre_point_lon, centre_point_lat)
 
-# Standardizing continuous covariates to eliminate effect of scale
-grid_015_df_std <-
-  decostand(grid_015_df_continuous, method = "standardize", MARGIN = 2)
-grid_020_df_std <-
-  decostand(grid_020_df_continuous, method = "standardize", MARGIN = 2)
-grid_025_df_std <-
-  decostand(grid_025_df_continuous, method = "standardize", MARGIN = 2)
-grid_050_df_std <-
-  decostand(grid_050_df_continuous, method = "standardize", MARGIN = 2)
+# Categorical variable - UC presence/absence
+grid_025_df_seleted$uc_pres <- !is.na(grid_025_df$UF_unique)
+grid_050_df_seleted$uc_pres <- !is.na(grid_050_df$UF_unique)
 
-# Categorical covariate - UC presence/absence
-grid_015_df_std$uc_pres <- !is.na(grid_015_df$UF_unique)
-grid_020_df_std$uc_pres <- !is.na(grid_020_df$UF_unique)
-grid_025_df_std$uc_pres <- !is.na(grid_025_df$UF_unique)
-grid_050_df_std$uc_pres <- !is.na(grid_050_df$UF_unique)
+colnames(grid_025_df_seleted) <- c('n_species', 'n_registers', 'dist_inst', 'lon', 'lat', 'uc_pres')
+colnames(grid_050_df_seleted) <- c('n_species', 'n_registers', 'dist_inst', 'lon', 'lat', 'uc_pres')
 
-# Response variable - number of registers per cell
-grid_015_df_std$num_reg <- grid_015_df$n_reg
-grid_020_df_std$num_reg <- grid_020_df$n_reg
-grid_025_df_std$num_reg <- grid_025_df$n_reg
-grid_050_df_std$num_reg <- grid_050_df$n_reg
+# Correlation test 
+grid_025_cor <- cor(grid_025_df_seleted[,-ncol(grid_025_df_seleted)])
+grid_050_cor <- cor(grid_050_df_seleted[,-ncol(grid_050_df_seleted)])
 
-# Response variable - number of species per cell
-grid_015_df_std$num_spp <- grid_015_df$countPts
-grid_020_df_std$num_spp <- grid_020_df$countPts
-grid_025_df_std$num_spp <- grid_025_df$countPts
-grid_050_df_std$num_spp <- grid_050_df$countPts
+# Plot correlation test
+corrplot(grid_025_cor, type="upper", method = 'circle', tl.col="black", tl.srt=45, order="hclust")
+corrplot(grid_050_cor, type="upper", method = 'circle', tl.col="black", tl.srt=45, order="hclust")
 
-# Fitting negative binomial distribution test
-summary(
-  num_reg_nbm_015 <-
-    glm.nb(
-      num_reg ~ dist_inst + centre_point_lon + centre_point_lat + uc_pres,
-      data = grid_015_df_std
-    )
-)
-summary(
-  num_reg_nbm_020 <-
-    glm.nb(
-      num_reg ~ dist_inst + centre_point_lon + centre_point_lat + uc_pres,
-      data = grid_020_df_std
-    )
-)
-summary(
-  num_reg_nbm_025 <-
-    glm.nb(
-      num_reg ~ dist_inst + centre_point_lon + centre_point_lat + uc_pres,
-      data = grid_025_df_std
-    )
-)
-summary(
-  num_reg_nbm_050 <-
-    glm.nb(
-      num_reg ~ dist_inst + centre_point_lon + centre_point_lat + uc_pres,
-      data = grid_050_df_std
-    )
-)
+# Pearson's chi-squared test
+grid_025_chisq <- chisq.test(grid_025_df_seleted$num_spp, grid_025_df_seleted$uc_pres)
+grid_050_chisq <- chisq.test(grid_050_df_seleted$num_spp, grid_050_df_seleted$uc_pres)
 
-summary(
-  num_sp_nbm_015 <-
-    glm.nb(num_spp ~ num_reg + centre_point_lon + centre_point_lat + uc_pres,
-           data = grid_015_df_std)
-)
-summary(
-  num_sp_nbm_020 <-
-    glm.nb(num_spp ~ num_reg + centre_point_lon + centre_point_lat + uc_pres,
-           data = grid_020_df_std)
-)
-summary(
-  num_sp_nbm_025 <-
-    glm.nb(num_spp ~ num_reg + centre_point_lon + centre_point_lat + uc_pres,
-           data = grid_025_df_std)
-)
-summary(
-  num_sp_nbm_050 <-
-    glm.nb(num_spp ~ num_reg + centre_point_lon + centre_point_lat + uc_pres,
-           data = grid_050_df_std)
-)
+# Mean polygon area
+grid_025_area <- mean(st_area(grid_025_sp_counted)) # 484.516.066 m² = 484 km²
+grid_050_area <- mean(st_area(grid_050_sp_counted)) # 1.646.877.595 m² = 1.646 km²
 
-# Test dispersion to confirm distribution family
-num_reg_nbm_015_sim <- simulateResiduals(num_reg_nbm_015, refit = T, n = 99)
-plot(num_reg_nbm_015_sim)
-testDispersion(num_reg_nbm_015_sim, alternative = 'greater') # testing overdispersion
+# Plot maps
+ggplot_nreg_025 <-
+  ggplot(grid_025_sp_counted) +
+  geom_sf(aes(fill = n_reg))
+ggplot_nreg_050 <-
+  ggplot(grid_025_sp_counted) + 
+  geom_sf(aes(fill = n_reg))
 
-num_reg_nbm_020_sim <- simulateResiduals(num_reg_nbm_020, refit = T, n = 99)
-plotSimulatedResiduals(num_reg_nbm_020_sim)
-testDispersion(num_reg_nbm_020_sim, alternative = 'greater') # testing overdispersion
+ggplot_nsp_025 <-
+  ggplot(grid_025_sp_counted) + 
+  geom_sf(aes(fill = countPts))
+ggplot_nsp_050 <-
+  ggplot(grid_050_sp_counted) + 
+  geom_sf(aes(fill = countPts))
 
-num_reg_nbm_025_sim <- simulateResiduals(num_reg_nbm_025, refit = T, n = 99)
-plot(num_reg_nbm_025_sim)
-testDispersion(num_reg_nbm_025_sim, alternative = 'greater') # positive overdispersion (?)
+# Edit plots
+ggplot_nreg_025_edited <-
+  ggplot_nreg_025 +
+  geom_sf(size = 0.25) +
+  labs(fill = "Nº de registros") +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
+ggplot_nreg_050_edited <-
+  ggplot_nreg_050 +
+  ggplot(grid_025_sp_counted) + 
+  geom_sf(aes(fill = n_reg), size = 0.25) + 
+  labs(fill = "Nº de registros") + 
+  theme_light() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
-num_reg_nbm_050_sim <- simulateResiduals(num_reg_nbm_050, refit = T, n = 99)
-plot(num_reg_nbm_050_sim)
-testDispersion(num_reg_nbm_050_sim, alternative = 'greater') # no overdispersion (?)
+ggplot_nsp_025_edited <-
+  ggplot_nsp_025 +
+  ggplot(grid_025_sp_counted) + 
+  geom_sf(aes(fill = countPts), size = 0.25) + 
+  labs(fill = "Nº de espécies") + 
+  theme_light() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
+ggplot_nsp_050_edited <-
+  ggplot_nsp_050 +
+  ggplot(grid_050_sp_counted) + 
+  geom_sf(aes(fill = countPts), size = 0.25) + 
+  labs(fill = "Nº de espécies") + 
+  theme_light() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
-num_sp_nbm_050_sim <- simulateResiduals(num_sp_nbm_050, refit = T, n = 99)
-plot(num_sp_nbm_050_sim)
-testDispersion(num_sp_nbm_050_sim, alternative = 'greater') # no overdispersion (?)
 
-grid_size_015 <- st_area(grid_015_sp_counted[1,])
-grid_size_020 <- st_area(grid_020_sp_counted[1,])
-grid_size_025 <- st_area(grid_025_sp_counted[1,]) # 6.0626.115 m² = 6 km²
-grid_size_050 <- st_area(grid_050_sp_counted[1,]) # 1.458.820.697 m² ~ 1.500 km²
-
-# For details on overdispersion test check: Overdispersion, and how to deal with it in R and JAGS
-##### Grid qith cellsize equal to 0.50 (1.500 km²) had better fitting ####
+# Save maps
+ggplot_nreg_025 + ggsave('plot_nreg_25.pdf', width = 3, height = 4)
