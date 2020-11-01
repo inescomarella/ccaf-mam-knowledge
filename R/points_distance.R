@@ -1,4 +1,4 @@
-x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'GISTools', 'FNN', 'vegan', 'corrplot')
+x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'GISTools', 'FNN', 'vegan', 'corrplot', 'ggplot2')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
@@ -21,10 +21,11 @@ count.sp.in.polygons <- function(pts, polygons){
 }
 
 data <- read.csv('./data/data-all-clean.csv')
+inst_df <-
+  read.csv('./data/institutions-ccma.csv', header = T)
 grid_025 <- readOGR(dsn = './outputs', layer = 'grid_025_ucs_joined')
 grid_050 <- readOGR(dsn = './outputs', layer = 'grid_050_ucs_joined')
-inst_df <-
-  read.csv('./data/institutions-ccma.csv', header = T) # Institutions
+brasil <- readOGR(dsn = './maps/IBGE/br_unidades_da_federacao', layer = 'BRUFE250GC_SIR')
 
 to_remove <- data %>% filter(is.na(decimalLongitude))
 data <- anti_join(data, to_remove)
@@ -50,9 +51,10 @@ data_points_spT <- spTransform(data_layer, crs)
 inst_points_spT <- spTransform(inst_layer, crs)
 grid_025_spT <- spTransform(grid_025, crs)
 grid_050_spT <- spTransform(grid_050, crs)
+brasil_spT <- spTransform(brasil, crs)
 
 # Clean points
-data_clipped <- intersect(data_points_spT, grid_015_spT)
+data_clipped <- intersect(data_points_spT, grid_050_spT)
 data_clipped_spT <- spTransform(data_clipped, crs)
 
 # Count registers per cell
@@ -110,8 +112,8 @@ corrplot(grid_025_cor, type="upper", method = 'circle', tl.col="black", tl.srt=4
 corrplot(grid_050_cor, type="upper", method = 'circle', tl.col="black", tl.srt=45, order="hclust")
 
 # Pearson's chi-squared test
-grid_025_chisq <- chisq.test(grid_025_df_seleted$num_spp, grid_025_df_seleted$uc_pres)
-grid_050_chisq <- chisq.test(grid_050_df_seleted$num_spp, grid_050_df_seleted$uc_pres)
+grid_025_chisq <- chisq.test(grid_025_df_seleted$n_registers, grid_025_df_seleted$uc_pres)
+grid_050_chisq <- chisq.test(grid_050_df_seleted$n_registers, grid_050_df_seleted$uc_pres)
 
 # Mean polygon area
 grid_025_area <- mean(st_area(grid_025_sp_counted)) # 484.516.066 m² = 484 km²
@@ -122,7 +124,7 @@ ggplot_nreg_025 <-
   ggplot(grid_025_sp_counted) +
   geom_sf(aes(fill = n_reg))
 ggplot_nreg_050 <-
-  ggplot(grid_025_sp_counted) + 
+  ggplot(grid_050_sp_counted) + 
   geom_sf(aes(fill = n_reg))
 
 ggplot_nsp_025 <-
@@ -135,13 +137,12 @@ ggplot_nsp_050 <-
 # Edit plots
 ggplot_nreg_025_edited <-
   ggplot_nreg_025 +
-  geom_sf(size = 0.25) +
+  geom_sf(aes(fill = n_reg), size = 0.25) +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 ggplot_nreg_050_edited <-
   ggplot_nreg_050 +
-  ggplot(grid_025_sp_counted) + 
   geom_sf(aes(fill = n_reg), size = 0.25) + 
   labs(fill = "Nº de registros") + 
   theme_light() + 
@@ -149,19 +150,34 @@ ggplot_nreg_050_edited <-
 
 ggplot_nsp_025_edited <-
   ggplot_nsp_025 +
-  ggplot(grid_025_sp_counted) + 
   geom_sf(aes(fill = countPts), size = 0.25) + 
   labs(fill = "Nº de espécies") + 
   theme_light() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 ggplot_nsp_050_edited <-
   ggplot_nsp_050 +
-  ggplot(grid_050_sp_counted) + 
   geom_sf(aes(fill = countPts), size = 0.25) + 
   labs(fill = "Nº de espécies") + 
   theme_light() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
-
 # Save maps
-ggplot_nreg_025 + ggsave('plot_nreg_25.pdf', width = 3, height = 4)
+ggplot_nreg_025_edited
+ggsave('plot_nreg_25.pdf', width = 3, height = 4)
+ggplot_nreg_050_edited
+ggsave('plot_nreg_50.pdf', width = 3, height = 4)
+
+ggplot_nsp_025_edited
+ggsave('plot_nsp_25.pdf', width = 3, height = 4)
+ggplot_nsp_050_edited
+ggsave('plot_nsp_50.pdf', width = 3, height = 4)
+
+
+# To do #############################
+
+brasil_sf <- st_as_sf(brasil_spT)
+st_agr(brasil_sf) = "constant"
+brasil_cropped <- st_crop(brasil_sf, xmin = 201620, xmax = 539295.8,
+                                    ymin = -2356808, ymax = -1438805)
+ggplot(brasil_cropped) + geom_sf() + geom_sf(data = grid_025_sp_counted, aes(fill = countPts)) + theme_bw()
+
