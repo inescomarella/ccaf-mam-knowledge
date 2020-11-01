@@ -13,7 +13,6 @@ path_to_uc_ba_layer = "/home/ines/tcc-ccma/maps/ICMBio/BA/BA-geometry-fixed.shp"
 path_to_uc_es_layer = "/home/ines/tcc-ccma/maps/ICMBio/ES/ES.shp"
 path_to_ucs_layer = "/home/ines/tcc-ccma/maps/MMA/ucstodas/ucstodas-geometry-fixed.shp"
 path_to_ucs_ma_layer = "/home/ines/tcc-ccma/maps/Dani/ucs_ma/ucs_ma-geometry-fixed.shp"
-path_to_csv = "file:/home/ines/tcc-ccma/data/data-all-clean.csv?encoding=%s&delimiter=%s&xField=%s&yField=%s&crs=%s" % ("UTF-8",",", "decimalLongitude", "decimalLatitude","epsg:4326")
 
 # Make a vector layer
 brasil_uf_layer = QgsVectorLayer(path_to_brasil_uf_layer, "brazil_map", "ogr")
@@ -66,10 +65,6 @@ if not ucsma_layer.isValid():
     print("Layer ucsma_layer failed to load ucsma_layer!")
 QgsProject.instance().addMapLayer(ucsma_layer)
 
-vlayer = QgsVectorLayer(path_to_csv,"raw_mammal_data","delimitedtext")
-if not vlayer.isValid():
-    print ("Layer vlayer not valid")
-QgsProject.instance().addMapLayer(vlayer)
 
 # Setting Coordinate Reference System do cooredores_layer
 crs = ucs_layer.crs()

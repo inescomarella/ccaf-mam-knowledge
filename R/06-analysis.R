@@ -20,12 +20,12 @@ count.sp.in.polygons <- function(pts, polygons){
   return(cbind(polygons,countPts))
 }
 
-data <- read.csv('./data/data-all-clean.csv')
+data <- read.csv('data-all-clean.csv')
 inst_df <-
-  read.csv('./data/institutions-ccma.csv', header = T)
-grid_025 <- readOGR(dsn = './outputs', layer = 'grid_025_ucs_joined')
-grid_050 <- readOGR(dsn = './outputs', layer = 'grid_050_ucs_joined')
-brasil <- readOGR(dsn = './maps/IBGE/br_unidades_da_federacao', layer = 'BRUFE250GC_SIR')
+  read.csv('institutions-ccma.csv', header = T)
+grid_025 <- readOGR(dsn = '../outputs', layer = 'grid_025_ucs_joined')
+grid_050 <- readOGR(dsn = '../outputs', layer = 'grid_050_ucs_joined')
+brasil <- readOGR(dsn = '../maps/IBGE/br_unidades_da_federacao', layer = 'BRUFE250GC_SIR')
 
 to_remove <- data %>% filter(is.na(decimalLongitude))
 data <- anti_join(data, to_remove)
@@ -163,14 +163,14 @@ ggplot_nsp_050_edited <-
 
 # Save maps
 ggplot_nreg_025_edited
-ggsave('plot_nreg_25.pdf', width = 3, height = 4)
+ggsave('../results/plot_nreg_25.pdf', width = 3, height = 4)
 ggplot_nreg_050_edited
-ggsave('plot_nreg_50.pdf', width = 3, height = 4)
+ggsave('../results/plot_nreg_50.pdf', width = 3, height = 4)
 
 ggplot_nsp_025_edited
-ggsave('plot_nsp_25.pdf', width = 3, height = 4)
+ggsave('../results/plot_nsp_25.pdf', width = 3, height = 4)
 ggplot_nsp_050_edited
-ggsave('plot_nsp_50.pdf', width = 3, height = 4)
+ggsave('../results/plot_nsp_50.pdf', width = 3, height = 4)
 
 
 # To do #############################

@@ -26,8 +26,6 @@ ucba_layer = QgsProject.instance().mapLayersByName("ucs_ba")[0]
 ucst_layer = QgsProject.instance().mapLayersByName("ucs_todas")[0]
 ucsf_layer = QgsProject.instance().mapLayersByName("ucs_federais")[0]
 ucsma_layer = QgsProject.instance().mapLayersByName("ucs_ma")[0]
-mammal_layer = QgsProject.instance().mapLayersByName("raw_mammal_data")[0]
-
 
 # Output file paths
 mun_ba_output = "/home/ines/tcc-ccma/outputs/municipios-ba-clipped.shp"
@@ -35,7 +33,6 @@ ucba_output = "/home/ines/tcc-ccma/outputs/ucs-ba-clipped.shp"
 ucst_output = "/home/ines/tcc-ccma/outputs/ucs-todas-clipped.shp"
 ucsf_output = "/home/ines/tcc-ccma/outputs/ucs-federais-clipped.shp"
 ucsma_output = "/home/ines/tcc-ccma/outputs/ucs-ma-clipped.shp"
-mammal_output = "/home/ines/tcc-ccma/outputs/mammal-data-clipped.shp"
 
 # Running the algorithm
 mun_ba_params = {'INPUT': mun_ba_layer,
@@ -58,17 +55,12 @@ ucsma_params = {'INPUT': ucsma_layer,
             'OVERLAY': overlay_layer,
             'OUTPUT': ucsma_output}
 
-mammal_params = {'INPUT': mammal_layer,
-            'OVERLAY': overlay_layer,
-            'OUTPUT': mammal_output}
-
 print("Running the clip algorithm...")
 processing.run("qgis:clip", mun_ba_params)
 processing.run("qgis:clip", ucba_params)
 processing.run("qgis:clip", ucst_params)
 processing.run("qgis:clip", ucsf_params)
 processing.run("qgis:clip", ucsma_params)
-processing.run("qgis:clip", mammal_params)
 
 # Clipped layer
 mun_ba_clipped_layer = QgsVectorLayer(mun_ba_output, "municipios_ba_clipped", "ogr")
@@ -76,17 +68,11 @@ ucba_clipped_layer = QgsVectorLayer(ucba_output, "ucs_ba_clipped", "ogr")
 ucst_clipped_layer = QgsVectorLayer(ucst_output, "ucs_todas_clipped", "ogr")
 ucsf_clipped_layer = QgsVectorLayer(ucsf_output, "ucs_federais_clipped", "ogr")
 ucsma_clipped_layer = QgsVectorLayer(ucsma_output, "ucs_ma_clipped", "ogr")
-mammal_clipped_layer = QgsVectorLayer(mammal_output, "mammal_data", "ogr")
 
 QgsProject.instance().addMapLayer(mun_ba_clipped_layer)
 QgsProject.instance().addMapLayer(ucba_clipped_layer)
 QgsProject.instance().addMapLayer(ucst_clipped_layer)
 QgsProject.instance().addMapLayer(ucsf_clipped_layer)
 QgsProject.instance().addMapLayer(ucsma_clipped_layer)
-QgsProject.instance().addMapLayer(mammal_clipped_layer)
-
-print("Exporting attribute table...")
-# Export attribute table
-QgsVectorFileWriter.writeAsVectorFormat(mammal_clipped_layer, "/home/ines/tcc-ccma/data/data-ccma.csv", "utf-8", mammal_clipped_layer.crs(),"CSV", layerOptions = ['GEOMETRY=AS_XYZ'])
 
 print("Done!")

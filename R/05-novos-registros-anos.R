@@ -4,7 +4,7 @@ library(ggplot2)
 setwd('./data')
 
 # Input
-data <- read.csv("data-ccma.csv")
+data <- read.csv("data-all-clean.csv")
 
 # Ordena por ordem de ano
 data_sorted <- arrange(data, as.numeric(eventYear))
@@ -26,7 +26,7 @@ plot <- ggplot(df) +
   labs(y = "Número de espécies", 
        x = "Anos",
        fill = "") +
-  theme_linedraw() +
+  theme_bw() +
   theme(legend.position = "bottom")
 
 plot
