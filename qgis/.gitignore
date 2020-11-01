@@ -2,4 +2,4 @@
 .Rhistory
 .RData
 .Ruserdata
-*.pdf
+dir_to_ignore/to_remove
