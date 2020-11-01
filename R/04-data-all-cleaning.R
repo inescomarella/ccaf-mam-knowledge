@@ -8,44 +8,51 @@ data_paper <- read.csv('data-papers.csv')
 data_splink <- read.csv('data-spLink.csv')
 data_gbif <- read.csv('data-gbif.csv')
 
-# Mudando colunas
+# Changing columns
 data_gbif$scientificName <- data_gbif$species
 colnames(data_gbif)[34] <- 'eventYear'
 colnames(data_splink)[11] <- 'eventYear'
 
-# Unindo dados
+# Binding data.frames to a single obj
 data_all_raw <- rbind.fill(data_paper, data_splink, data_gbif)
 
-# Mantendo apenas as colunas da planilha que elaborei
+# Keep data_paper columns, remove others
 data_all <- select(data_all_raw, colnames(data_paper))
 
-# Removendo dados sem identificação da especie
+# Keep only identified species
 data_all$scientificName <- as.character(data_all$scientificName)
-to_remove <- data_all %>% filter(is.na(scientificName),
-                                 str_detect(scientificName, " ") == FALSE,
-                                 str_detect(scientificName, 'sp.'))
+to_remove_scientificName <- data_all %>% filter(is.na(scientificName) |
+                                 str_detect(scientificName, " ") == FALSE |
+                                 str_detect(scientificName, " sp"),
+                                 !str_detect(scientificName, "spinosus"))
+
+to_remove_acceptedNameUsage <- data_all %>% filter(is.na(acceptedNameUsage) |
+                                   str_detect(acceptedNameUsage, " ") == FALSE |
+                                   str_detect(acceptedNameUsage, " sp"),
+                                 !str_detect(acceptedNameUsage, "spinosus"))
+to_remove <- intersect(to_remove_acceptedNameUsage, to_remove_scientificName)
+
 data_all <- anti_join(data_all, to_remove)
 data_all <- data_all %>% filter(!is.na(scientificName))
 
-# Retirando os pontos para remover especies com nomes usando caracteres especiais (e.g. '?')
+# Removing dots (to identify and remove special characters later)
 data_all$scientificName <- str_replace_all(data_all$scientificName, "[.]", "")
 data_all <- data_all %>% filter(!str_detect(scientificName, "[[:punct:]]"))
 
-# Retirando híbridos
+# Removing hybrids
 data_all <- data_all %>% filter(!str_detect(scientificName, "íbrido"))
 
-# Removendo nomes antigos de especies fora da área de ocorrência
+# Removing old synonyms
 data_all <- data_all %>% filter(!str_detect(scientificName, "iseoargenteus"))
 data_all <- data_all %>% filter(!str_detect(scientificName, "Samiris sciurea"))
 data_all <- data_all %>% filter(!str_detect(scientificName, "azzarae"))
 
-# Retirando identificações que possam atrapalhar o reconhecimento da espécie
 data_all$scientificName <- str_replace(data_all$scientificName, pattern = " gr", replacement = " ")
 data_all$scientificName <- str_replace(data_all$scientificName, pattern = "cf ", replacement = " ")
 data_all$scientificName <- str_replace(data_all$scientificName, pattern = "Cf ", replacement = "")
 data_all$scientificName <- str_replace(data_all$scientificName, pattern = " j ", replacement = " ")
 
-# Resolvendo problema de nomes antigos não reconhecidos pelo GBIF
+# Old synonyms not recognized by GBIF
 sp_data_all <- data.frame('especie_data_all' = unique(data_all$scientificName),
                           'sinonimo_atual' = unique(data_all$scientificName),
                           stringsAsFactors = FALSE)
@@ -69,7 +76,7 @@ sp_data_all$sinonimo_atual[sp_data_all$sinonimo_atual == "Synetheres prehensilis
 sp_data_all$sinonimo_atual[sp_data_all$sinonimo_atual == "Trinomys atiosus"] <- "Trinomys gratiosus"
 sp_data_all$sinonimo_atual[sp_data_all$sinonimo_atual == "Epitesicus furinalis"] <- "Eptesicus furinalis"
 
-# Classificação taxonomica
+# Taxonomic identification
 sp_backbone <- data.frame()
 
 for (i in 1:nrow(sp_data_all))
@@ -82,24 +89,32 @@ sp_taxon_clean <- sp_taxon %>%
   select(Especie, order, family, genus, species)
 colnames(sp_taxon_clean)[1] <- 'scientificName'
 
-# Identificando espécies não reconhecidas pelo GBIF --> assumindo o scientificName
-sp_taxon_to_correct <- sp_taxon_clean %>% 
+sp_missing_sp <- sp_taxon_clean %>% 
   filter(is.na(species)) %>% 
   select(scientificName, order, family, genus, species)
-sp_taxon_clean <- anti_join(sp_taxon_clean, sp_taxon_to_correct)
-sp_taxon_to_correct$species <- sp_taxon_to_correct$scientificName
-sp_taxon_clean_correct <- bind_rows(sp_taxon_to_correct, sp_taxon_clean)
 
-# Identificação taxonomica das especies na tabela principal
+sp_clean <- anti_join(sp_taxon_clean, sp_missing_sp)
+
+to_remove <- sp_missing_sp %>% filter(is.na(scientificName) |
+                                 str_detect(scientificName, " ") == FALSE |
+                                 str_detect(scientificName, " sp"),
+                               !str_detect(scientificName, "spinosus"))
+
+sp_to_correct <- anti_join(sp_missing_sp, to_remove)
+sp_to_correct$species <- sp_to_correct$scientificName
+
+sp_taxon_clean_correct <- bind_rows(sp_to_correct, sp_clean)
+
+# Identifying sp in main table
 data_all <- data_all %>% 
   select(-c(order, family, genus))
 data_all_sp_added <- merge(data_all, sp_taxon_clean_correct, by = 'scientificName')
 
-# Corrigindo a ordem das colunas
+# Reorder columns
 data_all_sp_added <- data_all_sp_added %>% 
   relocate(scientificName, .after = species)
 
-# Retirando a coluna acceptedNameUsage, assumindo a coluna species como o nome mais atual
+# column "species" = current synonym
 data_all_sp_added <- data_all_sp_added %>% 
   select(-acceptedNameUsage)
 
