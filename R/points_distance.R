@@ -224,8 +224,10 @@ num_sp_nbm_050_sim <- simulateResiduals(num_sp_nbm_050, refit = T, n = 99)
 plot(num_sp_nbm_050_sim)
 testDispersion(num_sp_nbm_050_sim, alternative = 'greater') # no overdispersion (?)
 
-st_area(grid_025_sp_counted[1,]) # 6.0626.115 m² = 6 km²
-st_area(grid_050_sp_counted[1,]) # 1.458.820.697 m² ~ 1.500 km²
+grid_size_015 <- st_area(grid_015_sp_counted[1,])
+grid_size_020 <- st_area(grid_020_sp_counted[1,])
+grid_size_025 <- st_area(grid_025_sp_counted[1,]) # 6.0626.115 m² = 6 km²
+grid_size_050 <- st_area(grid_050_sp_counted[1,]) # 1.458.820.697 m² ~ 1.500 km²
 
 # For details on overdispersion test check: Overdispersion, and how to deal with it in R and JAGS
 ##### Grid qith cellsize equal to 0.50 (1.500 km²) had better fitting ####
