@@ -1,20 +1,13 @@
-x <- c("rgdal", "tidyverse", "rocc")
+x <- c("tidyverse", "rocc")
 lapply(x, library, character.only = TRUE)
 
 setwd('./data')
 
-# Get municipalities names
-municipios_ccma <- readOGR(dsn = "../outputs", layer = "municipios-ccma")
-municipios_names <- municipios_ccma@data$NM_MUNICIP
-
 # Get occurence data from speciesLink
-rspeciesLink(filename = 'data-spLink',
+data_downloaded <- rspeciesLink(filename = 'data-spLink',
              stateProvince = c('Espirito Santo', 'Espírito Santo', 'ES', 'Bahia', 'BA'),
              Scope = 'animals',
              Synonyms = 'species2000')
-
-# Input
-data_downloaded <- read.csv('./results/data-spLink.csv')
 
 # Just mammal data
 data_mammal_raw <- data_downloaded %>% filter(class == 'Mammalia')
