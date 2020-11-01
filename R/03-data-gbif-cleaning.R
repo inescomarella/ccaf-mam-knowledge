@@ -6,11 +6,11 @@ setwd('./data')
 # Solicitando dados de ocorrencia de mamiferos no anos 1500-2020
 # Acessar o site do GBIF e baixar
 res <- occ_download(user = 'inescomarella',
-                    pwd = '*****',
+                    pwd = '********',
                     email = 'inesmottacomarella@gmail.com',
                     format = "SIMPLE_CSV",
                     pred('country', 'BR'),
-                    pred('taxonKey', 359), #apenas mamiferos
+                    pred('taxonKey', 359), #apenas mamiferos (no endereço da pagina de mamiferos do GBIF se encontre ao taxonKey)
                     pred("hasCoordinate", TRUE),
                     pred_gte("year", 1500), #greaterThanOrEquals
                     pred_lte("year", 2020) #lessThanOrEquals
@@ -18,16 +18,8 @@ res <- occ_download(user = 'inescomarella',
 
 # Input
 data_downloaded <-
-  read.table(
-    './results/0042756-200613084148143.csv',
-    sep = "\t",
-    header = TRUE,
-    comment.char = "#",
-    na.strings = ".",
-    stringsAsFactors = FALSE,
-    quote = "",
-    fill = TRUE
-  )
+  read.delim(
+    './results/0098449-200613084148143.csv')
 
 # Apenas registros no Espirito Santo e Bahia
 data_ba_es <-
