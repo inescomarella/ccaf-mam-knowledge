@@ -20,7 +20,7 @@ count.order.in.polygons <- function(pts, polygons, order_name){
       polySelect <- polygons[i,]
       pts2 <- st_intersection(pts, polySelect)
       obj <- pts2 %>% filter(order == as.character(order_name))
-      countPts[i] = length(unique(obj$species))
+      countPts[i] = nrow(obj)
     }
     
   })
