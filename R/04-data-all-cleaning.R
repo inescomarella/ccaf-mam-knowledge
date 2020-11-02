@@ -165,5 +165,24 @@ data_all_sp_clean <- data_all_sp_added %>%
 data_all_sp_clean <- data_all_sp_clean %>% 
   filter(!str_detect(order, 'Cetacea'))
 
+# Remove points outside CCMA
+ccma <- st_read(dsn = '../outputs', layer = 'ccma-clipped')
+
+to_remove <- data_all_sp_clean %>% filter(is.na(decimalLongitude))
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+data_st <- st_as_sf(data_all_sp_clean, coords = c('decimalLongitude', 'decimalLatitude'))
+data_crs <- st_set_crs(data_st, CRS("+proj=longlat +datum=WGS84"))
+ccma_crs <- st_transform(ccma, crs = st_crs(data_crs))
+data_clipped <- st_intersection(data_crs, ccma_crs)
+coords <- as.data.frame(st_coordinates(data_clipped))
+
+data_clipped_df <- st_set_geometry(data_clipped, NULL)
+data_clipped_df <- data_clipped_df[1:(ncol(data_clipped_df)-2)]
+
+data_clipped_df$decimalLongitude <- coords$X
+data_clipped_df$decimalLatitude <- coords$Y
+
 # Output
-write.csv(data_all_sp_clean, './data-all-clean.csv')
+write.csv(data_clipped_df, './data-all-clean.csv')
+
