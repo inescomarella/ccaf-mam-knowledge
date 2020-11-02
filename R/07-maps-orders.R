@@ -1,10 +1,10 @@
 x <- c('dplyr', 'sf', 'raster', 'ggplot2')
 lapply(x, library, character.only = TRUE)
 
-load('functions.R')
+source('functions.R')
 
 # Inputs
-data <- st_read('./data-all-clean.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
+data <- st_read('../data/data-all-clean.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
 g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
 g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
 
@@ -61,47 +61,48 @@ plot050_cingu <- ggplot(g050_cingu) + geom_sf(aes(fill = countPts), size = 0.25)
 plot050_siren <- ggplot(g050_siren) + geom_sf(aes(fill = countPts), size = 0.25) + ggtitle('Sirenia')
 
 plot025_roden
-ggsave('../outputs/plot025_rodentia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_rodentia.pdf', width = 3, height = 4)
 plot025_prima
-ggsave('../outputs/plot025_primates.pdf', width = 3, height = 4)
+ggsave('../results/plot025_primates.pdf', width = 3, height = 4)
 plot025_carni
-ggsave('../outputs/plot025_carnivora.pdf', width = 3, height = 4)
+ggsave('../results/plot025_carnivora.pdf', width = 3, height = 4)
 plot025_didel
-ggsave('../outputs/plot025_didelphimorphia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_didelphimorphia.pdf', width = 3, height = 4)
 plot025_peris
-ggsave('../outputs/plot025_perissodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot025_perissodactyla.pdf', width = 3, height = 4)
 plot025_chiro
-ggsave('../outputs/plot025_chiroptera.pdf', width = 3, height = 4)
+ggsave('../results/plot025_chiroptera.pdf', width = 3, height = 4)
 plot025_lagom
-ggsave('../outputs/plot025_lagomorpha.pdf', width = 3, height = 4)
+ggsave('../results/plot025_lagomorpha.pdf', width = 3, height = 4)
 plot025_pilos
-ggsave('../outputs/plot025_pilosapdf', width = 3, height = 4)
+ggsave('../results/plot025_pilosa.pdf', width = 3, height = 4)
 plot025_artio
-ggsave('../outputs/plot025_artiodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot025_artiodactyla.pdf', width = 3, height = 4)
 plot025_cingu
-ggsave('../outputs/plot025_cingulara.pdf', width = 3, height = 4)
+ggsave('../results/plot025_cingulara.pdf', width = 3, height = 4)
 plot025_siren
-ggsave('../outputs/plot025_sirenia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_sirenia.pdf', width = 3, height = 4)
 
 plot050_roden
-ggsave('../outputs/plot050_rodentia.pdf', width = 3, height = 4)
+ggsave('../results/plot050_rodentia.pdf', width = 3, height = 4)
 plot050_prima
-ggsave('../outputs/plot050_primates.pdf', width = 3, height = 4)
+ggsave('../results/plot050_primates.pdf', width = 3, height = 4)
 plot050_carni
-ggsave('../outputs/plot050_carnivora.pdf', width = 3, height = 4)
+ggsave('../results/plot050_carnivora.pdf', width = 3, height = 4)
 plot050_didel
-ggsave('../outputs/plot050_didelphimorphia.pdf', width = 3, height = 4)
+ggsave('../results/plot050_didelphimorphia.pdf', width = 3, height = 4)
 plot050_peris
-ggsave('../outputs/plot050_perissodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot050_perissodactyla.pdf', width = 3, height = 4)
 plot050_chiro
-ggsave('../outputs/plot050_chiroptera.pdf', width = 3, height = 4)
+ggsave('../results/plot050_chiroptera.pdf', width = 3, height = 4)
 plot050_lagom
-ggsave('../outputs/plot050_lagomorpha.pdf', width = 3, height = 4)
+ggsave('../results/plot050_lagomorpha.pdf', width = 3, height = 4)
 plot050_pilos
-ggsave('../outputs/plot050_pilosapdf', width = 3, height = 4)
+ggsave('../results/plot050_pilosa.pdf', width = 3, height = 4)
 plot050_artio
-ggsave('../outputs/plot050_artiodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot050_artiodactyla.pdf', width = 3, height = 4)
 plot050_cingu
-ggsave('../outputs/plot050_cingulara.pdf', width = 3, height = 4)
+ggsave('../results/plot050_cingulara.pdf', width = 3, height = 4)
 plot050_siren
-ggsave('../outputs/plot050_sirenia.pdf', width = 3, height = 4)
+ggsave('../results/plot050_sirenia.pdf', width = 3, height = 4)
+

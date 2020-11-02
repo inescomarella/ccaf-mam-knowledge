@@ -4,11 +4,11 @@ lapply(x, library, character.only = TRUE)
 conflict_prefer(name = 'filter', winner = 'dplyr')
 conflict_prefer(name = 'select', winner = 'dplyr')
 
-source('../R/functions.R')
+source('./R/functions.R')
 
 data <-
   st_read(
-    './data-all-clean.csv',
+    './data/data-all-clean.csv',
     options = c(
       'X_POSSIBLE_NAMES=decimalLongitude',
       'Y_POSSIBLE_NAMES=decimalLatitude'
@@ -17,8 +17,8 @@ data <-
   )
 inst_df <-
   read.csv('./data/institutions-ccma.csv', header = T)
-g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
-g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
+g025 <- st_read(dsn = './outputs', layer = 'grid_025_ucs_joined')
+g050 <- st_read(dsn = './outputs', layer = 'grid_050_ucs_joined')
 
 # Reorder lat/lon 
 inst_layer <- inst_df %>% select(longitude, latitude)
@@ -58,8 +58,8 @@ g025_utm$dist_inst <- as.data.frame(dist_025)$nn.dist
 g050_utm$dist_inst <- as.data.frame(dist_050)$nn.dist
 
 # Adding centre point to attribute table (to be used as covariate in GLM)
-g025_utm$lon <- as.data.frame(coordinates(g025_SPDF))$V1
-g025_utm$lat <- as.data.frame(coordinates(g025_SPDF))$V2
+g025_utm$lon <- as.data.frame(g025_centroid)$V1
+g025_utm$lat <- as.data.frame(g025_centroid)$V2
 
 g050_utm$lon <- as.data.frame(g050_centroid)$V1
 g050_utm$lat <- as.data.frame(g050_centroid)$V2
@@ -114,10 +114,10 @@ g050_area <- mean(st_area(g050_utm)) # 1.646.877.595 m² = 1.646 km²
 # Plot maps
 ggplot_nreg_025 <-
   ggplot(g025_utm) +
-  geom_sf(aes(fill = n_reg))
+  geom_sf(aes(fill = nreg))
 ggplot_nreg_050 <-
   ggplot(g050_utm) + 
-  geom_sf(aes(fill = n_reg))
+  geom_sf(aes(fill = nreg))
 
 ggplot_nsp_025 <-
   ggplot(g025_utm) + 
@@ -129,13 +129,13 @@ ggplot_nsp_050 <-
 # Edit plots
 ggplot_nreg_025_edited <-
   ggplot_nreg_025 +
-  geom_sf(aes(fill = n_reg), size = 0.25) +
+  geom_sf(aes(fill = nreg), size = 0.25) +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 ggplot_nreg_050_edited <-
   ggplot_nreg_050 +
-  geom_sf(aes(fill = n_reg), size = 0.25) + 
+  geom_sf(aes(fill = nreg), size = 0.25) + 
   labs(fill = "Nº de registros") + 
   theme_light() + 
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
