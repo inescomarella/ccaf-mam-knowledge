@@ -1,137 +1,129 @@
-x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'GISTools', 'FNN', 'vegan', 'corrplot', 'ggplot2')
+x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'FNN', 'vegan', 'corrplot', 'ggplot2')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
 conflict_prefer(name = 'select', winner = 'dplyr')
 
-count.sp.in.polygons <- function(pts, polygons){
-  pts <- st_as_sf(pts)
-  polygons <- st_as_sf(polygons)
-  st_agr(polygons) = "constant"
-  st_agr(pts) = "constant"
-  countPts = c()
-  for (i in 1:nrow(polygons)) {
-    polySelect <- polygons[i,]
-    pts2 <- st_intersection(pts, polySelect)
-    countPts[i] = length(unique(pts2$species))
-    
-  }
-  
-  return(cbind(polygons,countPts))
-}
+source('../R/functions.R')
 
-data <- read.csv('data-all-clean.csv')
+data <-
+  st_read(
+    './data-all-clean.csv',
+    options = c(
+      'X_POSSIBLE_NAMES=decimalLongitude',
+      'Y_POSSIBLE_NAMES=decimalLatitude'
+    ),
+    crs = CRS("+proj=longlat +datum=WGS84")
+  )
 inst_df <-
-  read.csv('institutions-ccma.csv', header = T)
-grid_025 <- readOGR(dsn = '../outputs', layer = 'grid_025_ucs_joined')
-grid_050 <- readOGR(dsn = '../outputs', layer = 'grid_050_ucs_joined')
-brasil <- readOGR(dsn = '../maps/IBGE/br_unidades_da_federacao', layer = 'BRUFE250GC_SIR')
-
-to_remove <- data %>% filter(is.na(decimalLongitude))
-data <- anti_join(data, to_remove)
+  read.csv('./data/institutions-ccma.csv', header = T)
+g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
+g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
 
 # Reorder lat/lon 
-inst_lat <- inst_df$latitude
-inst_lon <- inst_df$longitude
-inst_coord <- bind_cols(inst_lon, inst_lat)
-inst_layer <- inst_coord
+inst_layer <- inst_df %>% select(longitude, latitude)
 
-data_layer <- data %>% select(decimalLongitude, decimalLatitude, eventYear, order, family, species)
-
-# Convert dataframe do SpatialPoints
-inst_layer <-
-  SpatialPoints(inst_coord, proj4string = CRS("+proj=longlat +datum=WGS84"))
-
-coordinates(data_layer) <- ~decimalLongitude+decimalLatitude
-proj4string(data_layer) <- CRS("+proj=longlat +datum=WGS84")
+# Convert data.frame do Simple Features
+inst_layer <- st_as_sf(inst_layer, coords = c('longitude', 'latitude'))
+inst_layer <- st_set_crs(inst_layer, CRS("+proj=longlat +datum=WGS84"))
 
 # Reproject to a metric coordinate system
 crs <- CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
-data_points_spT <- spTransform(data_layer, crs)
-inst_points_spT <- spTransform(inst_layer, crs)
-grid_025_spT <- spTransform(grid_025, crs)
-grid_050_spT <- spTransform(grid_050, crs)
-brasil_spT <- spTransform(brasil, crs)
-
-# Clean points
-data_clipped <- intersect(data_points_spT, grid_050_spT)
-data_clipped_spT <- spTransform(data_clipped, crs)
+data_utm <- st_transform(data, crs)
+inst_utm <- st_transform(inst_layer, crs)
+g025_utm <- st_transform(g025, crs)
+g050_utm <- st_transform(g050, crs)
 
 # Count registers per cell
-grid_025_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_025_spT)
-grid_050_spT@data$n_reg <- poly.counts(data_clipped_spT, grid_050_spT)
+g025_utm$nreg <- lengths(st_intersects(g025_utm, data_utm))
+g050_utm$nreg <- lengths(st_intersects(g050_utm, data_utm))
 
 # Count species per cell
-grid_025_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_025_spT)
-grid_050_sp_counted <- count.sp.in.polygons(data_clipped_spT, grid_050_spT)
+g025_utm <- count.sp.in.polygons(data_utm, g025_utm)
+g050_utm <- count.sp.in.polygons(data_utm, g050_utm)
 
-# Converting objects from sf to SpatialPolygonDataFrame to get centre point using coordinates()
-grid_025_sp_counted_SPDF <- as(grid_025_sp_counted, 'Spatial')
-grid_050_sp_counted_SPDF <- as(grid_050_sp_counted, 'Spatial')
+# Getting centroid points
+g025_centroid <- coordinates(as(g025_utm, 'Spatial'))
+g050_centroid <- coordinates(as(g050_utm, 'Spatial'))
+inst_coords <- st_coordinates(inst_utm)
 
-# Grid centre point distance to nearest the institution
-dist_knnx_025 <-
-  get.knnx(coordinates(inst_points_spT), coordinates(grid_025_sp_counted_SPDF), k = 1)
-dist_knnx_050 <-
-  get.knnx(coordinates(inst_points_spT), coordinates(grid_050_sp_counted_SPDF), k = 1)
+# Centre point distance to the nearest institution
+dist_025 <-
+  get.knnx(inst_coords, g025_centroid, k = 1)
+dist_050 <-
+  get.knnx(inst_coords, g050_centroid, k = 1)
 
 # Add distance to grid attribute table
-grid_025_sp_counted$dist_inst <- as.data.frame(dist_knnx_025)$nn.dist
-grid_050_sp_counted$dist_inst <- as.data.frame(dist_knnx_050)$nn.dist
+g025_utm$dist_inst <- as.data.frame(dist_025)$nn.dist
+g050_utm$dist_inst <- as.data.frame(dist_050)$nn.dist
 
 # Adding centre point to attribute table (to be used as covariate in GLM)
-grid_025_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_025_sp_counted_SPDF))$V1
-grid_025_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_025_sp_counted_SPDF))$V2
+g025_utm$lon <- as.data.frame(coordinates(g025_SPDF))$V1
+g025_utm$lat <- as.data.frame(coordinates(g025_SPDF))$V2
 
-grid_050_sp_counted$centre_point_lon <- as.data.frame(coordinates(grid_050_sp_counted_SPDF))$V1
-grid_050_sp_counted$centre_point_lat <- as.data.frame(coordinates(grid_050_sp_counted_SPDF))$V2
+g050_utm$lon <- as.data.frame(g050_centroid)$V1
+g050_utm$lat <- as.data.frame(g050_centroid)$V2
 
 # Extract dataframe
-grid_025_df <- st_set_geometry(grid_025_sp_counted, NULL)
-grid_050_df <- st_set_geometry(grid_050_sp_counted, NULL)
+g025_df <- st_set_geometry(g025_utm, NULL)
+g050_df <- st_set_geometry(g050_utm, NULL)
 
 # Selecting the continuous variables
-grid_025_df_seleted <-
-  grid_025_df %>% select(countPts, n_reg, dist_inst, centre_point_lon, centre_point_lat)
-grid_050_df_seleted <-
-  grid_050_df %>% select(countPts, n_reg, dist_inst, centre_point_lon, centre_point_lat)
+g025_df_selected <-
+  g025_df %>% select(countPts, nreg, dist_inst, lon, lat)
+g050_df_selected <-
+  g050_df %>% select(countPts, nreg, dist_inst, lon, lat)
 
 # Categorical variable - UC presence/absence
-grid_025_df_seleted$uc_pres <- !is.na(grid_025_df$UF_unique)
-grid_050_df_seleted$uc_pres <- !is.na(grid_050_df$UF_unique)
+g025_df_selected$uc_pres <- !is.na(g025_df$UF_unique)
+g050_df_selected$uc_pres <- !is.na(g050_df$UF_unique)
 
-colnames(grid_025_df_seleted) <- c('n_species', 'n_registers', 'dist_inst', 'lon', 'lat', 'uc_pres')
-colnames(grid_050_df_seleted) <- c('n_species', 'n_registers', 'dist_inst', 'lon', 'lat', 'uc_pres')
+colnames(g025_df_selected) <- c('n_sp', 'n_reg', 'dist_inst', 'lon', 'lat', 'uc_pres')
+colnames(g050_df_selected) <- c('n_sp', 'n_reg', 'dist_inst', 'lon', 'lat', 'uc_pres')
 
 # Correlation test 
-grid_025_cor <- cor(grid_025_df_seleted[,-ncol(grid_025_df_seleted)])
-grid_050_cor <- cor(grid_050_df_seleted[,-ncol(grid_050_df_seleted)])
+g025_cor <- cor(g025_df_selected[,-ncol(g025_df_selected)])
+g050_cor <- cor(g050_df_selected[,-ncol(g050_df_selected)])
 
 # Plot correlation test
-corrplot(grid_025_cor, type="upper", method = 'circle', tl.col="black", tl.srt=45, order="hclust")
-corrplot(grid_050_cor, type="upper", method = 'circle', tl.col="black", tl.srt=45, order="hclust")
+corrplot(
+  g025_cor,
+  type = "upper",
+  method = 'circle',
+  tl.col = "black",
+  tl.srt = 45,
+  order = "hclust"
+)
+corrplot(
+  g050_cor,
+  type = "upper",
+  method = 'circle',
+  tl.col = "black",
+  tl.srt = 45,
+  order = "hclust"
+)
 
 # Pearson's chi-squared test
-grid_025_chisq <- chisq.test(grid_025_df_seleted$n_registers, grid_025_df_seleted$uc_pres)
-grid_050_chisq <- chisq.test(grid_050_df_seleted$n_registers, grid_050_df_seleted$uc_pres)
+g025_chisq <- chisq.test(g025_df_selected$n_reg, g025_df_selected$uc_pres)
+g050_chisq <- chisq.test(g050_df_selected$n_reg, g050_df_selected$uc_pres)
 
 # Mean polygon area
-grid_025_area <- mean(st_area(grid_025_sp_counted)) # 484.516.066 m² = 484 km²
-grid_050_area <- mean(st_area(grid_050_sp_counted)) # 1.646.877.595 m² = 1.646 km²
+g025_area <- mean(st_area(g025_utm)) # 484.516.066 m² = 484 km²
+g050_area <- mean(st_area(g050_utm)) # 1.646.877.595 m² = 1.646 km²
 
 # Plot maps
 ggplot_nreg_025 <-
-  ggplot(grid_025_sp_counted) +
+  ggplot(g025_utm) +
   geom_sf(aes(fill = n_reg))
 ggplot_nreg_050 <-
-  ggplot(grid_050_sp_counted) + 
+  ggplot(g050_utm) + 
   geom_sf(aes(fill = n_reg))
 
 ggplot_nsp_025 <-
-  ggplot(grid_025_sp_counted) + 
+  ggplot(g025_utm) + 
   geom_sf(aes(fill = countPts))
 ggplot_nsp_050 <-
-  ggplot(grid_050_sp_counted) + 
+  ggplot(g050_utm) + 
   geom_sf(aes(fill = countPts))
 
 # Edit plots
