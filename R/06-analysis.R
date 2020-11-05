@@ -1,14 +1,16 @@
-x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'FNN', 'vegan', 'corrplot', 'ggplot2')
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'FNN', 'vegan', 'corrplot', 'ggplot2', 'DHARMa', 'MASS', 'MuMIn')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
 conflict_prefer(name = 'select', winner = 'dplyr')
 
-source('./R/functions.R')
+source('functions.R')
 
 data <-
   st_read(
-    './data/data-all-clean.csv',
+    '../data/data-all-clean.csv',
     options = c(
       'X_POSSIBLE_NAMES=decimalLongitude',
       'Y_POSSIBLE_NAMES=decimalLatitude'
@@ -16,9 +18,9 @@ data <-
     crs = CRS("+proj=longlat +datum=WGS84")
   )
 inst_df <-
-  read.csv('./data/institutions-ccma.csv', header = T)
-g025 <- st_read(dsn = './outputs', layer = 'grid_025_ucs_joined')
-g050 <- st_read(dsn = './outputs', layer = 'grid_050_ucs_joined')
+  read.csv('../data/institutions-ccma.csv', header = T)
+g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
+g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
 
 # Reorder lat/lon 
 inst_layer <- inst_df %>% select(longitude, latitude)
@@ -58,10 +60,7 @@ g025_utm$dist_inst <- as.data.frame(dist_025)$nn.dist
 g050_utm$dist_inst <- as.data.frame(dist_050)$nn.dist
 
 # Adding centre point to attribute table (to be used as covariate in GLM)
-g025_utm$lon <- as.data.frame(g025_centroid)$V1
 g025_utm$lat <- as.data.frame(g025_centroid)$V2
-
-g050_utm$lon <- as.data.frame(g050_centroid)$V1
 g050_utm$lat <- as.data.frame(g050_centroid)$V2
 
 # Extract dataframe
@@ -69,21 +68,27 @@ g025_df <- st_set_geometry(g025_utm, NULL)
 g050_df <- st_set_geometry(g050_utm, NULL)
 
 # Selecting the continuous variables
-g025_df_selected <-
-  g025_df %>% select(countPts, nreg, dist_inst, lon, lat)
-g050_df_selected <-
-  g050_df %>% select(countPts, nreg, dist_inst, lon, lat)
+g025_df_std <-
+  g025_df %>% select(countPts, nreg, dist_inst, lat)
+g050_df_std <-
+  g050_df %>% select(countPts, nreg, dist_inst, lat)
+
+# Standardizing continuous covariates to eliminate effect of scale
+g025_df_std[3:4] <-
+  decostand(g025_df_std[3:4], method = "standardize", MARGIN = 2)
+g050_df_std[3:4] <-
+  decostand(g050_df_std[3:4], method = "standardize", MARGIN = 2)
 
 # Categorical variable - UC presence/absence
-g025_df_selected$uc_pres <- !is.na(g025_df$UF_unique)
-g050_df_selected$uc_pres <- !is.na(g050_df$UF_unique)
+g025_df_std$uc_pres <- !is.na(g025_df$UF_unique)
+g050_df_std$uc_pres <- !is.na(g050_df$UF_unique)
 
-colnames(g025_df_selected) <- c('n_sp', 'n_reg', 'dist_inst', 'lon', 'lat', 'uc_pres')
-colnames(g050_df_selected) <- c('n_sp', 'n_reg', 'dist_inst', 'lon', 'lat', 'uc_pres')
+colnames(g025_df_std) <- c('n_sp', 'n_reg', 'dist_inst', 'lat', 'uc_pres')
+colnames(g050_df_std) <- c('n_sp', 'n_reg', 'dist_inst', 'lat', 'uc_pres')
 
-# Correlation test 
-g025_cor <- cor(g025_df_selected[,-ncol(g025_df_selected)])
-g050_cor <- cor(g050_df_selected[,-ncol(g050_df_selected)])
+# Correlation test ----
+g025_cor <- cor(g025_df_std[,-ncol(g025_df_std)])
+g050_cor <- cor(g050_df_std[,-ncol(g050_df_std)])
 
 # Plot correlation test
 corrplot(
@@ -104,8 +109,8 @@ corrplot(
 )
 
 # Pearson's chi-squared test
-g025_chisq <- chisq.test(g025_df_selected$n_reg, g025_df_selected$uc_pres)
-g050_chisq <- chisq.test(g050_df_selected$n_reg, g050_df_selected$uc_pres)
+g025_chisq <- chisq.test(g025_df_std$n_reg, g025_df_std$uc_pres)
+g050_chisq <- chisq.test(g050_df_std$n_reg, g050_df_std$uc_pres)
 
 # Mean polygon area
 g025_area <- mean(st_area(g025_utm)) # 484.516.066 m² = 484 km²
@@ -164,6 +169,52 @@ ggsave('../results/plot_nsp_25.pdf', width = 3, height = 4)
 ggplot_nsp_050_edited
 ggsave('../results/plot_nsp_50.pdf', width = 3, height = 4)
 
+
+# Statistics -----
+
+# Fit Negative Binomial Generalized Linear Model
+summary(
+  nreg_025_fitted <-
+    glm.nb(
+      n_reg ~ dist_inst + lat + uc_pres,
+      data = g025_df_std, na.action = 'na.fail')
+)
+summary(
+  nreg_050_fitted <-
+    glm.nb(
+      n_reg ~ dist_inst + lat + uc_pres,
+      data = g050_df_std, na.action = 'na.fail')
+)
+
+# Rank by AIC
+nreg_025_ranked <- dredge(nreg_025_fitted)
+nreg_050_ranked <- dredge(nreg_050_fitted)
+
+# Conventional Residuals (fittedModel)
+nreg_025_simulation <- simulateResiduals(nreg_025_nbm, plot = T)
+nreg_050_simulation <- simulateResiduals(nreg_050_nbm, plot = T)
+
+# Detect possible misspecifications
+plotResiduals(nreg_025_simulation, g025_df_std$lat)
+plotResiduals(nreg_025_simulation, g025_df_std$dist_inst)
+plotResiduals(nreg_025_simulation, g025_df_std$uc_pres)
+
+plotResiduals(nreg_050_simulation, g050_df_std$lat)
+plotResiduals(nreg_050_simulation, g050_df_std$dist_inst)
+plotResiduals(nreg_050_simulation, g050_df_std$uc_pres)
+
+# Test overdispersion
+testDispersion(nreg_025_simulation, alternative = 'greater')
+testDispersion(nreg_050_simulation, alternative = 'greater')
+
+# Test if there are more zeros than expected
+testZeroInflation(nreg_025_simulation, alternative = 'greater')
+testZeroInflation(nreg_050_simulation, alternative = 'greater') #zero inflated?
+
+# For details on overdispersion test check: 
+# > Overdispersion, and how to deal with it in R and JAGS
+# > DHARMa: residual diagnostics for hierarchical (multi-level/mixed) regression models
+# Grid with cell size equal to 0.50 (1.500 km²) had better fitting #
 
 # To do #############################
 
