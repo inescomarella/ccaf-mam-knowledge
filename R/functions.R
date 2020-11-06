@@ -109,3 +109,21 @@ only.indetified.sp <- function(dataframe) {
   data <- bind_rows(data, to_return_scientificName)
   return(data)
 }
+
+count.orders.list.in.polygons <- function(pts, polygons, order_list){
+  for (j in 1:length(order_list)) {
+    countPts = c()
+    suppressMessages({
+      for (i in 1:nrow(polygons)) {
+        polySelect <- polygons[i, ]
+        pts2 <- st_intersection(pts, polySelect)
+        obj <- pts2 %>% filter(order == as.character(order_list[j]))
+        countPts[i] = nrow(obj)
+      }
+      
+    })
+    polygons[, (ncol(polygons) + 1)] <- countPts
+  }
+  colnames(polygons)[(ncol(polygons)-length(order_list)+1):ncol(polygons)] <- order_list
+  return(polygons)
+}
