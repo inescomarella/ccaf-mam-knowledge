@@ -1,10 +1,16 @@
-x <- c("tidyverse", "CoordinateCleaner", "lubridate", "biogeo")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+x <- c("tidyverse", "CoordinateCleaner", "lubridate", "biogeo", "sf")
 lapply(x, library, character.only = TRUE)
 
-setwd('./data')
+source('functions.R')
 
 # Input
-data_raw <- read.csv("data-raw.csv", stringsAsFactors = FALSE)
+data_raw <- read.csv("../data/data-raw.csv", stringsAsFactors = FALSE)
+ccma <-
+  st_read(dsn = '../outputs',
+          layer = 'ccma-clipped',
+          check_ring_dir = TRUE)
 
 # Primeira limpeza ----
 # Retirando registros marinhos
@@ -479,8 +485,10 @@ data_modif$scientificName[data_modif$scientificName == "Peropteryx cf. kappleri"
 data_modif$scientificName[data_modif$scientificName == "Peropteryx trinitatis trinitatis"] <- "Peropteryx trinitatis"
 data_modif$scientificName[data_modif$scientificName == "Sciurus alphonsei alphonsei"] <- "Sciurus alphonsei"
 
-# Output -----
+# Remove point outside CCMA
+data_modif_clipped <- clip.ccma(data_modif)
 
+# Output -----
 # Exportando tabela padronizada
-write_csv(data_modif, 'data-papers.csv')
+write_csv(data_modif_clipped, '../data/data-papers-clean.csv')
 
