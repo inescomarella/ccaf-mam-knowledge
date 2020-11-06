@@ -12,25 +12,23 @@ ccma <-
           layer = 'ccma-clipped',
           check_ring_dir = TRUE)
 
-# Primeira limpeza ----
-# Retirando registros marinhos
-data_modif <- data_raw[!(data_raw$order == "Cetartiodactyla" | data_raw$order == "Cetacea"), ]
+# Remove marine mammals
+data_modif <- data_raw[!(data_raw$order == "Cetartiodactyla" | 
+                           data_raw$order == "Cetacea"), ]
 
-# Retirando registros do speciesLink
+# Remove speciesLink data
 to_remove <- data_modif %>% filter_all(any_vars(str_detect(., "speciesLink")))
 data_modif <- anti_join(data_modif, to_remove)
 
-# Retirando registros não publicados
+# Remove unpublished data
 data_modif <- data_modif %>% filter(!str_detect(typeOfPublication, 'Unpubl'))
 
-# Corrigindo nome da coluna
+# Correct column name
 colnames(data_modif)[34] <- "scientificName"
 
-# collectionCode -----
-# Compatibilizando o formato
+# Standardizing collectionCode column ----
 data_modif$collectionCode <- as.character(data_modif$collectionCode)
 
-# Padronizando nomes
 data_modif$collectionCode[data_modif$collectionCode == "Coleção de Mamíferos  do Museu Nacional (MN)"] <- "MN - Mammal Collection"
 data_modif$collectionCode[data_modif$collectionCode == "Cole��o de Mam�feros, Universidade Estadual de Santa Cruz (UESC), Ilh�us, BA, Brazil"] <- "UESC - Mammal Collection"
 data_modif$collectionCode[data_modif$collectionCode == "Cole��o Adriano L�cio Peracchi (ALP), Universidade Federal Rural do Rio de Janeiro, Serop�dica, RJ, Brazil"] <- "UFRRJ - ALP Collection"
@@ -38,18 +36,16 @@ data_modif$collectionCode[data_modif$collectionCode == "Laboratorio de Diversida
 data_modif$collectionCode[data_modif$collectionCode == "Museum of Vertebrate Zoology"] <- "MVZ"
 data_modif$collectionCode[data_modif$collectionCode == "Not located"] <- ""
 
-# Compatibilizando o formato
+# Standardizing fieldNumber column ----
 data_modif$fieldNumber <- as.character(data_modif$fieldNumber)
 
-# Padronizando coluna
 data_modif$fieldNumber[data_modif$fieldNumber == "?"] <- " "
 data_modif$fieldNumber[data_modif$fieldNumber == " Daniela Rossoni"] <- " "
 data_modif$fieldNumber[data_modif$fieldNumber == " Valéria Fagundes"] <- " "
 
-# Compatibilizando o formato
+# Standardizing preparations column ----
 data_modif$preparations <- as.character(data_modif$preparations)
 
-# Padronizando coluna
 data_modif$preparations[data_modif$preparations == "pele"] <- "Skin"
 data_modif$preparations[data_modif$preparations == "skin, study"] <- "Skin"
 data_modif$preparations[data_modif$preparations == "skin (dry)"] <- "Skin"
@@ -85,112 +81,82 @@ data_modif$preparations[data_modif$preparations == "skull; skin, study"] <- "Sku
 data_modif$preparations[data_modif$preparations == "fragmento de mandíbula"] <- "Jaw fragment"
 data_modif$preparations[data_modif$preparations == "Carapaça"] <- "Hoof"
 
-# eventYear----
-
-# Corrigindo eventYear no formato ano-mes-dia
-# separando as linhas erradas
-data_trace <- data_modif %>% filter(str_detect(eventYear, "[-]")) 
-
-# separando a coluna eventYear
-year_trace <- data_trace$eventYear 
-year_trace <- as.data.frame(year_trace)
-
-# extraindo o ano das data_modif
-year_trace_sep <- format(as.Date(year_trace$year_trace, format = "%Y-%m-%d"), "%Y") 
-year_trace_sep <- as.data.frame(year_trace_sep)
-
-# retornando os anos corrigidos para a coluna
-data_trace$eventYear <- year_trace_sep$year_trace_sep 
-
-# separando as linhas erradas
-to_remove <- data_modif %>% filter(str_detect(eventYear, "[-]")) 
-
-# removendo as linhas erradas
-data_trace_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) 
-
-# adicionando as linhas corrigidas
-data_modif  <- rbind(data_trace_less, data_trace) 
-
-# confirmando os tamanhos das tabelas
-nrow(data_modif)
-nrow(data_trace_less) + nrow(data_trace) 
-
-# Corrigindo eventYear no formato ano/ano
-# separando as linhas erradas
+# Standardizing eventYear column ----
+# Correcting format from year/year to year
+# Extract wrong lines
 data_bar <- data_modif %>% filter(str_detect(eventYear, "[/]")) 
 
-# separando a coluna eventYear
-year_bar <- data_bar$eventYear 
-year_bar <- as.data.frame(year_bar)
+# Extract eventYear column from wrong rows
+year_bar <- as.data.frame(data_bar$eventYear)
 
-# separando primeiro/ultimo ano em duas colunas
-year_bar_sep <- separate(data = year_bar, col = year_bar, into = c("A", "B"), sep = "[/]") 
+# Separating first/last years in two columns
+year_bar_sep <- separate(data = year_bar, col = 'data_bar$eventYear', into = c("A", "B"), sep = "[/]") 
 
-# retirando o primeiro ano
-year_bar_correct <- year_bar_sep$B 
-year_bar_correct <- as.data.frame(year_bar_correct)
+# Keep last year
+year_bar_correct <- data.frame(year_bar_correct = year_bar_sep$B)
 
-# retornando os anos corrigidos para a coluna
+# Return corrected column
 data_bar$eventYear <- year_bar_correct$year_bar_correct 
 
-# separando as linhas erradas
+# Wrong rows to remove
 to_remove <- data_modif %>% filter(str_detect(eventYear, "[/]")) 
 
-# removendo as linhas erradas
+# Removing wrong rows
 data_bar_less <- data_modif %>% filter(!eventYear %in% to_remove$eventYear) 
 
-# adicionando as linhas corrigidas
+# Add correct rows
 data_modif  <- rbind(data_bar_less, data_bar) 
 
-# confirmando os tamanhos das tabelas
 nrow(data_modif)
 nrow(data_bar) + nrow(data_bar_less) 
 
-# PublicationYear ----
-# Primeiro separa os registros com referencia e sem o ano
-PublicationYear_less <- data_modif %>% filter(is.na(PublicationYear) & is.na(reference) == FALSE & reference != "" |
-                                                PublicationYear == "" & is.na(reference) == FALSE & reference != "")
+# Standardizing PublicationYear column ----
 
-# Retira esses registros da tabela
+# Extract rows with reference and without PublicationYear
+PublicationYear_less <-
+  data_modif %>% filter(
+    is.na(PublicationYear) &
+      is.na(reference) == FALSE & reference != "" |
+      PublicationYear == "" &
+      is.na(reference) == FALSE & reference != ""
+  )
+
+# Remove them from main dataframe
 data_modif <- anti_join(data_modif, PublicationYear_less)
 
-# Adiciona o ano (assumindo que os primeiros 4 numeros da referência sempre serão o ano de publicação)
+# Add year: assuming the first four numbers as publication year
 for (i in 1:nrow(PublicationYear_less))
   PublicationYear_less$PublicationYear[i] <- substr(gsub("[^0-9]", "", PublicationYear_less$reference[i]), 1, 4)
 
-# Compatibilizando o formato a coluna
 data_modif$PublicationYear <- as.character(data_modif$PublicationYear)
 
-# Retornando os registros com o ano de publicação adicionado
+# Return rows with publication year added
 data_modif <- bind_rows(data_modif, PublicationYear_less)
 
-# Separando registros sem referencia da tabela principal
+# Extracting rows without reference
 data_modif_reference_less <- data_modif %>% filter(reference == "")
 
-# Padronizando a data dos registros sem referencia
-data_modif_reference_less$eventYear <- format(as.Date(data_modif_reference_less$eventDate, format = "%m/%d/%y"), "%Y") 
+# Standardizing  date in rows without reference
+data_modif_reference_less$eventYear <-
+  format(as.Date(data_modif_reference_less$eventDate, format = "%m/%d/%y"), "%Y")
 
-# removendo registros sem referência da tabela principal
+# Removing those rows from main dataframe
 data_modif <- data_modif %>% filter(!reference == "") 
 
-# retornando os registros sem referencia com as datas corrigidas
+# Return them with date corrected
 data_modif <- rbind(data_modif, data_modif_reference_less) 
 
-# Na ausência de ano de coleta, considerar o ano de publicação
+# In the absence of collect year, consider the publication year
 for (i in 1:nrow(data_modif))
   if (data_modif$eventYear[i] == "" | is.na(data_modif$eventYear[i]))
     data_modif$eventYear[i] <- data_modif$PublicationYear[i]
 
-# Removendo registros sem ano 
-data_modif <- data_modif %>% filter(!eventYear == "") # removendo registros
-
-# country -----
+# country ----
 data_modif$country <- "Brazil"
 
-# stateProvince -----
+# Stardizing stateProvince column ----
 data_modif$stateProvince <- as.character(data_modif$stateProvince)
 
-# Padronizando preenchimento da coluna
 data_modif$stateProvince[data_modif$stateProvince == "Espírito Santo"] <- "Espirito Santo"
 data_modif$stateProvince[data_modif$stateProvince == "ES"] <- "Espirito Santo"
 data_modif$stateProvince[data_modif$stateProvince == "Espiríto Santo"] <- "Espirito Santo"
@@ -198,19 +164,17 @@ data_modif$stateProvince[data_modif$stateProvince == "ESPIRITO SANTO"] <- "Espir
 data_modif$stateProvince[data_modif$stateProvince == "BAHIA"] <- "Bahia"
 data_modif$stateProvince[data_modif$stateProvince == "BA"] <- "Bahia"
 
-# UC ----
+# Standardizing UC column ----
 data_modif$UC <- as.character(data_modif$UC)
 
-# Padronizando preenchimento da coluna
 data_modif$UC[data_modif$UC == "yes"] <- "Yes"
 data_modif$UC[data_modif$UC == "no"] <- "No"
 data_modif$UC[data_modif$UC == "Parque Estadual da Fonte Grande"] <- "Yes"
 data_modif$UC[is.na(data_modif$UC)] <- ""
 
-# georeferencePrecision ----
+# Standardizing georeferencePrecision column ----
 data_modif$georeferencePrecision <- as.character(data_modif$georeferencePrecision)
 
-# Padronizando preenchimento da coluna
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "precise"] <- "Precise"
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "localidade"] <- "Precise"
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Localidade"] <- "Precise"
@@ -219,13 +183,13 @@ data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Not-Precis
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Not precise"] <- "NotPrecise"
 data_modif$georeferencePrecision[data_modif$georeferencePrecision == "[no data]"] <- ""
 
-# Coordenadas geográficas -----
-# Passando coordenadas que estão na coluna errada para a coluna correta
+# Correct geographical coordinates -----
+# Geographical coordinates in geodeticDatum column
 for (i in 1:nrow(data_modif))
   if (is.na(data_modif$decimalLatitude[i]))
     data_modif$decimalLatitude[i] <- as.character(data_modif$geodeticDatum[i])
 
-# Retirando as coordenadas que estão na coluna errada
+# Remove from geodeticDatum
 to_remove <- data_modif %>% 
   select(geodeticDatum) %>% 
   filter(!str_detect(geodeticDatum, "[[:alpha:] ]+")) #filtrar dados sem letras
@@ -234,7 +198,7 @@ for (i in 1:nrow(data_modif))
   if (data_modif$geodeticDatum[i] %in% to_remove$geodeticDatum)
     data_modif$geodeticDatum[i] <- NA
 
-# Retirando os dados errado da coluna certa
+# Removing rows without adequate coordinates
 to_remove <- data_modif %>% 
   select(decimalLatitude) %>% 
   filter(str_detect(decimalLatitude, "[[:alpha:] ]+"))
@@ -243,20 +207,21 @@ for (i in 1:nrow(data_modif))
   if (data_modif$decimalLatitude[i] %in% to_remove$decimalLatitude)
     data_modif$decimalLatitude[i] <- NA
 
-# Separando as coordenadas em graus e UTM
+# Extract coordinates in UTM and in degrees
 grau_utm_data_modif <- data_modif %>% 
   select(verbatimLatitude, verbatimLongitude) %>% 
   filter(str_detect(verbatimLatitude, "[[:alpha:] ]+"))
 
-# Retirado as coordenadas em UTM
+# UTM coordinates
 utm_data_modif <- data_modif %>% 
-  filter(verbatimLatitude == "240487949 N") # separando coordenadas em UTM
+  filter(verbatimLatitude == "240487949 N")
+
+# Degree coordinates
 grau_data_modif <- grau_utm_data_modif %>% 
-  filter(!verbatimLatitude %in% utm_data_modif$verbatimLatitude) # removendo as linhas com coordenadas em UTM
+  filter(!verbatimLatitude %in% utm_data_modif$verbatimLatitude)
 
-# Preparando as colunas para converter de graus para decimais
-
-# Separado grau
+# Preparing columns to convert to decimal degrees
+# Separate degree
 grau_data_modif <-
   separate(
     as.data.frame(grau_data_modif),
@@ -272,13 +237,13 @@ grau_data_modif <-
     sep = "[º]"
   )
 
-# Retirando caracteres especiais
+# Remove special characters
 grau_data_modif$verbatimLongitude <-
   str_replace_all(grau_data_modif$verbatimLongitude, "[[:alpha:] ]+", "")
 grau_data_modif$verbatimLatitude <-
   str_replace_all(grau_data_modif$verbatimLatitude, "[[:alpha:] ]+", "")
 
-# Separando minuto e segundo
+# Separate minute and second
 grau_data_modif <-
   separate(
     as.data.frame(grau_data_modif),
@@ -294,11 +259,11 @@ grau_data_modif <-
     sep = "[^[:alnum:]]"
   )
 
-# Retirando caracteres especiais
+# Remove special characters
 grau_data_modif$grau_lat <- str_replace_all(grau_data_modif$grau_lat, "[[:alpha:] ]+", "")
 grau_data_modif$grau_long <- str_replace_all(grau_data_modif$grau_long, "[[:alpha:] ]+", "")
 
-# Corrigindo alguns erros pontuais
+# Correct some specific rows
 grau_data_modif$seg_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "20"
 grau_data_modif$min_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "16"
 grau_data_modif$grau_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "18"
@@ -310,7 +275,7 @@ grau_data_modif$grau_long[grau_data_modif$grau_lat == unique(grau_data_modif$gra
 grau_data_modif$seg_lat[grau_data_modif$seg_lat == ""] <- "0"
 grau_data_modif$seg_long[grau_data_modif$seg_long == ""] <- "0"
 
-# Convertendo as coordenadas em graus para UTM
+# Convert coordinate in degrees to decimal
 lat_grau_data_modif <-
   dms2dd(
     as.numeric(grau_data_modif$grau_lat),
@@ -329,11 +294,11 @@ long_grau_data_modif <-
 coord <- data.frame(lat = as.data.frame(lat_grau_data_modif),
                     long = as.data.frame(long_grau_data_modif))
 
-# Passando para a tabela de trabalho
+# Rertuning coordinates degrees corrected to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$lat_grau_data_modif
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$long_grau_data_modif
 
-# Removendo dados sem registro de coordenada geográfica
+# Removing rows without coordinates
 to_remove <-
   data_modif %>% filter(
     verbatimLatitude == "", 
@@ -343,97 +308,94 @@ to_remove <-
   )
 data_modif <- anti_join(data_modif, to_remove)
 
-# Convertendo UTM para coordenadas decimais
+# Convert UTM to decimal degree coordinates
 utm_data_modif <- data_modif %>% 
   select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude, geodeticDatum) %>% 
   filter(is.na(decimalLatitude) & is.na(decimalLongitude))
 
 utm <- utm_data_modif %>% select(verbatimLatitude, verbatimLongitude)
 
-# Os calculos das coordenadas foram feitar num site (acho que IBGE)
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- "-16.324448"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- "-39.121001"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- "-14.018092"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- "-39.143283"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- "-17.106801"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- "-39.339753"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- "-14.424250"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- "-39.060414"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- "-13.525323"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- "-39.035311"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- "-15.172064"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- "-39.061124"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- "-17.169331"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- "-39.841776"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- "-15.155310"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- "-39.526954"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- "-15.927010"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- "-39.635847"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- "-17.292106"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- "-39.673031"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- "-13.578941"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- "-39.706685"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- "-15.619982"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- "-39.161263"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- "-15.973720"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- "-39.373680"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- "-16.512313"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- "-39.303612"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- "-13.701098"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- "-39.232629"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- "-15.166549"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- "-39.059754"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <- "-13.952912"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <- "-39.451138"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- "-16.599388"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- "-39.913983"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- "-13.864987"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- "-39.672635"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- "-16.286450"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- "-39.424079"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- "-15.197319"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- "-39.391085"
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- "-14.343671"
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- "-39.086907"
+# Convert UTM to decimal degree http://www.dpi.inpe.br/calcula/
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- '-13.52529945007'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- '-39.035338180018'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- '-13.701074292447'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- '-39.23265636598'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- '-13.578916617967'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- '-39.706712069419'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- '-14.018067512186'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- '-39.143309618845'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- '-13.952887397248'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- '-39.451164678044'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- '-13.864962356948'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- '-39.672662266565'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- '-14.4242257748'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- '-39.060440860355'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- '-14.343646782334'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- '-39.086933586738'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- '-15.166524911197'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- '-39.059781006338'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- '-15.197294397659'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- '-39.391112215309'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- '-39.526980972912'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- '-15.155285086932'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- '-15.172039617868'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- '-39.061151005409'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- '-39.161289926413'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- '-15.619957524626'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- '-15.97369495811'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- '-39.373706923518'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- '-15.926985134731'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- '-39.635874022237'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- '-16.324422945368'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- '-39.121028294735'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <-  '-16.286425392045'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <- '-39.424106517465'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- '-16.599363511356'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- '-39.914010388505'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- '-17.106776328205'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- '-39.339780321709'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- '-17.292080472538'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- '-39.673058656741'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- '-17.169305566935'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- '-39.841802660895'
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- '-16.512288600716'
+utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- '-39.30363966433'
+utm_data_modif <- utm_data_modif[utm_data_modif$verbatimLatitude != unique(utm$verbatimLatitude)[1],]
 
-# Passando para a tabela de trabalho
+# Returnin to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLatitude
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLongitude
 
-# Removendo registros sem coordenadas geográfica
+# Removing rows without coordinates
 data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) 
 
 to_remove <- data_modif %>% filter(decimalLatitude == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-# Corrigindo latitude/longitude trocada ------
-
-# Separando dados trocados
+# Correcting mixed latitude/longitude ------
 to_correct_latlong <- data_modif %>% filter(decimalLongitude < -30)
-long <- to_correct_latlong$decimalLatitude
+lon <- to_correct_latlong$decimalLatitude
 lat <- to_correct_latlong$decimalLongitude
-
-# Corrigindo a troca
 correct_latlong <- to_correct_latlong
+correct_latlong$decimalLongitude <- lon
 correct_latlong$decimalLatitude <- lat
-correct_latlong$decimalLongitude <- long
 
-# Removendo registros com os dados trocados
+# Removing wrong rows
 data_modif <- anti_join(data_modif, to_correct_latlong)
 
-# Adicionando registros com os dados corrigidos
+# Adding corrected rows
 data_modif <- rbind(data_modif, correct_latlong)
 
-# scientificName ----
-# Removendo caracteres especiais
+# Standardizing scientificName column ----
+# Removing special characters
 data_modif$scientificName <- str_replace_all(data_modif$scientificName, "[^[:alnum:]]", " ")
 
 data_modif$scientificName <- as.character(data_modif$scientificName)
 
-# Corrigindo nome científico de espécie tipo 'Genero.epiteto'
+# Correcting 'Gender.species'
 data_modif$scientificName <- gsub("[.]", " ", data_modif$scientificName)
 
-# Padronizando a escrita
+# Standardizing writting
 data_modif$scientificName[data_modif$scientificName == "Alouatta fusca "] <- "Alouatta fusca"
 data_modif$scientificName[data_modif$scientificName == "Sapajus  robustus"] <- "Sapajus robustus"
 data_modif$scientificName[data_modif$scientificName == "Tamanduá tetradactyla"] <- "Tamandua tetradactyla"
@@ -485,10 +447,9 @@ data_modif$scientificName[data_modif$scientificName == "Peropteryx cf. kappleri"
 data_modif$scientificName[data_modif$scientificName == "Peropteryx trinitatis trinitatis"] <- "Peropteryx trinitatis"
 data_modif$scientificName[data_modif$scientificName == "Sciurus alphonsei alphonsei"] <- "Sciurus alphonsei"
 
-# Remove point outside CCMA
+# Remove points outside CCMA
 data_modif_clipped <- clip.ccma(data_modif)
 
 # Output -----
-# Exportando tabela padronizada
-write_csv(data_modif_clipped, '../data/data-papers-clean.csv')
+write_csv(data_modif_clipped, '../data/papers-mamm-clipped.csv')
 
