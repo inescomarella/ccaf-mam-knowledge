@@ -55,7 +55,7 @@ clip.ccma <- function(pts) {
   pts <- anti_join(pts, to_remove)
   data_st <-
     st_as_sf(pts, coords = c('decimalLongitude', 'decimalLatitude'))
-  data_crs <- st_set_crs(data_st, CRS("+proj=longlat +datum=WGS84"))
+  data_crs <- st_set_crs(data_st, sp::CRS("+proj=longlat +datum=WGS84"))
   ccma_crs <- st_transform(ccma, crs = st_crs(data_crs))
   data_clipped <- st_intersection(data_crs, ccma_crs)
   coords <- as.data.frame(st_coordinates(data_clipped))

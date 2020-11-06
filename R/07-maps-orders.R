@@ -1,18 +1,37 @@
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 x <- c('dplyr', 'sf', 'raster', 'ggplot2', 'conflicted')
 lapply(x, library, character.only = TRUE)
+
 conflict_prefer(name = 'filter', winner = 'dplyr')
 conflict_prefer(name = 'select', winner = 'dplyr')
-source('./R/functions.R')
+
+source('functions.R')
 
 # Inputs
-data <- st_read('./data/data-all-clean.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
-g025 <- st_read(dsn = './outputs', layer = 'grid_025_ucs_joined')
-g050 <- st_read(dsn = './outputs', layer = 'grid_050_ucs_joined')
+data <-
+  st_read(
+    '../data/mamm-data-clean.csv',
+    options = c(
+      'X_POSSIBLE_NAMES=decimalLongitude',
+      'Y_POSSIBLE_NAMES=decimalLatitude'
+    ),
+    crs = CRS("+proj=longlat +datum=WGS84")
+  )
+g025 <-
+  st_read(
+    dsn = '../outputs',
+    layer = 'grid_025_ucs_joined',
+    crs = CRS("+proj=longlat +datum=WGS84")
+  )
+g050 <-
+  st_read(
+    dsn = '../outputs',
+    layer = 'grid_050_ucs_joined',
+    crs = CRS("+proj=longlat +datum=WGS84")
+  )
 
-# Reproject
-g025_crs <- st_transform(g025, crs = st_crs(data))
-g050_crs <- st_transform(g050, crs = st_crs(data))
-
+# Count register per order in polygons
 g025_roden <- count.order.in.polygons(data, g025_crs, 'Rodentia')
 g025_prima <- count.order.in.polygons(data, g025_crs, 'Primates')
 g025_carni <- count.order.in.polygons(data, g025_crs, 'Carnivora')
@@ -39,204 +58,247 @@ g050_siren <- count.order.in.polygons(data, g050_crs, 'Sirenia')
 
 
 plot025_roden <-
-  ggplot(g025_roden) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  ggplot(g025_roden) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Rodentia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_prima <-
-  ggplot(g025_prima) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  ggplot(g025_prima) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Primates') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_carni <-
-  ggplot(g025_carni) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  ggplot(g025_carni) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Carnivora') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_didel <-
-  ggplot(g025_didel) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  ggplot(g025_didel) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Didelphimorphia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_peris <- 
-  ggplot(g025_peris) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_peris <-
+  ggplot(g025_peris) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Perissodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_chiro <- 
-  ggplot(g025_chiro) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_chiro <-
+  ggplot(g025_chiro) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Chiroptera') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_lagom <- 
-  ggplot(g025_lagom) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_lagom <-
+  ggplot(g025_lagom) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Lagomorpha') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_pilos <- 
-  ggplot(g025_pilos) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_pilos <-
+  ggplot(g025_pilos) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Pilosa') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_artio <- 
-  ggplot(g025_artio) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_artio <-
+  ggplot(g025_artio) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Artiodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_cingu <- 
-  ggplot(g025_cingu) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_cingu <-
+  ggplot(g025_cingu) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Cingulata') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot025_siren <- 
-  ggplot(g025_siren) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot025_siren <-
+  ggplot(g025_siren) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Sirenia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
-plot050_roden <- 
-  ggplot(g050_roden) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_roden <-
+  ggplot(g050_roden) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Rodentia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_prima <- 
-  ggplot(g050_prima) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_prima <-
+  ggplot(g050_prima) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Primates') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_carni <- 
-  ggplot(g050_carni) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_carni <-
+  ggplot(g050_carni) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Carnivora') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_didel <- 
-  ggplot(g050_didel) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_didel <-
+  ggplot(g050_didel) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Didelphimorphia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_peris <- 
-  ggplot(g050_peris) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_peris <-
+  ggplot(g050_peris) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Perissodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_chiro <- 
-  ggplot(g050_chiro) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_chiro <-
+  ggplot(g050_chiro) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Chiroptera') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_lagom <- 
-  ggplot(g050_lagom) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_lagom <-
+  ggplot(g050_lagom) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Lagomorpha') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_pilos <- 
-  ggplot(g050_pilos) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_pilos <-
+  ggplot(g050_pilos) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Pilosa') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_artio <- 
-  ggplot(g050_artio) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_artio <-
+  ggplot(g050_artio) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Artiodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_cingu <- 
-  ggplot(g050_cingu) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_cingu <-
+  ggplot(g050_cingu) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Cingulata') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
-plot050_siren <- 
-  ggplot(g050_siren) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+plot050_siren <-
+  ggplot(g050_siren) +
+  geom_sf(aes(fill = countPts), size = 0.25) +
   ggtitle('Sirenia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 plot025_roden
-ggsave('../results/plot025_rodentia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_rodentia.pdf',
+       width = 3,
+       height = 4)
 plot025_prima
-ggsave('../results/plot025_primates.pdf', width = 3, height = 4)
+ggsave('../results/plot025_primates.pdf',
+       width = 3,
+       height = 4)
 plot025_carni
-ggsave('../results/plot025_carnivora.pdf', width = 3, height = 4)
+ggsave('../results/plot025_carnivora.pdf',
+       width = 3,
+       height = 4)
 plot025_didel
-ggsave('../results/plot025_didelphimorphia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_didelphimorphia.pdf',
+       width = 3,
+       height = 4)
 plot025_peris
-ggsave('../results/plot025_perissodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot025_perissodactyla.pdf',
+       width = 3,
+       height = 4)
 plot025_chiro
-ggsave('../results/plot025_chiroptera.pdf', width = 3, height = 4)
+ggsave('../results/plot025_chiroptera.pdf',
+       width = 3,
+       height = 4)
 plot025_lagom
-ggsave('../results/plot025_lagomorpha.pdf', width = 3, height = 4)
+ggsave('../results/plot025_lagomorpha.pdf',
+       width = 3,
+       height = 4)
 plot025_pilos
-ggsave('../results/plot025_pilosa.pdf', width = 3, height = 4)
+ggsave('../results/plot025_pilosa.pdf',
+       width = 3,
+       height = 4)
 plot025_artio
-ggsave('../results/plot025_artiodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot025_artiodactyla.pdf',
+       width = 3,
+       height = 4)
 plot025_cingu
-ggsave('../results/plot025_cingulara.pdf', width = 3, height = 4)
+ggsave('../results/plot025_cingulata.pdf',
+       width = 3,
+       height = 4)
 plot025_siren
-ggsave('../results/plot025_sirenia.pdf', width = 3, height = 4)
+ggsave('../results/plot025_sirenia.pdf',
+       width = 3,
+       height = 4)
 
 plot050_roden
-ggsave('../results/plot050_rodentia.pdf', width = 3, height = 4)
+ggsave('../results/plot050_rodentia.pdf',
+       width = 3,
+       height = 4)
 plot050_prima
-ggsave('../results/plot050_primates.pdf', width = 3, height = 4)
+ggsave('../results/plot050_primates.pdf',
+       width = 3,
+       height = 4)
 plot050_carni
-ggsave('../results/plot050_carnivora.pdf', width = 3, height = 4)
+ggsave('../results/plot050_carnivora.pdf',
+       width = 3,
+       height = 4)
 plot050_didel
-ggsave('../results/plot050_didelphimorphia.pdf', width = 3, height = 4)
+ggsave('../results/plot050_didelphimorphia.pdf',
+       width = 3,
+       height = 4)
 plot050_peris
-ggsave('../results/plot050_perissodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot050_perissodactyla.pdf',
+       width = 3,
+       height = 4)
 plot050_chiro
-ggsave('../results/plot050_chiroptera.pdf', width = 3, height = 4)
+ggsave('../results/plot050_chiroptera.pdf',
+       width = 3,
+       height = 4)
 plot050_lagom
-ggsave('../results/plot050_lagomorpha.pdf', width = 3, height = 4)
+ggsave('../results/plot050_lagomorpha.pdf',
+       width = 3,
+       height = 4)
 plot050_pilos
-ggsave('../results/plot050_pilosa.pdf', width = 3, height = 4)
+ggsave('../results/plot050_pilosa.pdf',
+       width = 3,
+       height = 4)
 plot050_artio
-ggsave('../results/plot050_artiodactyla.pdf', width = 3, height = 4)
+ggsave('../results/plot050_artiodactyla.pdf',
+       width = 3,
+       height = 4)
 plot050_cingu
-ggsave('../results/plot050_cingulara.pdf', width = 3, height = 4)
+ggsave('../results/plot050_cingulata.pdf',
+       width = 3,
+       height = 4)
 plot050_siren
-ggsave('../results/plot050_sirenia.pdf', width = 3, height = 4)
-
+ggsave('../results/plot050_sirenia.pdf',
+       width = 3,
+       height = 4)

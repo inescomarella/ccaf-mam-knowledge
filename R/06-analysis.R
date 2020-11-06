@@ -10,7 +10,7 @@ source('functions.R')
 
 data <-
   st_read(
-    '../data/data-all-clean.csv',
+    '../data/mamm-data-clean.csv',
     options = c(
       'X_POSSIBLE_NAMES=decimalLongitude',
       'Y_POSSIBLE_NAMES=decimalLatitude'

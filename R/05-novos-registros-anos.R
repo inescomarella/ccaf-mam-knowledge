@@ -1,13 +1,13 @@
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 library(tidyverse)
 library(ggplot2)
 
-setwd('./data')
-
 # Input
-data <- read.csv("data-all-clean.csv")
+data <- read.csv("../data/mamm-data-clean.csv")
 
 # Ordena por ordem de ano
-data_sorted <- arrange(data, as.numeric(eventYear))
+data_sorted <- arrange(data, as.numeric(year))
 
 # Mantem apenas o primeiro registro da especie
 earlier_register <- data_sorted[!duplicated(data_sorted$species, fromLast = FALSE),]
@@ -16,8 +16,8 @@ earlier_register <- data_sorted[!duplicated(data_sorted$species, fromLast = FALS
 last_register <- data_sorted[!duplicated(data_sorted$species, fromLast = TRUE),]
 
 # Unindo primeiro e ultimo registro em um unico data.frame
-df <- data.frame('earlier' = earlier_register$eventYear,
-                 'last' = last_register$eventYear)
+df <- data.frame('earlier' = earlier_register$year,
+                 'last' = last_register$year)
 
 # Plotando
 plot <- ggplot(df) + 
@@ -30,9 +30,12 @@ plot <- ggplot(df) +
   theme(legend.position = "bottom")
 
 plot
+ggsave('../results/nregs-years.pdf',
+       width = 5,
+       height = 4)
 
 # Tabela - frequencia de registros
-freq_table <- data.frame(table(earlier_register$eventYear))
+freq_table <- data.frame(table(earlier_register$year))
 colnames(freq_table) <- c('year', 'N species')
 
 # Tabela - Sequencia completa de anos desde o primeiro registro até o último
