@@ -1,6 +1,6 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-x <- c('dplyr', 'sf', 'raster', 'ggplot2', 'conflicted')
+x <- c('dplyr', 'sf', 'raster', 'ggplot2', 'conflicted', 'scatterpie')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
@@ -8,7 +8,7 @@ conflict_prefer(name = 'select', winner = 'dplyr')
 
 source('functions.R')
 
-# Inputs
+# Inputs ----
 data <-
   st_read(
     '../data/mamm-data-clean.csv',
@@ -31,274 +31,309 @@ g050 <-
     crs = CRS("+proj=longlat +datum=WGS84")
   )
 
-# Count register per order in polygons
-g025_roden <- count.order.in.polygons(data, g025_crs, 'Rodentia')
-g025_prima <- count.order.in.polygons(data, g025_crs, 'Primates')
-g025_carni <- count.order.in.polygons(data, g025_crs, 'Carnivora')
-g025_didel <- count.order.in.polygons(data, g025_crs, 'Didelphimorphia')
-g025_peris <- count.order.in.polygons(data, g025_crs, 'Perissodactyla')
-g025_chiro <- count.order.in.polygons(data, g025_crs, 'Chiroptera')
-g025_lagom <- count.order.in.polygons(data, g025_crs, 'Lagomorpha')
-g025_pilos <- count.order.in.polygons(data, g025_crs, 'Pilosa')
-g025_artio <- count.order.in.polygons(data, g025_crs, 'Artiodactyla')
-g025_cingu <- count.order.in.polygons(data, g025_crs, 'Cingulata')
-g025_siren <- count.order.in.polygons(data, g025_crs, 'Sirenia')
+# Count register per order in polygons ----
+orders_list <- unique(data$order)
+g025_orders_counted <- count.orders.list.in.polygons(data, g025, orders_list)
+g050_orders_counted <- count.orders.list.in.polygons(data, g050, orders_list)
 
-g050_roden <- count.order.in.polygons(data, g050_crs, 'Rodentia')
-g050_prima <- count.order.in.polygons(data, g050_crs, 'Primates')
-g050_carni <- count.order.in.polygons(data, g050_crs, 'Carnivora')
-g050_didel <- count.order.in.polygons(data, g050_crs, 'Didelphimorphia')
-g050_peris <- count.order.in.polygons(data, g050_crs, 'Perissodactyla')
-g050_chiro <- count.order.in.polygons(data, g050_crs, 'Chiroptera')
-g050_lagom <- count.order.in.polygons(data, g050_crs, 'Lagomorpha')
-g050_pilos <- count.order.in.polygons(data, g050_crs, 'Pilosa')
-g050_artio <- count.order.in.polygons(data, g050_crs, 'Artiodactyla')
-g050_cingu <- count.order.in.polygons(data, g050_crs, 'Cingulata')
-g050_siren <- count.order.in.polygons(data, g050_crs, 'Sirenia')
+# Pie chart data.frame ----
+g025_coord <- as.data.frame(coordinates(as(g025_orders_counted, 'Spatial')))
+g050_coord <- as.data.frame(coordinates(as(g050_orders_counted, 'Spatial')))
 
+g025_nreg <- lengths(st_intersects(g025_orders_counted, data))
+g050_nreg <- lengths(st_intersects(g050_orders_counted, data))
 
+g025_df_pie <- bind_cols(g025_coord, g025_orders_counted[83:93])
+g050_df_pie <- bind_cols(g050_coord, g050_orders_counted[83:93])
+
+g025_df_pie$radius <- g025_nreg/(max(g025_nreg)*2)
+g050_df_pie$radius <- g050_nreg/(max(g050_nreg)*2)
+
+# Plot orders maps ----
 plot025_roden <-
-  ggplot(g025_roden) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Rodentia), size = 0.25) +
   ggtitle('Rodentia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_prima <-
-  ggplot(g025_prima) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Primates), size = 0.25) +
   ggtitle('Primates') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_carni <-
-  ggplot(g025_carni) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Carnivora), size = 0.25) +
   ggtitle('Carnivora') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_didel <-
-  ggplot(g025_didel) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Didelphimorphia), size = 0.25) +
   ggtitle('Didelphimorphia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_peris <-
-  ggplot(g025_peris) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Perissodactyla), size = 0.25) +
   ggtitle('Perissodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_chiro <-
-  ggplot(g025_chiro) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Chiroptera), size = 0.25) +
   ggtitle('Chiroptera') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_lagom <-
-  ggplot(g025_lagom) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Lagomorpha), size = 0.25) +
   ggtitle('Lagomorpha') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_pilos <-
-  ggplot(g025_pilos) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Pilosa), size = 0.25) +
   ggtitle('Pilosa') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_artio <-
-  ggplot(g025_artio) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Artiodactyla), size = 0.25) +
   ggtitle('Artiodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_cingu <-
-  ggplot(g025_cingu) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Cingulata), size = 0.25) +
   ggtitle('Cingulata') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_siren <-
-  ggplot(g025_siren) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g025_orders_counted) +
+  geom_sf(aes(fill = Sirenia), size = 0.25) +
   ggtitle('Sirenia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 plot050_roden <-
-  ggplot(g050_roden) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Rodentia), size = 0.25) +
   ggtitle('Rodentia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_prima <-
-  ggplot(g050_prima) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Primates), size = 0.25) +
   ggtitle('Primates') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_carni <-
-  ggplot(g050_carni) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Carnivora), size = 0.25) +
   ggtitle('Carnivora') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_didel <-
-  ggplot(g050_didel) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Didelphimorphia), size = 0.25) +
   ggtitle('Didelphimorphia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_peris <-
-  ggplot(g050_peris) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Perissodactyla), size = 0.25) +
   ggtitle('Perissodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_chiro <-
-  ggplot(g050_chiro) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Chiroptera), size = 0.25) +
   ggtitle('Chiroptera') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_lagom <-
-  ggplot(g050_lagom) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Lagomorpha), size = 0.25) +
   ggtitle('Lagomorpha') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_pilos <-
-  ggplot(g050_pilos) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Pilosa), size = 0.25) +
   ggtitle('Pilosa') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_artio <-
-  ggplot(g050_artio) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Artiodactyla), size = 0.25) +
   ggtitle('Artiodactyla') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_cingu <-
-  ggplot(g050_cingu) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Cingulata), size = 0.25) +
   ggtitle('Cingulata') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_siren <-
-  ggplot(g050_siren) +
-  geom_sf(aes(fill = countPts), size = 0.25) +
+  ggplot(g050_orders_counted) +
+  geom_sf(aes(fill = Sirenia), size = 0.25) +
   ggtitle('Sirenia') +
   labs(fill = "Nº de registros") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
+# Map pie chart -----
+plot025_pie_orders <-
+  ggplot(g025_orders_counted) +
+  geom_sf() +
+  geom_scatterpie(
+    aes(x = V1, y = V2, r = radius),
+    data = g025_df_pie,
+    cols = orders_list,
+    size = 0.25,
+    alpha = 1.5
+  ) +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
+        legend.title = element_blank()) +
+  ylab(element_blank()) +
+  xlab(element_blank())
+
+plot050_pie_orders <- 
+  ggplot(g050_orders_counted) +
+  geom_sf() +
+  geom_scatterpie(
+    aes(x = V1, y = V2, r = radius),
+    data = g050_df_pie,
+    cols = orders_list,
+    size = 0.25,
+    alpha = 1.5
+  ) +
+  theme_light() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
+        legend.title = element_blank()) +
+  ylab(element_blank()) +
+  xlab(element_blank())
+
+# Saving maps ----
 plot025_roden
-ggsave('../results/plot025_rodentia.pdf',
+ggsave('../results/plot025-rodentia.pdf',
        width = 3,
        height = 4)
 plot025_prima
-ggsave('../results/plot025_primates.pdf',
+ggsave('../results/plot025-primates.pdf',
        width = 3,
        height = 4)
 plot025_carni
-ggsave('../results/plot025_carnivora.pdf',
+ggsave('../results/plot025-carnivora.pdf',
        width = 3,
        height = 4)
 plot025_didel
-ggsave('../results/plot025_didelphimorphia.pdf',
+ggsave('../results/plot025-didelphimorphia.pdf',
        width = 3,
        height = 4)
 plot025_peris
-ggsave('../results/plot025_perissodactyla.pdf',
+ggsave('../results/plot025-perissodactyla.pdf',
        width = 3,
        height = 4)
 plot025_chiro
-ggsave('../results/plot025_chiroptera.pdf',
+ggsave('../results/plot025-chiroptera.pdf',
        width = 3,
        height = 4)
 plot025_lagom
-ggsave('../results/plot025_lagomorpha.pdf',
+ggsave('../results/plot025-lagomorpha.pdf',
        width = 3,
        height = 4)
 plot025_pilos
-ggsave('../results/plot025_pilosa.pdf',
+ggsave('../results/plot025-pilosa.pdf',
        width = 3,
        height = 4)
 plot025_artio
-ggsave('../results/plot025_artiodactyla.pdf',
+ggsave('../results/plot025-artiodactyla.pdf',
        width = 3,
        height = 4)
 plot025_cingu
-ggsave('../results/plot025_cingulata.pdf',
+ggsave('../results/plot025-cingulata.pdf',
        width = 3,
        height = 4)
 plot025_siren
-ggsave('../results/plot025_sirenia.pdf',
+ggsave('../results/plot025-sirenia.pdf',
        width = 3,
        height = 4)
 
 plot050_roden
-ggsave('../results/plot050_rodentia.pdf',
+ggsave('../results/plot050-rodentia.pdf',
        width = 3,
        height = 4)
 plot050_prima
-ggsave('../results/plot050_primates.pdf',
+ggsave('../results/plot050-primates.pdf',
        width = 3,
        height = 4)
 plot050_carni
-ggsave('../results/plot050_carnivora.pdf',
+ggsave('../results/plot050-carnivora.pdf',
        width = 3,
        height = 4)
 plot050_didel
-ggsave('../results/plot050_didelphimorphia.pdf',
+ggsave('../results/plot050-didelphimorphia.pdf',
        width = 3,
        height = 4)
 plot050_peris
-ggsave('../results/plot050_perissodactyla.pdf',
+ggsave('../results/plot050-perissodactyla.pdf',
        width = 3,
        height = 4)
 plot050_chiro
-ggsave('../results/plot050_chiroptera.pdf',
+ggsave('../results/plot050-chiroptera.pdf',
        width = 3,
        height = 4)
 plot050_lagom
-ggsave('../results/plot050_lagomorpha.pdf',
+ggsave('../results/plot050-lagomorpha.pdf',
        width = 3,
        height = 4)
 plot050_pilos
-ggsave('../results/plot050_pilosa.pdf',
+ggsave('../results/plot050-pilosa.pdf',
        width = 3,
        height = 4)
 plot050_artio
-ggsave('../results/plot050_artiodactyla.pdf',
+ggsave('../results/plot050-artiodactyla.pdf',
        width = 3,
        height = 4)
 plot050_cingu
-ggsave('../results/plot050_cingulata.pdf',
+ggsave('../results/plot050-cingulata.pdf',
        width = 3,
        height = 4)
 plot050_siren
-ggsave('../results/plot050_sirenia.pdf',
+ggsave('../results/plot050-sirenia.pdf',
+       width = 3,
+       height = 4)
+plot025_pie_orders
+ggsave('../results/plot050-pie-oreders.pdf',
+       width = 3,
+       height = 4)
+plot050_pie_orders
+ggsave('../results/plot050-pie-orders.pdf',
        width = 3,
        height = 4)
