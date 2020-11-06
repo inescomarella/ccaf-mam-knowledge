@@ -1,55 +1,38 @@
-x <- c("tidyverse", "rgbif")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+x <- c("tidyverse", "rgbif", "sf")
 lapply(x, library, character.only = TRUE)
 
-setwd('./data')
+source('functions.R')
 
-# Solicitando dados de ocorrencia de mamiferos no anos 1500-2020
-# Acessar o site do GBIF e baixar
-res <- occ_download(user = 'inescomarella',
-                    pwd = '********',
-                    email = 'inesmottacomarella@gmail.com',
-                    format = "SIMPLE_CSV",
-                    pred('country', 'BR'),
-                    pred('taxonKey', 359), #apenas mamiferos (no endereço da pagina de mamiferos do GBIF se encontre ao taxonKey)
-                    pred("hasCoordinate", TRUE),
-                    pred_gte("year", 1500), #greaterThanOrEquals
-                    pred_lte("year", 2020) #lessThanOrEquals
-                    )
+# Spin up a download request for GBIF occurrence data
+mamm_occ_down <- occ_download(
+  user = 'inescomarella',
+  pwd = '********',
+  email = 'inesmottacomarella@gmail.com',
+  format = "SIMPLE_CSV",
+  pred('country', 'BR'),
+  pred('taxonKey', 359),
+  pred("hasCoordinate", TRUE),
+  pred_gte("year", 1500), #greaterThanOrEquals
+  pred_lte("year", 2020) #lessThanOrEquals
+)
 
-# Input
-data_downloaded <-
-  read.delim(
-    './results/0098449-200613084148143.csv')
+# Get download from GBIF
+mamm_occ_get <-
+  occ_download_get(key = '0103075-200613084148143',
+                   path = '../data',
+                   overwrite = TRUE)
 
-# Apenas registros no Espirito Santo e Bahia
-data_ba_es <-
-  data_downloaded %>% filter(
-    is.na(locality) |
-      str_detect(locality, 'anto') |
-      str_detect(locality, 'ahia') |
-      is.na(stateProvince) |
-      str_detect(stateProvince, 'anto') |
-      str_detect(stateProvince, 'ahia')
-  )
+# Import downloaded file from GBIF
+mamm_occ_imported <-
+  occ_download_import(mamm_occ_get, path = '../data')
 
-# Removendo registros fosseis e do iNaturalist
-to_remove <-
-  data_ba_es %>% filter(basisOfRecord == "FOSSIL_SPECIMEN" |
-                          str_detect(institutionCode, "iNaturalist"))
-data_clean <- anti_join(data_ba_es, to_remove)
+# Remove fossil record and iNaturalist registers
+mamm_occ_clean <- remove.fossil.iNaturalist(mamm_occ_imported)
 
-# Identificando stateProvince
-for (i in 1:nrow(data_clean)) {
-  if (str_detect(data_clean$locality[i], 'anto')) {
-    data_clean$stateProvince[i] <- 'Espirito Santo'
-    data_clean$locality[i] <- 'Brazil'
-  }
-  
-  if (str_detect(data_clean$locality[i], 'ahia')) {
-    data_clean$stateProvince[i] <- 'Bahia'
-    data_clean$locality[i] <- 'Brazil'
-  }
-}
+# Remove point outside CCMA
+mamm_clipped <- clip.ccma(mamm_occ_clean)
 
 # Output
-write.csv(data_clean, './data-gbif.csv')
+write.csv(mamm_clipped, '../data/gbif-mamm-clipped.csv')
