@@ -31,4 +31,13 @@ municipios_cropped <-
     ymin = -21.30178,
     ymax = -13.00164
   )
-ggplot(municipios_cropped) + geom_sf(aes(fill = n_reg), size = 0.25)
+
+ggplot_nreg_municipalities <-
+  ggplot(municipios_cropped) + 
+  geom_sf(aes(fill = n_reg), size = 0.2) +   
+  labs(fill = "Number of mammal \n records") +   
+  theme_light() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
+
+ggplot_nreg_municipalities
+ggsave('../results/plot_nreg_municipalities.pdf', width = 3, height = 4)

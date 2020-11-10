@@ -36,99 +36,136 @@ g050_arac$nreg <- lengths(st_intersects(g050_arac, arac_data))
 
 mamm_nsp <-
   ggplot(g050_aves) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Mammalia') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") + 
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 aves_nsp <-
   ggplot(g050_aves) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Aves') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 amph_nsp <-
   ggplot(g050_amph) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Amphibia') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 rept_nsp <-
   ggplot(g050_rept) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Reptilia') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 inse_nsp <-
   ggplot(g050_inse) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Insecta') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 arac_nsp <-
   ggplot(g050_aves) + 
-  geom_sf(aes(fill = countPts), size = 0.25) + 
+  geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Arachnida') +
-  labs(fill = "Species number") +
+  labs(fill = "Number of \n species recorded") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 mamm_nreg <-
   ggplot(g050_mamm) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
-  ggtitle('Aves') +
-  labs(fill = "Registers number") +
+  geom_sf(aes(fill = nreg), size = 0.2) + 
+  ggtitle('Mammalia') +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 aves_nreg <-
   ggplot(g050_aves) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
+  geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Aves') +
-  labs(fill = "Registers number") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 amph_nreg <-
   ggplot(g050_amph) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
+  geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Amphibia') +
-  labs(fill = "Registers number") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 rept_nreg <-
   ggplot(g050_rept) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
+  geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Reptilia') +
-  labs(fill = "Registers number") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 inse_nreg <-
   ggplot(g050_inse) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
-  ggtitle('Insect') +
-  labs(fill = "Registers number") +
+  geom_sf(aes(fill = nreg), size = 0.2) + 
+  ggtitle('Insecta') +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 arac_nreg <-
   ggplot(g050_arac) + 
-  geom_sf(aes(fill = nreg), size = 0.25) + 
+  geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Arachnida') +
-  labs(fill = "Registers number") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 mamm_nsp
+ggsave('../results/class-mamm-nsp.pdf',
+       width = 3,
+       height = 4)
 aves_nsp
+ggsave('../results/class-aves-nsp.pdf',
+       width = 3,
+       height = 4)
 amph_nsp
+ggsave('../results/class-amph-nsp.pdf',
+       width = 3,
+       height = 4)
 rept_nsp
+ggsave('../results/class-rept-nsp.pdf',
+       width = 3,
+       height = 4)
 inse_nsp
+ggsave('../results/class-inse-nsp.pdf',
+       width = 3,
+       height = 4)
 arac_nsp
-aves_nsp
+ggsave('../results/class-arac-nsp.pdf',
+       width = 3,
+       height = 4)
+
 mamm_nreg
+ggsave('../results/class-mamm-nreg.pdf',
+       width = 3,
+       height = 4)
+aves_nreg
+ggsave('../results/class-aves-nreg.pdf',
+       width = 3,
+       height = 4)
 amph_nreg
+ggsave('../results/class-amph-nreg.pdf',
+       width = 3,
+       height = 4)
 rept_nreg
+ggsave('../results/class-rept-nreg.pdf',
+       width = 3,
+       height = 4)
 inse_nreg
+ggsave('../results/class-inse-nreg.pdf',
+       width = 3,
+       height = 4)
 arac_nreg
+ggsave('../results/class-arac-nreg.pdf',
+       width = 3,
+       height = 4)

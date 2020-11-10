@@ -52,190 +52,195 @@ g050_df_pie$radius <- g050_nreg/(max(g050_nreg)*2)
 # Plot orders maps ----
 plot025_roden <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Rodentia), size = 0.25) +
+  geom_sf(aes(fill = Rodentia), size = 0.2) +
   ggtitle('Rodentia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_prima <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Primates), size = 0.25) +
+  geom_sf(aes(fill = Primates), size = 0.2) +
   ggtitle('Primates') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_carni <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Carnivora), size = 0.25) +
+  geom_sf(aes(fill = Carnivora), size = 0.2) +
   ggtitle('Carnivora') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_didel <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Didelphimorphia), size = 0.25) +
+  geom_sf(aes(fill = Didelphimorphia), size = 0.2) +
   ggtitle('Didelphimorphia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_peris <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Perissodactyla), size = 0.25) +
+  geom_sf(aes(fill = Perissodactyla), size = 0.2) +
   ggtitle('Perissodactyla') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_chiro <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Chiroptera), size = 0.25) +
+  geom_sf(aes(fill = Chiroptera), size = 0.2) +
   ggtitle('Chiroptera') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_lagom <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Lagomorpha), size = 0.25) +
+  geom_sf(aes(fill = Lagomorpha), size = 0.2) +
   ggtitle('Lagomorpha') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_pilos <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Pilosa), size = 0.25) +
+  geom_sf(aes(fill = Pilosa), size = 0.2) +
   ggtitle('Pilosa') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_artio <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Artiodactyla), size = 0.25) +
+  geom_sf(aes(fill = Artiodactyla), size = 0.2) +
   ggtitle('Artiodactyla') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_cingu <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Cingulata), size = 0.25) +
+  geom_sf(aes(fill = Cingulata), size = 0.2) +
   ggtitle('Cingulata') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot025_siren <-
   ggplot(g025_orders_counted) +
-  geom_sf(aes(fill = Sirenia), size = 0.25) +
+  geom_sf(aes(fill = Sirenia), size = 0.2) +
   ggtitle('Sirenia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 plot050_roden <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Rodentia), size = 0.25) +
+  geom_sf(aes(fill = Rodentia), size = 0.2) +
   ggtitle('Rodentia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_prima <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Primates), size = 0.25) +
+  geom_sf(aes(fill = Primates), size = 0.2) +
   ggtitle('Primates') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_carni <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Carnivora), size = 0.25) +
+  geom_sf(aes(fill = Carnivora), size = 0.2) +
   ggtitle('Carnivora') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_didel <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Didelphimorphia), size = 0.25) +
+  geom_sf(aes(fill = Didelphimorphia), size = 0.2) +
   ggtitle('Didelphimorphia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_peris <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Perissodactyla), size = 0.25) +
+  geom_sf(aes(fill = Perissodactyla), size = 0.2) +
   ggtitle('Perissodactyla') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_chiro <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Chiroptera), size = 0.25) +
+  geom_sf(aes(fill = Chiroptera), size = 0.2) +
   ggtitle('Chiroptera') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_lagom <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Lagomorpha), size = 0.25) +
+  geom_sf(aes(fill = Lagomorpha), size = 0.2) +
   ggtitle('Lagomorpha') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_pilos <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Pilosa), size = 0.25) +
+  geom_sf(aes(fill = Pilosa), size = 0.2) +
   ggtitle('Pilosa') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_artio <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Artiodactyla), size = 0.25) +
+  geom_sf(aes(fill = Artiodactyla), size = 0.2) +
   ggtitle('Artiodactyla') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_cingu <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Cingulata), size = 0.25) +
+  geom_sf(aes(fill = Cingulata), size = 0.2) +
   ggtitle('Cingulata') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 plot050_siren <-
   ggplot(g050_orders_counted) +
-  geom_sf(aes(fill = Sirenia), size = 0.25) +
+  geom_sf(aes(fill = Sirenia), size = 0.2) +
   ggtitle('Sirenia') +
-  labs(fill = "Nº de registros") +
+  labs(fill = "Number of \n records") +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75))
 
 # Map pie chart -----
 plot025_pie_orders <-
   ggplot(g025_orders_counted) +
-  geom_sf() +
+  geom_sf(size = 0.2) +
   geom_scatterpie(
     aes(x = V1, y = V2, r = radius),
     data = g025_df_pie,
     cols = orders_list,
-    size = 0.25,
+    size = 0.2,
     alpha = 1.5
   ) +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title = element_blank()) +
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.key.height=unit(0.4, "cm")) +
   ylab(element_blank()) +
   xlab(element_blank())
 
+plot025_pie_orders
+
 plot050_pie_orders <- 
   ggplot(g050_orders_counted) +
-  geom_sf() +
+  geom_sf(size = 0.2) +
   geom_scatterpie(
     aes(x = V1, y = V2, r = radius),
     data = g050_df_pie,
     cols = orders_list,
-    size = 0.25,
-    alpha = 1.5
-  ) +
+    size = 0.2,
+    alpha = 1.5) +
   theme_light() +
   theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title = element_blank()) +
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.key.height=unit(0.4, "cm")) +
   ylab(element_blank()) +
   xlab(element_blank())
 
@@ -330,7 +335,7 @@ ggsave('../results/plot050-sirenia.pdf',
        width = 3,
        height = 4)
 plot025_pie_orders
-ggsave('../results/plot050-pie-oreders.pdf',
+ggsave('../results/plot025-pie-orders.pdf',
        width = 3,
        height = 4)
 plot050_pie_orders
