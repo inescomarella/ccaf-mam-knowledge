@@ -206,17 +206,45 @@ exotic_sp_list <- data.frame(
     'Cebus flavius',
     'Cebus libidinosus',
     'Sapajus libidinosus',
-    'Sapajus flavius'
+    'Sapajus flavius',
+    'Saguinus bicolor'
   )
 )
 
-# Removendo registros de especies exoticas
+# Removing CCMA non-native species
 data_all_sp_clean <- data_all_sp_added %>%
   filter(!species %in% exotic_sp_list$species)
 
-# Removendo registros marinhos
+# Removing marine mammals
 data_all_sp_clean <- data_all_sp_clean %>%
   filter(!str_detect(order, 'Cetacea'))
 
+# Correcting species names
+data_all_sp_clean$species[data_all_sp_clean$species == "Lutra brasiliensis"] <-
+  "Pteronura brasiliensis"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Puma yagouaroundi"] <-
+  "Herpailurus yagouaroundi"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Puma yaguarondi"] <-
+  "Herpailurus yagouaroundi"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Galictis vittata"] <- 
+  "Galictis cuja"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Leopardus tigrinus"] <-
+  "Leopardus guttulus"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Cuniculus paca"] <-
+  "Agouti paca"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Sciurus aestuans"] <-
+  "Guerlinguetus ingrami"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Cebus xanthosternos"] <-
+  "Sapajus xanthosternos"
+
 # Output
 write.csv(data_all_sp_clean, '../data/mamm-data-clean.csv')
+
+
