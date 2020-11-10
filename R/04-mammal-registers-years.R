@@ -1,56 +1,58 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-library(tidyverse)
-library(ggplot2)
+x <- c("tidyverse", "rgbif", "dplyr", "openxlsx", "ggplot2")
+lapply(x, library, character.only = TRUE)
 
 # Input
 data <- read.csv("../data/mamm-data-clean.csv")
 
-# Ordena por ordem de ano
-data_sorted <- arrange(data, as.numeric(year))
+# First and last record of each species
+species_record_df <- data %>%
+  group_by(species) %>%
+  summarise(first_record = min(as.numeric(year), na.rm = TRUE),
+            last_record = max(as.numeric(year), na.rm = TRUE))
 
-# Mantem apenas o primeiro registro da especie
-earlier_register <- data_sorted[!duplicated(data_sorted$species, fromLast = FALSE),]
+# Species taxonomy
+species_df <- data.frame(species = sort(unique(data$species)))
+species_backbone_df <- bind_rows(apply(X = species_df, MARGIN = 1, FUN = name_backbone))
 
-# Mantem apenas o ultimo registro da especie
-last_register <- data_sorted[!duplicated(data_sorted$species, fromLast = TRUE),]
+# Bind data.frames
+sp_record_backbone_df <- bind_cols(species_record_df, species_backbone_df[10:11])
 
-# Unindo primeiro e ultimo registro em um unico data.frame
-df <- data.frame('earlier' = earlier_register$year,
-                 'last' = last_register$year)
+# Reorder columns
+sp_record_backbone_df_ordered <- sp_record_backbone_df %>% select(species, family, order, first_record, last_record)
 
-# Plotando
-plot <- ggplot(df) + 
-  geom_bar(aes(earlier, fill = 'Primeiro registro')) + 
-  geom_bar(aes(last, fill = 'Ultimo registro')) +
-  labs(y = "Número de espécies", 
-       x = "Anos",
-       fill = "") +
-  theme_bw() +
-  theme(legend.position = "bottom")
+# ggplot data.frame ----
+first_record_df <- sp_record_backbone_df %>% select(first_record)
+last_record_df <- sp_record_backbone_df %>% select(last_record)
 
-plot
-ggsave('../results/nregs-years.pdf',
+colnames(first_record_df) <- 'Year'
+colnames(last_record_df) <- 'Year'
+
+first_record_df$id <- 'First record'
+last_record_df$id <- 'Last record'
+
+records_df <- bind_rows(first_record_df, last_record_df)
+
+# Plot -----
+plot_through_years <- 
+  ggplot(records_df, aes(x = Year, fill = id)) + 
+  geom_histogram() + 
+  theme_light() + 
+  ylab("Number of species") + 
+  xlab("Years") +  
+  theme(legend.title = element_blank())
+
+# Outputs ----
+# Plot
+plot_through_years
+ggsave('../results/first-last-record-plot.pdf',
        width = 5,
        height = 4)
-
-# Tabela - frequencia de registros
-freq_table <- data.frame(table(earlier_register$year))
-colnames(freq_table) <- c('year', 'N species')
-
-# Tabela - Sequencia completa de anos desde o primeiro registro até o último
-years <-
-  as.character(seq(
-    as.numeric(as.character(freq_table$year[1])),
-    2020,
-    1
-  ))
-registers_through_years <- data.frame('year' = years,
-                                  stringsAsFactors = FALSE)
-registers_through_years <-
-  merge(registers_through_years,
-        freq_table,
-        by = 'year',
-        all.x = TRUE)
+# Table
+OUT <- createWorkbook()
+addWorksheet(OUT, "Sheet1")
+writeData(OUT, sheet = "Sheet1", x = sp_record_backbone_df_ordered)
+saveWorkbook(OUT, "../results/first-last-record-table.xlsx", overwrite = TRUE)
 
 
