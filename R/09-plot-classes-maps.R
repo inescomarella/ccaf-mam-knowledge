@@ -7,7 +7,7 @@ lapply(x, library, character.only = TRUE)
 source('functions.R')
 
 # Inputs ----
-g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
+g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
 mamm_data <- st_read('../data/mamm-data.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
 aves_data <- st_read('../data/aves-data.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
 amph_data <- st_read('../data/amph-data.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
@@ -16,23 +16,23 @@ inse_data <- st_read('../data/inse-data.csv', options = c('X_POSSIBLE_NAMES=deci
 arac_data <- st_read('../data/arac-data.csv', options = c('X_POSSIBLE_NAMES=decimalLongitude', 'Y_POSSIBLE_NAMES=decimalLatitude'), crs = CRS("+proj=longlat +datum=WGS84"))
 
 # Reproject
-g050_crs <- st_transform(g050, crs = st_crs(arac_data))
+g025_crs <- st_transform(g025, crs = st_crs(arac_data))
 
 # Count species -----
-g050_mamm <- count.scientificName.in.polygons(mamm_data, g050_crs)
-g050_aves <- count.scientificName.in.polygons(aves_data, g050_crs)
-g050_amph <- count.scientificName.in.polygons(amph_data, g050_crs)
-g050_rept <- count.scientificName.in.polygons(rept_data, g050_crs)
-g050_inse <- count.scientificName.in.polygons(inse_data, g050_crs)
-g050_arac <- count.scientificName.in.polygons(arac_data, g050_crs)
+g025_mamm <- count.scientificName.in.polygons(mamm_data, g025_crs)
+g025_aves <- count.scientificName.in.polygons(aves_data, g025_crs)
+g025_amph <- count.scientificName.in.polygons(amph_data, g025_crs)
+g025_rept <- count.scientificName.in.polygons(rept_data, g025_crs)
+g025_inse <- count.scientificName.in.polygons(inse_data, g025_crs)
+g025_arac <- count.scientificName.in.polygons(arac_data, g025_crs)
 
 # Count records -----
-g050_mamm$nreg <- lengths(st_intersects(g050_mamm, mamm_data))
-g050_aves$nreg <- lengths(st_intersects(g050_aves, aves_data))
-g050_amph$nreg <- lengths(st_intersects(g050_amph, amph_data))
-g050_rept$nreg <- lengths(st_intersects(g050_rept, rept_data))
-g050_inse$nreg <- lengths(st_intersects(g050_inse, inse_data))
-g050_arac$nreg <- lengths(st_intersects(g050_arac, arac_data))
+g025_mamm$nreg <- lengths(st_intersects(g025_mamm, mamm_data))
+g025_aves$nreg <- lengths(st_intersects(g025_aves, aves_data))
+g025_amph$nreg <- lengths(st_intersects(g025_amph, amph_data))
+g025_rept$nreg <- lengths(st_intersects(g025_rept, rept_data))
+g025_inse$nreg <- lengths(st_intersects(g025_inse, inse_data))
+g025_arac$nreg <- lengths(st_intersects(g025_arac, arac_data))
 
 # Customized theme ----
 customPlot = list(
@@ -46,7 +46,7 @@ customPlot = list(
 
 # Plot number of species -----
 mamm_nsp <-
-  ggplot(g050_aves) + 
+  ggplot(g025_aves) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Mammalia') +
   labs(fill = "Number of \n species recorded") + 
@@ -54,7 +54,7 @@ mamm_nsp <-
   customPlot
 
 aves_nsp <-
-  ggplot(g050_aves) + 
+  ggplot(g025_aves) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Aves') +
   labs(fill = "Number of \n species recorded") +
@@ -62,7 +62,7 @@ aves_nsp <-
   customPlot
 
 amph_nsp <-
-  ggplot(g050_amph) + 
+  ggplot(g025_amph) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Amphibia') +
   labs(fill = "Number of \n species recorded") +
@@ -70,7 +70,7 @@ amph_nsp <-
   customPlot
 
 rept_nsp <-
-  ggplot(g050_rept) + 
+  ggplot(g025_rept) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Reptilia') +
   labs(fill = "Number of \n species recorded") +
@@ -78,7 +78,7 @@ rept_nsp <-
   customPlot
 
 inse_nsp <-
-  ggplot(g050_inse) + 
+  ggplot(g025_inse) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Insecta') +
   labs(fill = "Number of \n species recorded") +
@@ -86,7 +86,7 @@ inse_nsp <-
   customPlot
 
 arac_nsp <-
-  ggplot(g050_aves) + 
+  ggplot(g025_aves) + 
   geom_sf(aes(fill = countPts), size = 0.2) + 
   ggtitle('Arachnida') +
   labs(fill = "Number of \n species recorded") +
@@ -95,7 +95,7 @@ arac_nsp <-
 
 # Plot number of records ------
 mamm_nreg <-
-  ggplot(g050_mamm) + 
+  ggplot(g025_mamm) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Mammalia') +
   labs(fill = "Number of \n records") +
@@ -103,7 +103,7 @@ mamm_nreg <-
   customPlot
 
 aves_nreg <-
-  ggplot(g050_aves) + 
+  ggplot(g025_aves) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Aves') +
   labs(fill = "Number of \n records") +
@@ -111,7 +111,7 @@ aves_nreg <-
   customPlot
 
 amph_nreg <-
-  ggplot(g050_amph) + 
+  ggplot(g025_amph) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Amphibia') +
   labs(fill = "Number of \n records") +
@@ -119,7 +119,7 @@ amph_nreg <-
   customPlot
 
 rept_nreg <-
-  ggplot(g050_rept) + 
+  ggplot(g025_rept) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Reptilia') +
   labs(fill = "Number of \n records") +
@@ -127,7 +127,7 @@ rept_nreg <-
   customPlot
 
 inse_nreg <-
-  ggplot(g050_inse) + 
+  ggplot(g025_inse) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Insecta') +
   labs(fill = "Number of \n records") +
@@ -135,7 +135,7 @@ inse_nreg <-
   customPlot
 
 arac_nreg <-
-  ggplot(g050_arac) + 
+  ggplot(g025_arac) + 
   geom_sf(aes(fill = nreg), size = 0.2) + 
   ggtitle('Arachnida') +
   labs(fill = "Number of \n records") +
