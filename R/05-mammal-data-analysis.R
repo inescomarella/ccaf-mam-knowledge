@@ -1,6 +1,6 @@
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'FNN', 'vegan', 'corrplot', 'ggplot2', 'DHARMa', 'MASS', 'MuMIn')
+x <- c('conflicted', 'dplyr', 'raster', 'sf', 'rgdal', 'FNN', 'vegan', 'corrplot', 'DHARMa', 'MASS', 'MuMIn')
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = 'filter', winner = 'dplyr')
@@ -8,6 +8,7 @@ conflict_prefer(name = 'select', winner = 'dplyr')
 
 source('functions.R')
 
+# Inputs ----
 data <-
   st_read(
     '../data/mamm-data-clean.csv',
@@ -22,6 +23,7 @@ inst_df <-
 g025 <- st_read(dsn = '../outputs', layer = 'grid_025_ucs_joined')
 g050 <- st_read(dsn = '../outputs', layer = 'grid_050_ucs_joined')
 
+# Prepare data ----
 # Reorder lat/lon 
 inst_layer <- inst_df %>% select(longitude, latitude)
 
@@ -35,10 +37,12 @@ data_utm <- st_transform(data, crs)
 inst_utm <- st_transform(inst_layer, crs)
 g025_utm <- st_transform(g025, crs)
 g050_utm <- st_transform(g050, crs)
+
+# Keep long/lat to statistics
 g025_longlat <- st_transform(g025, CRS("+proj=longlat +datum=WGS84"))
 g050_longlat <- st_transform(g050, CRS("+proj=longlat +datum=WGS84"))
 
-# Count registers per cell
+# Count records per cell
 g025_utm$nreg <- lengths(st_intersects(g025_utm, data_utm))
 g050_utm$nreg <- lengths(st_intersects(g050_utm, data_utm))
 
@@ -49,9 +53,11 @@ g050_utm <- count.sp.in.polygons(data_utm, g050_utm)
 # Getting centroid points
 g025_centroid <- coordinates(as(g025_utm, 'Spatial'))
 g050_centroid <- coordinates(as(g050_utm, 'Spatial'))
+inst_coords <- st_coordinates(inst_utm)
+
+#for estatistics
 g025_centroid_longlat <- coordinates(as(g025_longlat, 'Spatial'))
 g050_centroid_longlat <- coordinates(as(g050_longlat, 'Spatial'))
-inst_coords <- st_coordinates(inst_utm)
 
 # Centre point distance to the nearest institution
 dist_025 <-
@@ -77,12 +83,6 @@ g025_df_std <-
 g050_df_std <-
   g050_df %>% select(countPts, nreg, dist_inst, lat)
 
-# Standardizing continuous covariates to eliminate effect of scale
-#g025_df_std[3:4] <-
-#  decostand(g025_df_std[3:4], method = "standardize", MARGIN = 2)
-#g050_df_std[3:4] <-
-#  decostand(g050_df_std[3:4], method = "standardize", MARGIN = 2)
-
 # Categorical variable - UC presence/absence
 g025_df_std$uc_pres <- !is.na(g025_df$UF_unique)
 g050_df_std$uc_pres <- !is.na(g050_df$UF_unique)
@@ -90,9 +90,14 @@ g050_df_std$uc_pres <- !is.na(g050_df$UF_unique)
 colnames(g025_df_std) <- c('n_sp', 'n_reg', 'dist_inst', 'lat', 'uc_pres')
 colnames(g050_df_std) <- c('n_sp', 'n_reg', 'dist_inst', 'lat', 'uc_pres')
 
+g025_df_std <- g025_df_std %>% select(n_reg, n_sp, dist_inst, uc_pres, lat)
+g050_df_std <- g050_df_std %>% select(n_reg, n_sp, dist_inst, uc_pres, lat)
+
 # Correlation test ----
-g025_cor <- cor(g025_df_std[,-ncol(g025_df_std)])
-g050_cor <- cor(g050_df_std[,-ncol(g050_df_std)])
+g025_cor <-
+  cor(g025_df_std, method = c("pearson", "kendall", "spearman"))
+g050_cor <-
+  cor(g050_df_std, method = c("pearson", "kendall", "spearman"))
 
 # Plot correlation test
 corrplot(
@@ -101,7 +106,7 @@ corrplot(
   method = 'circle',
   tl.col = "black",
   tl.srt = 45,
-  order = "hclust"
+  order = "original"
 )
 corrplot(
   g050_cor,
@@ -109,16 +114,12 @@ corrplot(
   method = 'circle',
   tl.col = "black",
   tl.srt = 45,
-  order = "hclust"
+  order = "original"
 )
 
 # Pearson's chi-squared test
 g025_chisq <- chisq.test(g025_df_std$n_reg, g025_df_std$uc_pres)
 g050_chisq <- chisq.test(g050_df_std$n_reg, g050_df_std$uc_pres)
-
-# Mean polygon area
-g025_area <- mean(st_area(g025_utm)) # 484.516.066 m² = 484 km²
-g050_area <- mean(st_area(g050_utm)) # 1.646.877.595 m² = 1.646 km²
 
 # Statistics -----
 
@@ -141,8 +142,8 @@ nreg_025_ranked <- dredge(nreg_025_fitted)
 nreg_050_ranked <- dredge(nreg_050_fitted)
 
 # Conventional Residuals (fittedModel)
-simulateResiduals(nreg_025_fitted, plot = T)
-simulateResiduals(nreg_050_fitted, plot = T)
+nreg_025_simulation <- simulateResiduals(nreg_025_fitted, plot = T)
+nreg_050_simulation <- simulateResiduals(nreg_050_fitted, plot = T)
 
 # Detect possible misspecifications
 plotResiduals(nreg_025_simulation, g025_df_std$lat)
@@ -165,74 +166,7 @@ testZeroInflation(nreg_050_simulation, alternative = 'greater') #zero inflated?
 # > Overdispersion, and how to deal with it in R and JAGS
 # > DHARMa: residual diagnostics for hierarchical (multi-level/mixed) regression models
 
-# Plot maps -----
-ggplot_nreg_025 <-
-  ggplot(g025_utm) +
-  geom_sf(aes(fill = nreg))
-ggplot_nreg_050 <-
-  ggplot(g050_utm) + 
-  geom_sf(aes(fill = nreg))
-
-ggplot_nsp_025 <-
-  ggplot(g025_utm) + 
-  geom_sf(aes(fill = countPts))
-ggplot_nsp_050 <-
-  ggplot(g050_utm) + 
-  geom_sf(aes(fill = countPts))
-
-# Edit plots
-ggplot_nreg_025_edited <-
-  ggplot_nreg_025 +
-  geom_sf(aes(fill = nreg), size = 0.2) +
-  labs(fill = "Number of \n mammal records") +
-  theme_light() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title =  element_text(size = 8),
-        legend.text = element_text(size = 8))
-
-ggplot_nreg_050_edited <-
-  ggplot_nreg_050 +
-  geom_sf(aes(fill = nreg), size = 0.2) + 
-  labs(fill = "Number of \n mammal records") + 
-  theme_light() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title =  element_text(size = 8),
-        legend.text = element_text(size = 8))
-
-ggplot_nsp_025_edited <-
-  ggplot_nsp_025 +
-  geom_sf(aes(fill = countPts), size = 0.2) + 
-  labs(fill = "Number of mammal \n species recorded") + 
-  theme_light() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title =  element_text(size = 8),
-        legend.text = element_text(size = 8))
-
-ggplot_nsp_050_edited <-
-  ggplot_nsp_050 +
-  geom_sf(aes(fill = countPts), size = 0.2) + 
-  labs(fill = "Number of mammal \n species recorded") + 
-  theme_light() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title =  element_text(size = 8),
-        legend.text = element_text(size = 8))
-
-# Save maps ----
-ggplot_nreg_025_edited
-ggsave('../results/plot-nreg-25.pdf', width = 3, height = 4)
-ggplot_nreg_050_edited
-ggsave('../results/plot-nreg-50.pdf', width = 3, height = 4)
-
-ggplot_nsp_025_edited
-ggsave('../results/plot-nsp-25.pdf', width = 3, height = 4)
-ggplot_nsp_050_edited
-ggsave('../results/plot-nsp-50.pdf', width = 3, height = 4)
-
-# To do #############################
-
-brasil_sf <- st_as_sf(brasil_spT)
-st_agr(brasil_sf) = "constant"
-brasil_cropped <- st_crop(brasil_sf, xmin = 201620, xmax = 539295.8,
-                                    ymin = -2356808, ymax = -1438805)
-ggplot(brasil_cropped) + geom_sf() + geom_sf(data = grid_025_sp_counted, aes(fill = countPts)) + theme_bw()
+# Mean polygon area ----
+g025_area <- mean(st_area(g025_utm)) # 484.516.066 m² = 484 km²
+g050_area <- mean(st_area(g050_utm)) # 1.646.877.595 m² = 1.646 km²
 
