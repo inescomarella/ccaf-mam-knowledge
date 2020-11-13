@@ -3,13 +3,14 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 x <- c("tidyverse", "rgbif", "dplyr", "openxlsx", "ggplot2")
 lapply(x, library, character.only = TRUE)
 
-# Input
+# Input ----
 data <- read.csv("../data/mamm-data-clean.csv")
 
+# Table data.frame ----
 # First and last record of each species
 species_record_df <- data %>%
-  group_by(species) %>%
-  summarise(first_record = min(as.numeric(year), na.rm = TRUE),
+  dplyr::group_by(species) %>%
+  dplyr::summarise(first_record = min(as.numeric(year), na.rm = TRUE),
             last_record = max(as.numeric(year), na.rm = TRUE))
 
 # Species taxonomy
@@ -54,5 +55,3 @@ OUT <- createWorkbook()
 addWorksheet(OUT, "Sheet1")
 writeData(OUT, sheet = "Sheet1", x = sp_record_backbone_df_ordered)
 saveWorkbook(OUT, "../results/first-last-record-table.xlsx", overwrite = TRUE)
-
-
