@@ -127,3 +127,18 @@ count.orders.list.in.polygons <- function(pts, polygons, order_list){
   colnames(polygons)[(ncol(polygons)-length(order_list)+1):ncol(polygons)] <- order_list
   return(polygons)
 }
+
+
+rl.synonyms <- function(x){
+  synym <- rl_synonyms(x,key=rlkey)
+  result <- synym$result
+  scientificName <- synym$name
+  results <- cbind(scientificName,result)
+  return(results)
+}
+
+name.backbone <- function(x){
+  bckbn <- name_backbone(x)
+  bckbn$scientificName <- x
+  return(bckbn)
+}
