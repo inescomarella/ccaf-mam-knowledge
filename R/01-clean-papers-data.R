@@ -23,9 +23,6 @@ data_modif <- anti_join(data_modif, to_remove)
 # Remove unpublished data
 data_modif <- data_modif %>% filter(!str_detect(typeOfPublication, 'Unpubl'))
 
-# Correct column name
-colnames(data_modif)[34] <- "scientificName"
-
 # Standardizing collectionCode column ----
 data_modif$collectionCode <- as.character(data_modif$collectionCode)
 
@@ -40,8 +37,6 @@ data_modif$collectionCode[data_modif$collectionCode == "Not located"] <- ""
 data_modif$fieldNumber <- as.character(data_modif$fieldNumber)
 
 data_modif$fieldNumber[data_modif$fieldNumber == "?"] <- " "
-data_modif$fieldNumber[data_modif$fieldNumber == " Daniela Rossoni"] <- " "
-data_modif$fieldNumber[data_modif$fieldNumber == " Valéria Fagundes"] <- " "
 
 # Standardizing preparations column ----
 data_modif$preparations <- as.character(data_modif$preparations)
@@ -200,12 +195,9 @@ for (i in 1:nrow(data_modif))
 
 # Removing rows without adequate coordinates
 to_remove <- data_modif %>% 
-  select(decimalLatitude) %>% 
   filter(str_detect(decimalLatitude, "[[:alpha:] ]+"))
 
-for (i in 1:nrow(data_modif))
-  if (data_modif$decimalLatitude[i] %in% to_remove$decimalLatitude)
-    data_modif$decimalLatitude[i] <- NA
+data_modif <- anti_join(data_modif, to_remove)
 
 # Extract coordinates in UTM and in degrees
 grau_utm_data_modif <- data_modif %>% 
@@ -298,73 +290,33 @@ coord <- data.frame(lat = as.data.frame(lat_grau_data_modif),
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$lat_grau_data_modif
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$long_grau_data_modif
 
-# Removing rows without coordinates
-to_remove <-
-  data_modif %>% filter(
-    verbatimLatitude == "", 
-    verbatimLongitude == "",
-    is.na(decimalLatitude),
-    is.na(decimalLongitude)
-  )
-data_modif <- anti_join(data_modif, to_remove)
-
 # Convert UTM to decimal degree coordinates
 utm_data_modif <- data_modif %>% 
-  select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude, geodeticDatum) %>% 
-  filter(is.na(decimalLatitude) & is.na(decimalLongitude))
+  filter(str_detect(geodeticDatum, 'UTM')) %>%
+  select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude, geodeticDatum)
 
 utm <- utm_data_modif %>% select(verbatimLatitude, verbatimLongitude)
 
-# Convert UTM to decimal degree http://www.dpi.inpe.br/calcula/
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- '-13.52529945007'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[2]] <- '-39.035338180018'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- '-13.701074292447'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[3]] <- '-39.23265636598'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- '-13.578916617967'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[4]] <- '-39.706712069419'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- '-14.018067512186'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[5]] <- '-39.143309618845'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- '-13.952887397248'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[6]] <- '-39.451164678044'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- '-13.864962356948'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[7]] <- '-39.672662266565'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- '-14.4242257748'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[8]] <- '-39.060440860355'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- '-14.343646782334'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[9]] <- '-39.086933586738'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- '-15.166524911197'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[10]] <- '-39.059781006338'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- '-15.197294397659'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[11]] <- '-39.391112215309'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- '-39.526980972912'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[12]] <- '-15.155285086932'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- '-15.172039617868'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[13]] <- '-39.061151005409'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- '-39.161289926413'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[14]] <- '-15.619957524626'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- '-15.97369495811'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[15]] <- '-39.373706923518'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- '-15.926985134731'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[16]] <- '-39.635874022237'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- '-16.324422945368'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[17]] <- '-39.121028294735'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <-  '-16.286425392045'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[18]] <- '-39.424106517465'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- '-16.599363511356'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[19]] <- '-39.914010388505'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- '-17.106776328205'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[20]] <- '-39.339780321709'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- '-17.292080472538'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[21]] <- '-39.673058656741'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- '-17.169305566935'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[22]] <- '-39.841802660895'
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- '-16.512288600716'
-utm_data_modif$decimalLongitude[utm_data_modif$verbatimLatitude == unique(utm$verbatimLatitude)[23]] <- '-39.30363966433'
-utm_data_modif <- utm_data_modif[utm_data_modif$verbatimLatitude != unique(utm$verbatimLatitude)[1],]
+
+utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == sort(unique(utm$verbatimLatitude))[1]] <- '-16.599363511356'
+
+df <- data.frame()
+for(i in 1: length(unique(utm$verbatimLatitude))) {
+  x <- utm_data_modif %>% filter(verbatimLatitude == sort(unique(utm$verbatimLatitude))[i]) %>% select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude)
+  df <- bind_rows(x[1,], df)
+}
+  
+df <- arrange(df, by = verbatimLatitude)
+df$decimalLatitude <- c('-16.599388', '-17.169331', '-13.578941', '-13.864987', '-17.292106', '-15.927010', '-15.155310', '-13.952912', '-16.286450', '-15.197319', '-15.973720', '-17.106801', '-16.512313', '-13.701098', '-15.619982', '-14.018092', '-16.324448', '-14.343671', '-15.172064', '-14.424250', '-15.166549', '-13.525323')
+df$decimalLongitude <- c('-39.913983', '-39.841776', '-39.706685', '-39.672635', '-39.673031', '-39.635847', '-39.526954', '-39.451138', '-39.424079', '-39.391085', '-39.373680', '-39.339753', '-39.303612', '-39.232629', '-39.161263', '-39.143283', '-39.121001', '-39.086907', '-39.061124', '-39.060414', '-39.059754', '-39.035311')
+
+# Convert UTM to decimal degree http://splink.cria.org.br/conversor
+
+utm_data_modif <- merge(utm_data_modif, df, by = 'verbatimLatitude')
 
 # Returnin to main dataframe
-data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLatitude
-data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLongitude
+data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLatitude.y
+data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLongitude.y
 
 # Removing rows without coordinates
 data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) 
