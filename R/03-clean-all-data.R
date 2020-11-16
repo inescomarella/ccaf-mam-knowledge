@@ -82,10 +82,7 @@ data_all$scientificName <-
 
 # Species list ---- 
 sp_list_all <- sort(unique(data_all$scientificName))
-length(sp_list_all)
 
-
-sp_list_all[1:100]
 # Synonyms ----
 apply_synonyms_1 <- lapply(sp_list_all[1:100],rl.synonyms)
 apply_synonyms_2 <- lapply(sp_list_all[101:200],rl.synonyms)
@@ -104,7 +101,7 @@ synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Ano
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Lagothrix lagotricha'] <-  'Lagothrix lagotricha'
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Mimon crenulatum'] <-  'Mimon crenulatum'
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Natalus macrourus'] <-  'Natalus macrourus'
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Natalus stramineus'] <-  'Natalus stramineus'
+synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Natalus stramineus'] <-  'Natalus macrourus'
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Nectomys squamipes'] <-  'Nectomys squamipes'
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Saguinus bicolor'] <-  'Saguinus martinsi'
 synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == 'Micoureus paraguayanus'] <-  'Marmosa paraguayana'
@@ -120,7 +117,7 @@ synonyms_df_corrected <- synonyms_df_corrected %>% filter(!str_detect(scientific
 iucn_synonyms_df <- synonyms_df_corrected %>% filter(!is.na(accepted_name))
 no_iucn_synonyms_df <- synonyms_df_corrected %>% filter(is.na(accepted_name))
 
-# Taxonomy backbone reviwed synonym ----
+# Taxonomy backbone reviewed synonym ----
 apply_backbone_iucn <- lapply(iucn_synonyms_df$accepted_name,name.backbone)
 backbone_iucn_df <- ldply(apply_backbone_iucn, data.frame)
 
@@ -225,9 +222,7 @@ exotic_sp_list <- data.frame(
     'Artibeus jamaicensis',
     'Rattus norvegicus',
     'Eumops patagonicus',
-    'Glyphonycteris daviesi',
     'Conepatus chinga',
-    'Cynomops abrasus',
     'Histiotus montanus',
     'Lonchophylla mordax',
     'Lophostoma silvicolum',
@@ -235,15 +230,11 @@ exotic_sp_list <- data.frame(
     'Myotis dinellii',
     'Myotis izecksohni',
     'Myotis lavali',
-    'Peropteryx leucoptera',
     'Platyrrhinus incarum',
     'Dasypus hybridus',
-    'Monodelphis domestica',
     'Leopardus braccatus',
-    'Furipterus horrens',
     'Molossops temminckii',
     'Noctilio albiventris',
-    'Promops nasutus',
     'Canis griseoargenteus',
     'Lepus europaeus',
     'Pseudalopex vetulus',
@@ -263,7 +254,11 @@ exotic_sp_list <- data.frame(
     'Coendou',
     'Micoureus',
     'Lagothrix lagothricha',
-    'Brachyteles arachnoides'
+    'Bradypus tridactylus',
+    'Callithrix aurita',
+    'Brachyteles arachnoides',
+    'Carollia castanea',  # (retirado de Reis et al., 2017) "De acordo com Nogueira et al. (2014a), os registros de Carollia castanea H. Allen, 1890 indicados para o Brasil eram equivocados." Não dá para saber se é C. brevicauda ou C. perspicillata
+    'Platyrrhinus helleri' # (retirado de Reis et al., 2017) "O gênero Platyrrhinus atualmente é composto por vinte espécies (VELAZCO et al., 2010) e, segundo Nogueira et al. (2014a), apenas oito ocorrem em território brasileiro." P. helleri não está incluindo nestas 8 spp
   )
 )
 
@@ -275,9 +270,195 @@ data_all_sp_clean <- data_all_united %>%
 data_all_sp_clean <- data_all_sp_clean %>%
   filter(!str_detect(order, 'Cetacea'))
 
-# Correcting some species names
+# Correcting some species names -----------------
 data_all_sp_clean$species[data_all_sp_clean$species == "Puma yagouaroundi"] <- "Herpailurus yagouaroundi"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Gardnerycteris crenulatum"] <- "Mimon crenulatum" #Adotando nomenclatura de Reis et al. 2017
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Lasiurus borealis"] <- "Lasiurus blossevillii" #(retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, com exceção das Antilhas (que podem representar uma outra espécie), estariam incluídas em L. blossevillii (REID, 1997)."
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Natalus stramineus"] <- "Natalus macrourus"
+
+data_all_sp_clean$species[data_all_sp_clean$species == "Oxymycterus caparoae"] <- "Oxymycterus caparaoe"
+
+data_all_sp_clean$species[data_all_sp_clean$scientificName == "Brucepattersonius iserufescens"] <- "Brucepattersonius griserufescens"
+
+data_all_sp_clean$species[data_all_sp_clean$scientificName == "Guerlinguetus brasiliensi"] <- "Guerlinguetus ingrami"
+
+
 length(unique(data_all_sp_clean$species))
 
-# Output
+# Correcting references --------
+data_all_sp_clean <-data
+
+references_df <- read.csv('../data/references.csv')
+
+references_df$reference <- as.character(references_df$reference)
+data_all_sp_clean$reference <- as.character(data_all_sp_clean$reference)
+
+data_all_sp_clean <- merge(data_all_sp_clean, references_df, all = TRUE)
+
+
+to_remove <- data_all_sp_clean %>% filter(reference_std == 'removed')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+# assume thesis year, instead of publication year
+to_corret_year <- data_all_sp_clean %>% filter(str_detect(reference, 'Hirsch, A.,'))
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_corret_year)
+
+to_corret_year$year <- '1988'
+data_all_sp_clean$year <- as.character(data_all_sp_clean$year)
+data_all_sp_clean <- bind_rows(data_all_sp_clean, to_corret_year)
+
+nrow(data_all_sp_clean)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Aguirre (1971)', datasetName == "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Gatti et al. (2014)', year == '1988' | datasetName == "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Kinzey (1982)', datasetName == "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Mittermeier et al. (1987)', datasetName == "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Moura (2003)', datasetName != "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Palma (1996)', datasetName != "")
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Paresque et al. (2004)', datasetName != 'LGA')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Passamani (2000)', datasetName == '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Passamani et al. (2005)', datasetName != '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Passamani & Fernandez (2011)', datasetName == '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Passamani et al. (2000)', datasetName != '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Passamani & Ribeiro (2009)', datasetName == '', species != 'Callithrix geoffroyi', species != 'Sciurus aestuans')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Pinto (1994)', datasetName == '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Santos et al. (2004)', datasetName != '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+
+to_remove <- data_all_sp_clean %>% filter(citation == 'Santos et al. (1987)', datasetName == '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% filter(
+  citation == 'Soares et al. (2013)',
+  species != 'Cerdocyon thous',
+  species != 'Cuniculus paca',
+  species != 'Dasyprocta leporina',
+  species != 'Dasypus novemcinctus',
+  species != 'Didelphis aurita',
+  species != 'Leopardus wiedii',
+  species != 'Lontra longicaudis',
+  species != 'Marmosa murina',
+  species != 'Mazama americana',
+  species != 'Metachirus nudicaudatus',
+  species != 'Nasua nasua',
+  species != 'Philander opossum',
+  species != 'Sciurus aestuans')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% 
+  filter(citation == 'Srbek-Araujo & Chiarello (2005)',
+         species != 'Didelphis aurita',
+         species != 'Metachirus nudicaudatus',
+         species != 'Philander frenata', #just second year
+         species != 'Dasypus novemcinctus',
+         species != 'Euphractus sexcinctus', #just second year
+         species != 'Cerdocyon thous',
+         species != 'Nasua nasua',
+         species != 'Procyon cancrivorus',
+         species != 'Eira barbara', #just first year
+         species != 'Didelphis aurita',
+         species != 'Herpailurus yaguarondi',
+         species != 'Leopardus pardalis',
+         species != 'Herpailurus yaguarondi',
+         species != 'Leopardus tigrinus',
+         species != 'Puma concolor',
+         species != 'Mazama americana',
+         species != 'Pecari tajacu',
+         species != 'Sciurus aestuans',
+         species != 'Hydrochoerus hydrochaeris',
+         species != 'Cuniculus paca',
+         species != 'Dasyprocta leporina',
+         species != 'Sylvilagus brasiliensis')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% 
+  filter(citation == 'Srbek-Araujo & Chiarello (2013)',
+         species != 'Didelphis aurita',
+         species != 'Metachirus nudicaudatus',
+         species != 'Cabassous tatouay',
+         species != 'Euphractus sexcinctus',
+         species != 'Cerdocyon thous',
+         species != 'Tamandua tetradactyla',
+         species != 'Procyon cancrivorus',
+         species != 'Callithrix geoffroyi',
+         species != 'Sapajus robustus',
+         species != 'Cerdocyon thous',
+         species != 'Galictis cuja',
+         species != 'Nasua nasua',
+         species != 'Procyon cancrivorus',
+         species != 'Eira barbara',
+         species != 'Leopardus pardalis',
+         species != 'Leopardus wiedii',
+         species != 'Panthera onca',
+         species != 'Puma concolor',
+         species != 'Herpailurus yagouaroundi',
+         species != 'Tapirus terrestris',
+         species != 'Tayassu pecari',
+         species != 'Pecari tajacu',
+         species != 'Guerlinguetus ingrami',
+         species != 'Hydrochoerus hydrochaeris',
+         species != 'Cuniculus paca',
+         species != 'Dasyprocta leporina',
+         species != 'Sylvilagus brasiliensis')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_remove <- data_all_sp_clean %>% 
+  filter(citation == 'Tonini et al. (2010)', datasetName != '')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
+
+to_correct <- data_all_sp_clean %>% filter(citation == 'Travassos & Freitas (1948)')
+data_all_sp_clean <- anti_join(data_all_sp_clean, to_correct)
+to_correct <- to_correct %>% distinct(species, .keep_all = TRUE)
+data_all_sp_clean <- bind_rows(data_all_sp_clean, to_correct)
+
+
+
+# Output -------------------
 write.csv(data_all_sp_clean, '../data/mamm-data-clean.csv')
+
+

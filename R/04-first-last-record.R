@@ -6,12 +6,16 @@ lapply(x, library, character.only = TRUE)
 # Input ----
 data <- read.csv("../data/mamm-data-clean.csv")
 
+#data$species[data$scientificName == "Brucepattersonius iserufescens"] <- "Brucepattersonius griserufescens"
+#data$species[data$scientificName == "Guerlinguetus brasiliensi"] <- "Guerlinguetus ingrami"
+
 # Table data.frame ----
 # First and last record of each species
 species_record_df <- data %>%
   dplyr::group_by(species) %>%
   dplyr::summarise(first_record = min(as.numeric(year), na.rm = TRUE),
             last_record = max(as.numeric(year), na.rm = TRUE))
+
 
 # Species taxonomy
 species_df <- data.frame(species = sort(unique(data$species)))
@@ -55,3 +59,41 @@ OUT <- createWorkbook()
 addWorksheet(OUT, "Sheet1")
 writeData(OUT, sheet = "Sheet1", x = sp_record_backbone_df_ordered)
 saveWorkbook(OUT, "../results/first-last-record-table.xlsx", overwrite = TRUE)
+
+
+# References -------
+data$reference[data$reference == ""] <- NA
+
+species_referenced_df <- test %>%
+  dplyr::group_by(species) %>%
+  dplyr::summarise(collection = paste(collectionCode, catalogNumber),
+                   institution = institutionCode,
+                   references = reference_std)
+
+data_publish <- test %>% select(reference_std, datasetName, institutionCode, collectionCode, catalogNumber, recordedBy, year, stateProvince, decimalLongitude, decimalLatitude, order, family, species)
+
+
+referencias <- data.frame(unique(test %>% select(reference_std, citation)))
+dataset <- data.frame(sort(unique(data$datasetName)))
+colecoes <- data.frame(colecoes = sort(unique(data$institutionCode)))
+
+# Table
+OUT <- createWorkbook()
+addWorksheet(OUT, "Sheet1")
+writeData(OUT, sheet = "Sheet1", x = data_publish)
+saveWorkbook(OUT, "../results/data-base-clean.xlsx", overwrite = TRUE)
+
+
+OUT <- createWorkbook()
+addWorksheet(OUT, "reference-per-species")
+addWorksheet(OUT, "all-references")
+addWorksheet(OUT, "all-datasets")
+addWorksheet(OUT, "all-institutions")
+
+writeData(OUT, sheet = "reference-per-species", x = species_referenced_df)
+writeData(OUT, sheet = "all-references", x = referencias)
+writeData(OUT, sheet = "all-datasets", x = dataset)
+writeData(OUT, sheet = "all-institutions", x = colecoes)
+saveWorkbook(OUT, "../results/species-references.xlsx", overwrite = TRUE)
+
+

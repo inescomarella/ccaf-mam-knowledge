@@ -5,7 +5,7 @@ lapply(x, library, character.only = TRUE)
 
 source('functions.R')
 
-# Input
+# Input -----
 data_raw <- read.csv("../data/data-raw.csv", stringsAsFactors = FALSE)
 ccma <-
   st_read(dsn = '../outputs',
@@ -15,10 +15,6 @@ ccma <-
 # Remove marine mammals
 data_modif <- data_raw[!(data_raw$order == "Cetartiodactyla" | 
                            data_raw$order == "Cetacea"), ]
-
-# Remove speciesLink data
-to_remove <- data_modif %>% filter_all(any_vars(str_detect(., "speciesLink")))
-data_modif <- anti_join(data_modif, to_remove)
 
 # Remove unpublished data
 data_modif <- data_modif %>% filter(!str_detect(typeOfPublication, 'Unpubl'))
@@ -149,7 +145,7 @@ for (i in 1:nrow(data_modif))
 # country ----
 data_modif$country <- "Brazil"
 
-# Stardizing stateProvince column ----
+# Standardizing stateProvince column ----
 data_modif$stateProvince <- as.character(data_modif$stateProvince)
 
 data_modif$stateProvince[data_modif$stateProvince == "Espírito Santo"] <- "Espirito Santo"
@@ -194,18 +190,20 @@ for (i in 1:nrow(data_modif))
     data_modif$geodeticDatum[i] <- NA
 
 # Removing rows without adequate coordinates
-to_remove <- data_modif %>% 
-  filter(str_detect(decimalLatitude, "[[:alpha:] ]+"))
+to_correct <- data_modif %>% 
+  filter(str_detect(decimalLatitude, "[[:alpha:] ]+"), !str_detect(geodeticDatum, 'UTM'))
 
-data_modif <- anti_join(data_modif, to_remove)
+data_modif <- anti_join(data_modif, to_correct)
+to_correct$decimalLatitude <- NA
+data_modif <- bind_rows(data_modif, to_correct)
 
-# Extract coordinates in UTM and in degrees
+# Extract coordinates in UTM and in degrees ----------------------
 grau_utm_data_modif <- data_modif %>% 
-  select(verbatimLatitude, verbatimLongitude) %>% 
-  filter(str_detect(verbatimLatitude, "[[:alpha:] ]+"))
+  filter(str_detect(verbatimLatitude, "[[:alpha:] ]+"), decimalLatitude == "" | is.na(decimalLatitude)) %>% 
+  select(verbatimLatitude, verbatimLongitude) 
 
 # UTM coordinates
-utm_data_modif <- data_modif %>% 
+utm_data_modif <- grau_utm_data_modif %>% 
   filter(verbatimLatitude == "240487949 N")
 
 # Degree coordinates
@@ -214,6 +212,9 @@ grau_data_modif <- grau_utm_data_modif %>%
 
 # Preparing columns to convert to decimal degrees
 # Separate degree
+grau_data_modif$verbatimLatitude <- grau_data_modif$verbatimLatitude %>% str_replace(pattern = "[°]", replacement = "º")
+grau_data_modif$verbatimLongitude <- grau_data_modif$verbatimLongitude %>% str_replace(pattern = "[°]", replacement = "º")
+
 grau_data_modif <-
   separate(
     as.data.frame(grau_data_modif),
@@ -221,6 +222,7 @@ grau_data_modif <-
     into = c("grau_lat", "verbatimLatitude"),
     sep = "[º]"
   )
+
 grau_data_modif <-
   separate(
     as.data.frame(grau_data_modif),
@@ -256,13 +258,13 @@ grau_data_modif$grau_lat <- str_replace_all(grau_data_modif$grau_lat, "[[:alpha:
 grau_data_modif$grau_long <- str_replace_all(grau_data_modif$grau_long, "[[:alpha:] ]+", "")
 
 # Correct some specific rows
-grau_data_modif$seg_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "20"
-grau_data_modif$min_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "16"
-grau_data_modif$grau_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "18"
+#grau_data_modif$seg_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "20"
+#grau_data_modif$min_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "16"
+#grau_data_modif$grau_lat[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "18"
 
-grau_data_modif$seg_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "55"
-grau_data_modif$min_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "48"
-grau_data_modif$grau_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "39"
+#grau_data_modif$seg_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "55"
+#grau_data_modif$min_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "48"
+#grau_data_modif$grau_long[grau_data_modif$grau_lat == unique(grau_data_modif$grau_lat)[2]] <- "39"
 
 grau_data_modif$seg_lat[grau_data_modif$seg_lat == ""] <- "0"
 grau_data_modif$seg_long[grau_data_modif$seg_long == ""] <- "0"
@@ -286,19 +288,40 @@ long_grau_data_modif <-
 coord <- data.frame(lat = as.data.frame(lat_grau_data_modif),
                     long = as.data.frame(long_grau_data_modif))
 
-# Rertuning coordinates degrees corrected to main dataframe
-data_modif$decimalLatitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$lat_grau_data_modif
-data_modif$decimalLongitude[data_modif$verbatimLatitude %in% grau_data_modif$verbatimLatitude] <- coord$long_grau_data_modif
 
-# Convert UTM to decimal degree coordinates
+#######################################################################################################################################
+# Returning coordinates degrees corrected to main dataframe -------------------------------------
+# Degree coordinates
+grau_utm_data_modif_df <- data_modif %>% 
+  filter(str_detect(verbatimLatitude, "[[:alpha:] ]+"), decimalLatitude == "" | is.na(decimalLatitude))
+
+# UTM coordinates
+utm_data_modif_df <- grau_utm_data_modif_df %>% 
+  filter(verbatimLatitude == "240487949 N")
+
+# Degree coordinates
+grau_data_modif_df <- anti_join(grau_utm_data_modif_df, utm_data_modif_df)
+
+data_modif <- anti_join(data_modif, grau_data_modif_df)
+
+grau_data_modif_df$decimalLatitude <- as.character(coord$lat_grau_data_modif)
+grau_data_modif_df$decimalLongitude <- as.character(coord$long_grau_data_modif)
+
+data_modif$decimalLatitude <- as.character(data_modif$decimalLatitude)
+data_modif$decimalLongitude <- as.character(data_modif$decimalLongitude)
+
+grau_data_modif_df <- grau_data_modif_df %>% select(colnames(data_modif))
+data_modif <- bind_rows(data_modif, grau_data_modif_df)
+
+# Convert UTM to decimal degree coordinates ------
 utm_data_modif <- data_modif %>% 
-  filter(str_detect(geodeticDatum, 'UTM')) %>%
+  dplyr::filter(str_detect(geodeticDatum, 'UTM')) %>%
   select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude, geodeticDatum)
 
 utm <- utm_data_modif %>% select(verbatimLatitude, verbatimLongitude)
 
 
-utm_data_modif$decimalLatitude[utm_data_modif$verbatimLatitude == sort(unique(utm$verbatimLatitude))[1]] <- '-16.599363511356'
+utm_data_modif$decimalLatitude <- NA
 
 df <- data.frame()
 for(i in 1: length(unique(utm$verbatimLatitude))) {
@@ -307,22 +330,17 @@ for(i in 1: length(unique(utm$verbatimLatitude))) {
 }
   
 df <- arrange(df, by = verbatimLatitude)
+
+# Convert UTM to decimal degree http://splink.cria.org.br/conversor
 df$decimalLatitude <- c('-16.599388', '-17.169331', '-13.578941', '-13.864987', '-17.292106', '-15.927010', '-15.155310', '-13.952912', '-16.286450', '-15.197319', '-15.973720', '-17.106801', '-16.512313', '-13.701098', '-15.619982', '-14.018092', '-16.324448', '-14.343671', '-15.172064', '-14.424250', '-15.166549', '-13.525323')
 df$decimalLongitude <- c('-39.913983', '-39.841776', '-39.706685', '-39.672635', '-39.673031', '-39.635847', '-39.526954', '-39.451138', '-39.424079', '-39.391085', '-39.373680', '-39.339753', '-39.303612', '-39.232629', '-39.161263', '-39.143283', '-39.121001', '-39.086907', '-39.061124', '-39.060414', '-39.059754', '-39.035311')
 
-# Convert UTM to decimal degree http://splink.cria.org.br/conversor
 
 utm_data_modif <- merge(utm_data_modif, df, by = 'verbatimLatitude')
 
 # Returnin to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLatitude.y
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <- utm_data_modif$decimalLongitude.y
-
-# Removing rows without coordinates
-data_modif <- data_modif %>% filter(!is.na(decimalLatitude)) 
-
-to_remove <- data_modif %>% filter(decimalLatitude == "")
-data_modif <- anti_join(data_modif, to_remove)
 
 # Correcting mixed latitude/longitude ------
 to_correct_latlong <- data_modif %>% filter(decimalLongitude < -30)
@@ -399,7 +417,7 @@ data_modif$scientificName[data_modif$scientificName == "Peropteryx cf. kappleri"
 data_modif$scientificName[data_modif$scientificName == "Peropteryx trinitatis trinitatis"] <- "Peropteryx trinitatis"
 data_modif$scientificName[data_modif$scientificName == "Sciurus alphonsei alphonsei"] <- "Sciurus alphonsei"
 
-# Remove points outside CCMA
+# Remove points outside CCMA ------
 data_modif_clipped <- clip.ccma(data_modif)
 
 # Output -----
