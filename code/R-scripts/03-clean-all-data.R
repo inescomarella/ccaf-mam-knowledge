@@ -154,6 +154,7 @@ no_iucn_synonyms_df <-
   filter(is.na(accepted_name))
 
 # Taxonomy backbone reviewed synonym ----------------------------------------
+# Get species backbone and keep a scientificName column as a key to merge
 # This might take a while
 apply_backbone_iucn <-
   lapply(iucn_synonyms_df$accepted_name, name.backbone)
@@ -166,6 +167,7 @@ colnames(backbone_iucn_df_selected) <-
   c("order", "family", "species", "scientificName")
 
 # Taxonomy backbone not reviewed synonym ------------------------------------
+# Get species backbone and keep a scientificName column as a key to merge
 # This might take a while
 apply_backbone_gbif <-
   lapply(no_iucn_synonyms_df$scientificName, name.backbone)
@@ -272,6 +274,7 @@ S_xanthosternos$acceptedNameUsage <- "Sapajus xanthosternos"
 sapajus_df <-
   bind_rows(S_nigritus, S_robustus_es, S_robustus_ba, S_xanthosternos)
 
+# Get species backbone and keep a scientificName column as a key to merge
 # This might take a while
 apply_backbone_sapajus <-
   lapply(sapajus_df$acceptedNameUsage, name.backbone)
