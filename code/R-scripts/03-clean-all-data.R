@@ -1,5 +1,8 @@
 # File purpose: Clean and standardize mammal data from paper, GBIF and
 # speciesLink
+# Pay attention: The rredlist::rl_synonyms() function always get some error and
+# take quite some time to run
+#
 # Date: 16/11/2020
 
 # Load in libraries
@@ -92,14 +95,34 @@ data_all_clipped$scientificName <-
   str_replace(data_all_clipped$scientificName,
               pattern = " j ",
               replacement = " ")
+data_all_clipped$scientificName <-
+  str_replace(data_all_clipped$scientificName,
+              pattern = "   ",
+              replacement = " ")
+
+to_remove <-
+  data_all_clipped %>%
+  filter(str_detect(scientificName, "[?]"))
+data_all_clipped <- anti_join(data_all_clipped, to_remove)
+
+to_remove <-
+  data_all_clipped %>%
+  filter(str_detect(scientificName, "[/]"))
+data_all_clipped <- anti_join(data_all_clipped, to_remove)
+
+to_remove <-
+  data_all_clipped %>%
+  filter(str_detect(scientificName, "brido"))
+data_all_clipped <- anti_join(data_all_clipped, to_remove)
 
 # Species list
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
 # Get synonyms ---------------------------------------------------------------
-# This might take a while and it's normal to get "Error: Bad Gateway (HTTP 
+# This might take a while and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
+#
 apply_synonyms_1 <- lapply(sp_list_all[1:100], rl.synonyms)
 apply_synonyms_2 <- lapply(sp_list_all[101:200], rl.synonyms)
 apply_synonyms_3 <- lapply(sp_list_all[201:300], rl.synonyms)
@@ -324,7 +347,7 @@ data_iucn_gbif_ordered <-
   data_all_backbone_iucn_gbif_merged %>%
   select(colnames(data_all), species)
 
-# Bind data.frames ---------------------------------------------------------
+# Bind all data.frames ---------------------------------------------------------
 data_all_united <-
   bind_rows(data_iucn_gbif_ordered, sapajus_df_final_ordered)
 
@@ -397,7 +420,7 @@ to_remove <-
   filter(str_detect(order, "Cetacea"))
 data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
 
-# Correcting some species names ------------------------------------------
+# Correct some species names ------------------------------------------
 data_all_sp_clean$species[data_all_sp_clean$species == "Puma yagouaroundi"] <-
   "Herpailurus yagouaroundi"
 
@@ -421,6 +444,47 @@ data_all_sp_clean$species[data_all_sp_clean$scientificName == "Brucepattersonius
 data_all_sp_clean$species[data_all_sp_clean$scientificName == "Guerlinguetus brasiliensi"] <-
   "Guerlinguetus ingrami"
 
+# scientificName as the scientific name containing the species author, not as
+# the key to the raw data reference anymore
+# Species taxonomy
+species_df <-
+  data.frame(species = sort(unique(data_all_sp_clean$species)))
+species_backbone_df <-
+  bind_rows(apply(X = species_df, MARGIN = 1, FUN = name_backbone))
+
+species_df$scientificName <- species_backbone_df$scientificName
+
+data_all_sp_clean <-
+  data_all_sp_clean %>%
+  select(-scientificName)
+
+clean_data <- merge(data_all_sp_clean, species_df, by = "species")
+
+# Select columns of interest
+clean_data_slct <-
+  clean_data %>%
+  select(
+    datasetName,
+    institutionCode,
+    collectionCode,
+    catalogNumber,
+    reference_std,
+    citation,
+    PublicationYear,
+    country,
+    stateProvince,
+    county,
+    locality,
+    decimalLongitude,
+    decimalLatitude,
+    order,
+    family,
+    species,
+    scientificName
+  )
+
+colnames(clean_data_slct)[5] <- "reference"
+
 # Export data.frame ------------------------------------------------------
-write.csv(data_all_sp_clean,
+write.csv(clean_data_slct,
           "../data/processed-data/clean-mammal-data.csv")
