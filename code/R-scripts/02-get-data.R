@@ -1,16 +1,17 @@
 # File purpose: Get GBIF and speciesLink mammal data of ES and BA states
-# 16/11/2020
+# Date: 16/11/2020
 
 # Load in libraries
 x <- c("tidyverse", "rocc", "rgbif", "sf") 
 lapply(x, library, character.only = TRUE)
 
 # Source functions
-source("functions.R")
+source("./R-scripts/functions/01-funs-get-data.R")
 
 # Get occurrence data from speciesLink
+# This might take a while
 spLink_animals_down <- rspeciesLink(
-  dir = "../data/processed-data",
+  dir = "../data/processed-data/",
   filename = "raw-spLink-animals-data",
   stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
   Coordinates = "Yes",
@@ -22,6 +23,7 @@ spLink_animals_down <- rspeciesLink(
 spLink_mamm_filtered <- spLink_animals_down %>% filter(class == "Mammalia")
 
 # Spin up a download request for GBIF occurrence data
+# This might take a while
 gbif_mamm_occ_down <- occ_download(
   user = "inescomarella",
   pwd = "********",
