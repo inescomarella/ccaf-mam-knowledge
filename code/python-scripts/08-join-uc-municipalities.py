@@ -9,7 +9,7 @@ layer1 = QgsProject.instance().mapLayersByName("municipios_ccma")[0]
 layer2 = QgsProject.instance().mapLayersByName("ucs_ccma_merged")[0]
 
 # Get output path
-output = "/home/ines/tcc-ccma/data/processed-data/municipipalities-joined.shp"
+output = "/home/ines/tcc-ccma/data/processed-data/municipalities-joined.shp"
 
 # Running the algorithm
 params = {
