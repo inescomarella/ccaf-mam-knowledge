@@ -1,6 +1,10 @@
 # File purpose: Explore mammal records data to generate first and last record
 # year plot and table, and the species references table
 # Data: 17/11/2020
+# 
+# To do:
+#   - Reference table with 2 columns and one species and its references list respectively in each
+#   row
 
 # Load in libraries
 x <-
