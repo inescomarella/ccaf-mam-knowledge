@@ -1,4 +1,4 @@
-# File purpose: functions useful to data analysis
+# File purpose: functions useful to do measures necessary to model
 # Date: 17/11/2020
 
 library(sf)
