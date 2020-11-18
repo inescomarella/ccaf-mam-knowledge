@@ -304,7 +304,7 @@ apply_backbone_sapajus <-
 backbone_sapajus_df <- ldply(apply_backbone_sapajus, data.frame)
 
 # Removing Sapajus records to add separately
-# Identification not based on scietificName, so I can"t use merge
+# Identification not based on scietificName, so I can't use merge
 data_all_without_sapajus <-
   data_all_clipped %>%
   filter(!str_detect(scientificName, "Cebus"))
@@ -471,6 +471,7 @@ clean_data_slct <-
     reference_std,
     citation,
     PublicationYear,
+    year,
     country,
     stateProvince,
     county,

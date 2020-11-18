@@ -43,11 +43,11 @@ institute_pts <-
                 "Y_POSSIBLE_NAMES=latitude")
   )
 g025_geom <-
-  st_read(dsn = "../data/processed-data", layer = "grid-025-ucs-joined")
+  st_read(dsn = "../data/processed-data/", layer = "grid-025-ucs-joined")
 g050_geom <-
   st_read(dsn = "../data/processed-data/", layer = "grid-050-ucs-joined")
 
-######################### Pre-process data ###################################
+############################### Pre-process data #####################################
 
 # Before converting to UTM, save coordinates in degree
 # Latitude in degree will be used as a variable in the GLM
@@ -98,14 +98,14 @@ g050_df_std <-
   mutate(uc_pres = is.na(UF_unique)) %>%
   select(nreg, nsp, dist_inst, uc_pres, lat)
 
-########################### Correlation test ##################################
+############################### Correlation test #####################################
 
 g025_cor <-
   cor(g025_df_std, method = c("pearson", "kendall", "spearman"))
 g050_cor <-
   cor(g050_df_std, method = c("pearson", "kendall", "spearman"))
 
-############################ Run global models ################################
+############################## Run global models #####################################
 
 # Fit Negative Binomial Generalized Linear Model
 summary(
@@ -125,13 +125,13 @@ summary(
     )
 )
 
-############################# Model selection #################################
+################################# Model selection ####################################
 
 # Rank by AIC
 glm_025_ranked <- dredge(glm_025_fitted)
 glm_050_ranked <- dredge(glm_050_fitted)
 
-############################# Run selected models #############################
+############################## Run selected models ###################################
 
 # Fit Negative Binomial Generalized Linear Model
 summary(
@@ -151,7 +151,7 @@ summary(
     )
 )
 
-######################### Test model quality of fit ###########################
+########################### Test model quality of fit ################################
 
 # Conventional Residuals (fittedModel)
 glm_025_simulation <- simulateResiduals(glm_025_refitted, plot = T)
@@ -174,9 +174,10 @@ testZeroInflation(glm_050_simulation, alternative = "greater") #zero inflated?
 
 # For details on overdispersion test check:
 # > Overdispersion, and how to deal with it in R and JAGS
-# > DHARMa: residual diagnostics for hierarchical (multi-level/mixed) regression models
+# > DHARMa: residual diagnostics for hierarchical (multi-level/mixed)
+# regression models
 
-######################### Save correlation plot ###############################
+############################ Save correlation plot ###################################
 
 # Correlation test plot
 pdf(file = "../data/results/correlation-plot-g025.pdf",
@@ -205,7 +206,7 @@ corrplot(
 )
 dev.off()
 
-########################### Save model output #################################
+############################## Save model output #####################################
 
 glm_025_fitted_coef <-
   as.data.frame(coef(summary(glm_025_fitted))) %>%
@@ -246,7 +247,7 @@ writeData(OUT, sheet = "selected-model-coef-g050", x = glm_050_refitted_coef)
 
 saveWorkbook(OUT, "../data/results/model-results.xlsx", overwrite = TRUE)
 
-####################### Save overdispersion plots ############################
+########################## Save overdispersion plots #################################
 
 pdf(file = "../data/results/DHARMa-residual-plot-g025.pdf",
     width = 7.5,
