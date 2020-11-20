@@ -1,136 +1,131 @@
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# File purpose: Get animals data from GBIF and speciesLink
+# Pay attention: Aves are in a separate script due to the dataset size.
+# Date: 18/11/2020
 
-x <-
-  c("tidyverse", "rocc", "rgbif", "plyr", "sf", 'dplyr', 'raster')
-lapply(x, library, character.only = TRUE)
+# Load in libraries
+library(rocc)
+library(rgbif)
 
-source('functions.R')
+# GBIF data -----------------------------------------------------------------
 
-ccma <-
-  st_read(dsn = '../outputs',
-          layer = 'ccma-clipped',
-          check_ring_dir = TRUE)
+# Set GBIF profile
+options(gbif_user = "inescomarella")
+options(gbif_pwd = "********")
+options(gbif_email = "inesmottacomarella@gmail.com")
 
-# Get occurrence data from speciesLink -----
-spLink_animals_down <- rspeciesLink(
-  dir = '../data/',
-  filename = 'spLink-animals-raw',
-  stateProvince = c('Espirito Santo', 'Espírito Santo', 'ES', 'Bahia', 'BA'),
-  Coordinates = 'Yes',
-  Scope = 'animals',
-  Synonyms = 'species2000'
-)
+# Spin up a download request for GBIF occurrence data
+# This takes a while
+# You just need to do it once, after that you can just download the files using the
+# key
+mamm_occ_down <- 
+  occ_download(
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 359),
+    pred("hasCoordinate", TRUE),
+    #greaterThanOrEquals
+    pred_gte("year", 1500),
+    #lessThanOrEquals
+    pred_lte("year", 2020)
+  )
+amph_occ_down <-
+  occ_download(
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 131),
+    pred("hasCoordinate", TRUE),
+    #greaterThanOrEquals
+    pred_gte("year", 1500),
+    #lessThanOrEquals
+    pred_lte("year", 2020)
+  )
+rept_occ_down <-
+  occ_download(
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 358),
+    pred("hasCoordinate", TRUE),
+    #greaterThanOrEquals
+    pred_gte("year", 1500),
+    #lessThanOrEquals
+    pred_lte("year", 2020) 
+  )
+inse_occ_down <-
+  occ_download(
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 216),
+    pred("hasCoordinate", TRUE),
+    #greaterThanOrEquals
+    pred_gte("year", 1500),
+    #lessThanOrEquals
+    pred_lte("year", 2020)
+  )
+arac_occ_down <-
+  occ_download(
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 367),
+    #greaterThanOrEquals
+    pred_gte("year", 1500),
+    #lessThanOrEquals
+    pred_lte("year", 2020)
+  )
 
-# Spin up a download request for GBIF occurrence data ----
-aves_occ_down <- occ_download(
-  user = 'inescomarella',
-  pwd = '********',
-  email = 'inesmottacomarella@gmail.com',
-  format = "SIMPLE_CSV",
-  pred('country', 'BR'),
-  pred('taxonKey', 212),
-  pred("hasCoordinate", TRUE),
-  pred_gte("year", 1500), #greaterThanOrEquals
-  pred_lte("year", 2020) #lessThanOrEquals
-)
-amph_occ_down <- occ_download(
-  user = 'inescomarella',
-  pwd = '********',
-  email = 'inesmottacomarella@gmail.com',
-  format = "SIMPLE_CSV",
-  pred('country', 'BR'),
-  pred('taxonKey', 131),
-  pred("hasCoordinate", TRUE),
-  pred_gte("year", 1500), #greaterThanOrEquals
-  pred_lte("year", 2020) #lessThanOrEquals
-)
-rept_occ_down <- occ_download(
-  user = 'inescomarella',
-  pwd = '********',
-  email = 'inesmottacomarella@gmail.com',
-  format = "SIMPLE_CSV",
-  pred('country', 'BR'),
-  pred('taxonKey', 358),
-  pred("hasCoordinate", TRUE),
-  pred_gte("year", 1500), #greaterThanOrEquals
-  pred_lte("year", 2020) #lessThanOrEquals
-)
-inse_occ_down <- occ_download(
-  user = 'inescomarella',
-  pwd = '********',
-  email = 'inesmottacomarella@gmail.com',
-  format = "SIMPLE_CSV",
-  pred('country', 'BR'),
-  pred('taxonKey', 216),
-  #insea
-  pred("hasCoordinate", TRUE),
-  pred_gte("year", 1500),  #greaterThanOrEquals
-  pred_lte("year", 2020) #lessThanOrEquals
-)
-arac_occ_down <- occ_download(
-  user = 'inescomarella',
-  pwd = '********',
-  email = 'inesmottacomarella@gmail.com',
-  format = "SIMPLE_CSV",
-  pred('country', 'BR'),
-  pred('taxonKey', 367),
-  pred_gte("year", 1500), #greaterThanOrEquals
-  pred_lte("year", 2020) #lessThanOrEquals
-)
-
-# Get download from GBIF ----
-aves_occ_get <-
-  occ_download_get(key = '0101910-200613084148143',
-                   path = '../data',
-                   overwrite = TRUE)
-amph_occ_get <-
-  occ_download_get(key = '0101858-200613084148143', 
-                   path = '../data', 
+# Get download from GBIF
+ amph_occ_get <-
+  occ_download_get(key = "0101858-200613084148143",
+                   path = "../data/processed-data",
                    overwrite = TRUE)
 rept_occ_get <-
-  occ_download_get(key = '0101880-200613084148143', 
-                   path = '../data', 
-                   overwrite = TRUE) 
+  occ_download_get(key = "0101880-200613084148143",
+                   path = "../data/processed-data",
+                   overwrite = TRUE)
 inse_occ_get <-
-  occ_download_get(key = '0101888-200613084148143', 
-                   path = '../data', 
+  occ_download_get(key = "0101888-200613084148143",
+                   path = "../data/processed-data",
                    overwrite = TRUE)
 arac_occ_get <-
-  occ_download_get('0101907-200613084148143', 
-                   path = '../data', 
+  occ_download_get("0101907-200613084148143",
+                   path = "../data/processed-data",
                    overwrite = TRUE)
 
-# Import downloaded file from GBIF ----
-aves_occ_imported <-
-  occ_download_import(aves_occ_get, path = '../data')
-amph_occ_imported <-
-  occ_download_import(amph_occ_get, path = '../data')
-rept_occ_imported <-
-  occ_download_import(rept_occ_get, path = '../data')
-inse_occ_imported <-
-  occ_download_import(inse_occ_get, path = '../data')
-arac_occ_imported <-
-  occ_download_import(arac_occ_get, path = '../data')
+# Import downloaded file from GBIF
+# Unzip and read files
+# Takes 189.560s to read the zip files
+path_name <- "../data/processed-data"
 
+gbif_occ_imported_amph <- occ_download_import(amph_occ_get, path_name)
+gbif_occ_imported_rept <- occ_download_import(rept_occ_get, path_name)
+gbif_occ_imported_inse <- occ_download_import(inse_occ_get, path_name)
+gbif_occ_imported_arac <- occ_download_import(arac_occ_get, path_name)
 
-# Remove fossil record and iNaturalist registers -----
-aves_occ_clean <- remove.fossil.iNaturalist(aves_occ_imported)
-amph_occ_clean <- remove.fossil.iNaturalist(amph_occ_imported)
-rept_occ_clean <- remove.fossil.iNaturalist(rept_occ_imported)
-inse_occ_clean <- remove.fossil.iNaturalist(inse_occ_imported)
-arac_occ_clean <- remove.fossil.iNaturalist(arac_occ_imported)
+# speciesLink data -----------------------------------------------------------
 
-# Remove point outside CCMA ----
-amph_clipped <- clip.ccma(amph_occ_clean)
-rept_clipped <- clip.ccma(rept_occ_clean)
-inse_clipped <- clip.ccma(inse_occ_clean)
-arac_clipped <- clip.ccma(arac_occ_clean)
-spLink_animals_clipped <- clip.ccma(spLink_animals_down)
+# Get occurrence data from speciesLink
+# Takes 244.321s to run
+spLink_animals_down <-
+  rspeciesLink(
+    dir = "../data/processed-data/",
+    filename = "raw-spLink-animals-data",
+    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
+    Coordinates = "Yes",
+    Scope = "animals",
+    Synonyms = "species2000"
+  )
 
-# Export data
-write.csv(amph_clipped, '../data/gbif-amph-clipped.csv')
-write.csv(rept_clipped, '../data/gbif-rept-clipped.csv')
-write.csv(inse_clipped, '../data/gbif-inse-clipped.csv')
-write.csv(arac_clipped, '../data/gbif-arac-clipped.csv')
-write.csv(aves_occ_clean, '../data/gbif-aves-to-clip.csv')
-write.csv(spLink_animals_clipped, '../data/spLink-animals-clipped.csv')
+# There is some bug in the rocc::rspeciesLink() download
+file.remove("../data/processed-data/raw-spLink-animals-data.csv")
+
+# Save data -----------------------------------------------------------------
+write.csv(gbif_occ_imported_amph,
+          "../data/processed-data/raw-gbif-amph.csv")
+write.csv(gbif_occ_imported_rept,
+          "../data/processed-data/raw-gbif-rept.csv")
+write.csv(gbif_occ_imported_inse,
+          "../data/processed-data/raw-gbif-inse.csv")
+write.csv(gbif_occ_imported_arac,
+          "../data/processed-data/raw-gbif-arac.csv")
+write.csv(spLink_animals_down,
+          "../data/processed-data/raw-spLink-animals.csv")
+
