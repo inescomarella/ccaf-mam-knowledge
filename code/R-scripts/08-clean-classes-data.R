@@ -1,57 +1,152 @@
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# File purpose: Clean classes record from GBIF and speciesLink
+# Remember: Aves data from GBIF are cleaned in another script, here they will
+# just be attached to Aves data from speciesLink
+# Date: 20/11/2020
 
+# Load in libraries
 x <-
-  c("tidyverse", "plyr", 'dplyr')
+  c("dplyr", "sp", "sf", "plyr", "conflicted")
 lapply(x, library, character.only = TRUE)
 
-source('functions.R')
+conflict_prefer("mutate", "dplyr")
+conflict_prefer("filter", "dplyr")
 
-data_paper <- read.csv('../data/data-papers.csv')
-gbif_mamm <- read.csv('../data/gbif-mamm-clipped.csv')
-gbif_amph <- read.csv('../data/gbif-amph-clipped.csv')
-gbif_rept <- read.csv('../data/gbif-rept-clipped.csv')
-gbif_inse <- read.csv('../data/gbif-inse-clipped.csv')
-gbif_arac <- read.csv('../data/gbif-arac-clipped.csv')
-gbif_aves <- read.csv('../data/aves-clean.csv')
-spLink_animals <- read.csv('../data/spLink-animals-clipped.csv')
+# Source functions
+source("./R-scripts/functions/05-funs-clean-classes-data.R")
 
-# Standardizing columns
-colnames(gbif_aves) <- colnames(gbif_amph)
-gbif_mamm$scientificName <- gbif_mamm$species
-gbif_aves$scientificName <- gbif_aves$species
-gbif_amph$scientificName <- gbif_amph$species
-gbif_rept$scientificName <- gbif_rept$species
-gbif_inse$scientificName <- gbif_inse$species
-gbif_arac$scientificName <- gbif_arac$species
+# Load in data
+gbif_mamm <- read.csv("../data/processed-data/mammal-gbif-data.csv")
+gbif_amph <- read.csv("../data/processed-data/raw-gbif-amph.csv")
+gbif_rept <- read.csv("../data/processed-data/raw-gbif-rept.csv")
+gbif_inse <- read.csv("../data/processed-data/raw-gbif-inse.csv")
+gbif_arac <- read.csv("../data/processed-data/raw-gbif-arac.csv")
+gbif_aves <- read.csv("../data/processed-data/gbif-aves-clipped.csv")
+spLk_animals <-
+  read.csv("../data/processed-data/raw-spLink-animals.csv")
+ccma <- st_read(dsn = "../data/processed-data",
+                layer = "ccma-clipped",
+                check_ring_dir = TRUE)
+ccma <- st_transform(ccma, crs = CRS("+proj=longlat +datum=WGS84"))
 
-# Select classes in speciesLink data
-spLink_mamm <- spLink_animals %>% filter(class == 'Mammalia')
-spLink_aves <- spLink_animals %>% filter(class == 'Aves')
-spLink_amph <- spLink_animals %>% filter(class == 'Amphibia')
-spLink_rept <- spLink_animals %>% filter(class == 'Reptilia')
-spLink_inse <- spLink_animals %>% filter(class == 'Insecta')
-spLink_arac <- spLink_animals %>% filter(class == 'Arachnida')
+# Prepare datasets -----------------------------------------------------------
 
-# Binding data.frames to a single obj
-mamm_data <- rbind.fill(gbif_mamm, spLink_mamm)
-aves_data <- rbind.fill(gbif_aves, spLink_aves)
-amph_data <- rbind.fill(gbif_amph, spLink_amph)
-rept_data <- rbind.fill(gbif_rept, spLink_rept)
-inse_data <- rbind.fill(gbif_inse, spLink_inse)
-arac_data <- rbind.fill(gbif_arac, spLink_arac)
+# Save GBIF raw data in a single object
+gbif_list <- list(gbif_mamm,
+                  gbif_amph,
+                  gbif_rept,
+                  gbif_inse,
+                  gbif_arac)
+
+# Saving memory
+rm(gbif_mamm,
+   gbif_amph,
+   gbif_rept,
+   gbif_inse,
+   gbif_arac)
+
+# Remove some columns to make objects easier to handle
+gbif_list <- lapply(gbif_list, select.gbif.columns)
+spLk_animals$species <- spLk_animals$scientificName
+spLk_animals <-
+  spLk_animals %>%
+  select(
+    class,
+    order,
+    family,
+    species,
+    scientificName,
+    locality,
+    stateProvince,
+    decimalLatitude,
+    decimalLongitude,
+    year,
+    basisOfRecord,
+    institutionCode,
+    collectionCode,
+    catalogNumber,
+    recordNumber,
+    recordedBy
+  )
+
+# Clean datasets --------------------------------------------------------------
+
+# Remove fossil record and iNaturalist records
+gbif_list <- lapply(gbif_list, remove.fossil.iNaturalist)
 
 # Keep only identified species
-mamm_data_clean <- only.indetified.sp(mamm_data)
-aves_data_clean <- only.indetified.sp(aves_data)
-amph_data_clean <- only.indetified.sp(amph_data)
-rept_data_clean <- only.indetified.sp(rept_data)
-inse_data_clean <- only.indetified.sp(inse_data)
-arac_data_clean <- only.indetified.sp(arac_data)
+gbif_list <- lapply(gbif_list, only.indetified.sp)
 
-# Output
-write.csv(mamm_data_clean, '../data/mamm-data.csv')
-write.csv(aves_data_clean, '../data/aves-data.csv')
-write.csv(amph_data_clean, '../data/amph-data.csv')
-write.csv(rept_data_clean, '../data/rept-data.csv')
-write.csv(inse_data_clean, '../data/inse-data.csv')
-write.csv(arac_data_clean, '../data/arac-data.csv')
+to_remove <-
+  spLk_animals %>%
+  filter(species == "" | is.na(species))
+
+spLk_animals <- anti_join(spLk_animals, to_remove)
+rm(to_remove)
+
+# Remove point outside CCMA
+# Takes to 8min run
+gbif_list <- lapply(gbif_list, clip.ccma)
+# Takes to 35min run
+spLk_animals <- clip.ccma(spLk_animals)
+
+# Bind datasetss ------------------------------------------------------------
+
+# Select classes in speciesLink data
+spLk_mamm <-
+  spLk_animals %>%
+  filter(class == "Mammalia")
+
+spLk_amph <-
+  spLk_animals %>%
+  filter(class == "Amphibia")
+
+spLk_rept <-
+  spLk_animals %>%
+  filter(class == "Reptilia")
+
+spLk_inse <-
+  spLk_animals %>%
+  filter(class == "Insecta")
+
+spLk_arac <-
+  spLk_animals %>%
+  filter(class == "Arachnida")
+
+spLk_aves <-
+  spLk_animals %>%
+  filter(class == "Aves")
+
+# Binding datasets
+mamm_data <- bind_rows(gbif_list[[1]], spLk_mamm)
+amph_data <- bind_rows(gbif_list[[2]], spLk_amph)
+rept_data <- bind_rows(gbif_list[[3]], spLk_rept)
+inse_data <- bind_rows(gbif_list[[4]], spLk_inse)
+arac_data <- bind_rows(gbif_list[[5]], spLk_arac)
+
+gbif_aves <-
+  gbif_aves %>%
+  mutate(class = as.character(class))
+
+spLk_aves <-
+  spLk_aves %>%
+  mutate(class = as.character(class))
+
+aves_data <- bind_rows(gbif_aves, spLk_aves)
+
+# Save data -----------------------------------------------------------------
+write.csv(mamm_data, "../data/processed-data/clean-mamm-data-gbif-spLk.csv")
+write.csv(aves_data, "../data/processed-data/clean-aves-data.csv")
+write.csv(amph_data, "../data/processed-data/clean-amph-data.csv")
+write.csv(rept_data, "../data/processed-data/clean-rept-data.csv")
+write.csv(inse_data, "../data/processed-data/clean-inse-data.csv")
+write.csv(arac_data, "../data/processed-data/clean-arac-data.csv")
+
+# Remove raw files
+file.remove("../data/processed-data/mammal-gbif-data.csv")
+file.remove("../data/processed-data/raw-gbif-amph.csv")
+file.remove("../data/processed-data/raw-gbif-rept.csv")
+file.remove("../data/processed-data/raw-gbif-inse.csv")
+file.remove("../data/processed-data/raw-gbif-arac.csv")
+file.remove("../data/processed-data/gbif-aves-clipped.csv")
+file.remove("../data/processed-data/raw-spLink-animals.csv")
+
