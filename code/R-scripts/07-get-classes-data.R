@@ -15,8 +15,8 @@ options(gbif_email = "inesmottacomarella@gmail.com")
 
 # Spin up a download request for GBIF occurrence data
 # This takes a while
-# You just need to do it once, after that you can just download the files using the
-# key
+# You just need to do it once, after that you can just download the files using
+# the key
 mamm_occ_down <- 
   occ_download(
     format = "SIMPLE_CSV",
