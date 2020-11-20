@@ -1,4 +1,7 @@
-# File purpose: functions useful to get species taxonomy
+# File purpose: functions useful to clean mammal data from papers, GBIF and
+# speciesLink
+# Using minimal number of objects to save memory and make (try to) it run faster
+# 
 # Date: 16/11/2020
 
 library(dplyr)
@@ -9,7 +12,7 @@ library(conflicted)
 conflict_prefer("summarise", "dplyr")
 
 rl.synonyms <- function(x) {
-  # Manipulate rl_synonyms() S4 object to get 'results' and 'name' as a 
+  # Manipulate rl_synonyms() S4 object to get "results" and "name" as a 
   # dataframe
   # Make the rl_synonyms() applicable to a list of species
   # Args:
@@ -18,7 +21,7 @@ rl.synonyms <- function(x) {
   synym <- rl_synonyms(x, key = rlkey)
   result <- synym$result
   scientificName <- synym$name
-  results <- cbind(scientificName, result)
+  results <- bind_cols(scientificName, result)
   return(results)
 }
 
@@ -50,18 +53,18 @@ clip.ccma <- function(pts) {
       decimalLatitude == ""
   )
   pts <- anti_join(pts, to_remove)
-  data_st <-
-    st_as_sf(pts, coords = c('decimalLongitude', 'decimalLatitude'))
-  data_crs <-
-    st_set_crs(data_st, CRS("+proj=longlat +datum=WGS84"))
-  ccma_crs <- st_transform(ccma, crs = st_crs(data_crs))
-  data_clipped <- st_intersection(data_crs, ccma_crs)
-  coords <- as.data.frame(st_coordinates(data_clipped))
+  pts <-
+    st_as_sf(pts, coords = c("decimalLongitude", "decimalLatitude"))
+  pts <-
+    st_set_crs(pts, CRS("+proj=longlat +datum=WGS84"))
+  ccma <- st_transform(ccma, crs = CRS("+proj=longlat +datum=WGS84"))
+  pts <- st_intersection(pts, ccma)
+  coords <- as.data.frame(st_coordinates(pts))
   
-  data_clipped_df <- st_set_geometry(data_clipped, NULL)
-  data_clipped_df <- data_clipped_df[1:(ncol(data_clipped_df) - 2)]
+  pts <- st_set_geometry(pts, NULL)
+  pts <- pts[1:(ncol(pts) - 2)]
   
-  data_clipped_df$decimalLongitude <- coords$X
-  data_clipped_df$decimalLatitude <- coords$Y
-  return(data_clipped_df)
+  pts$decimalLongitude <- coords$X
+  pts$decimalLatitude <- coords$Y
+  return(pts)
 }

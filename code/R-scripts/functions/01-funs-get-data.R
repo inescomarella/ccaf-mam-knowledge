@@ -1,22 +1,26 @@
 # File purpose: function to remove fossil and iNaturalist records from GBIF data
 # Data: 16/11/2020
 # 
-#' Convert a character number with commas to a numeric
+#' Remove fossil and iNaturalist records
 #'
-#' @param x GBIF data.frame containing basisOfRecord and institutionCode columns
+#' @param dataset GBIF data containing basisOfRecord and institutionCode columns
 #'
-#' @return GBIF data.frame
+#' @return GBIF data
 #' @export
 #'
 #' 
 library(dplyr)
 library(stringr)
+library(conflicted)
 
+conflict_prefer("filter", "dplyr")
 
-remove_fossil_iNaturalist <- function(dataframe) {
+remove_fossil_iNaturalist <- function(dataset) {
+  dataset <- as.data.frame(dataset)
   to_remove <-
-    dataframe %>%
+    df %>%
     filter(basisOfRecord == "FOSSIL_SPECIMEN" |
              str_detect(institutionCode, "iNaturalist"))
-  df_clean <- anti_join(dataframe, to_remove)
+  dataset <- anti_join(dataset, to_remove)
+  return(dataset)
 }

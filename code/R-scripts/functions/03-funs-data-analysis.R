@@ -13,12 +13,12 @@ count.sp.in.polygons <- function(pts, polygons) {
   #   polygons sf with an extra column called "nsp" containing the number
   #   of species
   
-  nsp = c()
+  nsp <- c()
   suppressMessages({
     for (i in 1:nrow(polygons)) {
       polySelect <- polygons[i,]
       pts2 <- st_intersection(pts, polySelect)
-      nsp[i] = length(unique(pts2$species))
+      nsp[i] <- length(unique(pts2$species))
       
     }
   })
