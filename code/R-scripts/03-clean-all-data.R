@@ -19,9 +19,9 @@ source("./R-scripts/functions/02-funs-clean-all-data.R")
 data_paper <-
   read.csv("../data/processed-data/clean-papers-data.csv")
 data_splink <-
-  read.csv("../data/processed-data/mammal-spLink-data.csv")
+  read.csv("../data/processed-data/raw-spLink-mammal-data.csv")
 data_gbif <-
-  read.csv("../data/processed-data/mammal-gbif-data.csv")
+  read.csv("../data/processed-data/raw-gbif-mammal-data.csv")
 ccma <- st_read(dsn = '../data/processed-data',
                 layer = 'ccma-clipped',
                 check_ring_dir = TRUE)

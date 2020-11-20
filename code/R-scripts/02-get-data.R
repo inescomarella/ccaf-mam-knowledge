@@ -9,22 +9,29 @@ lapply(x, library, character.only = TRUE)
 source("./R-scripts/functions/01-funs-get-data.R")
 
 # Get occurrence data from speciesLink
-# This might take a while
-spLink_animals_down <- rspeciesLink(
-  dir = "../data/processed-data/",
-  filename = "raw-spLink-animals-data",
-  stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
-  Coordinates = "Yes",
-  Scope = "animals",
-  Synonyms = "species2000"
-)
+# Takes 244.321s to run
+spLink_animals_down <-
+  rspeciesLink(
+    dir = "../data/processed-data/",
+    filename = "raw-spLink-animals-data",
+    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
+    Coordinates = "Yes",
+    Scope = "animals",
+    Synonyms = "species2000"
+  )
+
+# There is come bug in the rocc::rspeciesLink() download, so just use the object
+file.remove("../data/processed-data/raw-spLink-animals-data.csv")
 
 # Just mammal data
-spLink_mamm_filtered <- spLink_animals_down %>% filter(class == "Mammalia")
+spLink_mamm_filtered <- 
+  spLink_animals_down %>% 
+  filter(class == "Mammalia")
 
 # Spin up a download request for GBIF occurrence data
 # This might take a while
-gbif_mamm_occ_down <- occ_download(
+gbif_mamm_occ_down <- 
+  occ_download(
   user = "inescomarella",
   pwd = "********",
   email = "inesmottacomarella@gmail.com",
@@ -52,5 +59,5 @@ gbif_mamm_occ_imported <-
 gbif_mamm_filtered <- remove_fossil_iNaturalist(gbif_mamm_occ_imported)
 
 # Export clean data.frames
-write.csv(spLink_mamm_filtered, "../data/processed-data/mammal-spLink-data.csv")
-write.csv(gbif_mamm_filtered, "../data/processed-data/mammal-gbif-data.csv")
+write.csv(spLink_mamm_filtered, "../data/processed-data/raw-spLink-mammal-data.csv")
+write.csv(gbif_mamm_filtered, "../data/processed-data/raw-gbif-mammal-data.csv")
