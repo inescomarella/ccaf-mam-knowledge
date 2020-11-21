@@ -13,7 +13,7 @@ conflict_prefer(name = "filter", winner = "dplyr")
 conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/04-funs-plot-maps.R")
+source("./R-scripts/functions/04-funs-plot-mammal-maps.R")
 
 # Load iin data
 record_data <-

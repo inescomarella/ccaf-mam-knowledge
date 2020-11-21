@@ -13,7 +13,7 @@ conflict_prefer(name = "filter", winner = "dplyr")
 conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/02-funs-clean-all-data.R")
+source("./R-scripts/functions/02-funs-clean-mammal-data.R")
 
 # Load in data
 data_paper <-

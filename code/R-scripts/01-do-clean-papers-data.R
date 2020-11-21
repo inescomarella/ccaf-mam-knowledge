@@ -18,7 +18,8 @@ data_modif <- raw_data[!(raw_data$order == "Cetartiodactyla" |
 
 # Remove unpublished data
 data_modif <-
-  data_modif %>% filter(!str_detect(typeOfPublication, "Unpubl"))
+  data_modif %>% 
+  filter(!str_detect(typeOfPublication, "Unpubl"))
 
 # Standardize writing ---------------------------------------------------------
 

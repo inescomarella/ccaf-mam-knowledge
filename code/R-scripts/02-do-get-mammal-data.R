@@ -6,7 +6,7 @@ x <- c("tidyverse", "rocc", "rgbif", "sf")
 lapply(x, library, character.only = TRUE)
 
 # Source functions
-source("./R-scripts/functions/01-funs-get-data.R")
+source("./R-scripts/functions/01-funs-get-mammal-data.R")
 
 # Get occurrence data from speciesLink
 # Takes 244.321s to run

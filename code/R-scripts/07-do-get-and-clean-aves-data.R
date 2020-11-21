@@ -9,7 +9,7 @@ library(rgbif)
 #library(sp)
 
 # Source functions
-source("./R-scripts/functions/05-funs-get-classes-data.R")
+source("./R-scripts/functions/05-funs-clean-classes-data.R")
 
 # Set GBIF profile
 options(gbif_user = "inescomarella")
