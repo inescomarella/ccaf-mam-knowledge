@@ -23,7 +23,7 @@ conflict_prefer(name = "filter", winner = "dplyr")
 conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/03-funs-model-data.R")
+source("./R-scripts/functions/03-funs-model-mammal-data.R")
 
 # Load in data
 record_pts <-
