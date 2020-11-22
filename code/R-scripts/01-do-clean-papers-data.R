@@ -1,25 +1,33 @@
 # File purpose: Clean and standardize raw papers data
 # Date: 16/11/2020
 
+############################
+# To do:
+# correct.publication.year
+#############################
 # Load in libraries
-x <-
-  c("tidyverse", "CoordinateCleaner", "lubridate", "biogeo", "sf")
-lapply(x, library, character.only = TRUE)
+library(tidyverse)
+
+# Source functions
+source("./R-scripts/functions/00-funs-clean-papers-data.R")
 
 # Load in data
 raw_data <-
   read.csv("../data/raw-data/raw-papers-data.csv", stringsAsFactors = FALSE)
-references_df <- 
+references_df <-
   read.csv("../data/raw-data/references.csv")
 
 # Remove marine mammals
 data_modif <- raw_data[!(raw_data$order == "Cetartiodactyla" |
-                           raw_data$order == "Cetacea"),]
+                           raw_data$order == "Cetacea"), ]
 
 # Remove unpublished data
 data_modif <-
-  data_modif %>% 
+  data_modif %>%
   filter(!str_detect(typeOfPublication, "Unpubl"))
+
+# Remove rows without coordinates
+data_modif <- remove.row.without.coordinates(data_modif)
 
 # Standardize writing ---------------------------------------------------------
 
@@ -278,234 +286,38 @@ data_modif$preparations[data_modif$preparations == "fragmento de mandíbula"] <-
 data_modif$preparations[data_modif$preparations == "Carapaça"] <-
   "Hoof"
 
-# Correct eventYear column ------------------------------------------------------
+# Correct columns -------------------------------------------------------------
 
-# Extract wrong lines: Correcting format from year/year to year
-data_bar <- data_modif %>% filter(str_detect(eventYear, "[/]"))
+# 1. Add PublicationYear
+# Add publication year to the published data lacking this information
+data_modif <- add.PublicationYear(data_modif)
 
-year_bar <- as.data.frame(data_bar$eventYear)
+# 2. Add eventYear
+# Consider event date of publication year as event year when this is absent
+data_modif <- add.eventYear(data_modif)
 
-# Separating first/last years in two columns
-year_bar_sep <-
-  separate(
-    data = year_bar,
-    col = "data_bar$eventYear",
-    into = c("A", "B"),
-    sep = "[/]"
-  )
+# 3. Correct eventYear 
+# Correct eventYear column to keep just the year
+data_modif <- correct.eventYear(data_modif)
 
-# Keep the last year
-year_bar_correct <- data.frame(year_bar_correct = year_bar_sep$B)
+# Correct geographical coordinates
+# Move coordinates in the wrong column to the correct one
+data_modif <- correct.coordinates.in.geodeticDatum(data_modif)
 
-# Return corrected column
-data_bar$eventYear <- year_bar_correct$year_bar_correct
+# Correct mixed latitude/longitude
+data_modif <- correct.mixed.latlong(data_modif)
 
-# Wrong rows to remove
-to_remove <- data_modif %>% filter(str_detect(eventYear, "[/]"))
-data_bar_less <-
-  data_modif %>% filter(!eventYear %in% to_remove$eventYear)
+# Convert coordinates to lat/long --------------------------------------------
 
-# Add correct rows
-data_modif  <- rbind(data_bar_less, data_bar)
+# Convert coordinates in degree to lat/long
+# Ignore:
+# > Warning messages:
+# > 1: Expected 2 pieces. Additional pieces discarded in 282 rows [1, 2, 3, 4,
+# > 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].
+data_modif <- convert.coordinate.degree.to.latlong(data_modif)
 
-nrow(data_modif)
-nrow(data_bar) + nrow(data_bar_less)
-
-# Correct PublicationYear column ------------------------------------
-
-# Extract rows with reference and without PublicationYear
-PublicationYear_less <-
-  data_modif %>% filter(
-    is.na(PublicationYear) &
-      is.na(reference) == FALSE & reference != "" |
-      PublicationYear == "" &
-      is.na(reference) == FALSE & reference != ""
-  )
-
-# Remove them from main dataframe
-data_modif <- anti_join(data_modif, PublicationYear_less)
-
-# Add year: assuming the first four numbers as publication year
-for (i in 1:nrow(PublicationYear_less))
-  PublicationYear_less$PublicationYear[i] <-
-  substr(gsub("[^0-9]", "", PublicationYear_less$reference[i]), 1, 4)
-
-data_modif$PublicationYear <-
-  as.character(data_modif$PublicationYear)
-
-# Return rows with publication year added
-data_modif <- bind_rows(data_modif, PublicationYear_less)
-
-# Extracting rows without reference
-data_modif_reference_less <- data_modif %>% filter(reference == "")
-
-# Standardizing  date in rows without reference
-data_modif_reference_less$eventYear <-
-  format(as.Date(data_modif_reference_less$eventDate, format = "%m/%d/%y"),
-         "%Y")
-
-# Removing those rows from main dataframe
-data_modif <- data_modif %>% filter(!reference == "")
-
-# Return them with date corrected
-data_modif <- rbind(data_modif, data_modif_reference_less)
-
-# In the absence of collect year, consider the publication year
-for (i in 1:nrow(data_modif))
-  if (data_modif$eventYear[i] == "" |
-      is.na(data_modif$eventYear[i]))
-    data_modif$eventYear[i] <- data_modif$PublicationYear[i]
-
-# Correct geographical coordinates --------------------------------------------
-# Geographical coordinates in geodeticDatum column
-for (i in 1:nrow(data_modif))
-  if (is.na(data_modif$decimalLatitude[i]))
-    data_modif$decimalLatitude[i] <-
-  as.character(data_modif$geodeticDatum[i])
-
-# Remove from geodeticDatum
-to_remove <- data_modif %>%
-  select(geodeticDatum) %>%
-  filter(!str_detect(geodeticDatum, "[[:alpha:] ]+")) #filtrar dados sem letras
-
-for (i in 1:nrow(data_modif))
-  if (data_modif$geodeticDatum[i] %in% to_remove$geodeticDatum)
-    data_modif$geodeticDatum[i] <- NA
-
-# Removing rows without adequate coordinates
-to_correct <- data_modif %>%
-  filter(str_detect(decimalLatitude, "[[:alpha:] ]+"),
-         !str_detect(geodeticDatum, "UTM"))
-
-data_modif <- anti_join(data_modif, to_correct)
-
-to_correct$decimalLatitude <- NA
-
-data_modif <- bind_rows(data_modif, to_correct)
-
-# Extract coordinates in UTM and in degrees
-grau_utm_data_modif <- data_modif %>%
-  filter(
-    str_detect(verbatimLatitude, "[[:alpha:] ]+"),
-    decimalLatitude == "" | is.na(decimalLatitude)
-  ) %>%
-  select(verbatimLatitude, verbatimLongitude)
-
-# UTM coordinates in grau_utm_data_modif
-utm_data_modif <- grau_utm_data_modif %>%
-  filter(verbatimLatitude == "240487949 N")
-
-# Degree coordinates
-grau_data_modif <- grau_utm_data_modif %>%
-  filter(!verbatimLatitude %in% utm_data_modif$verbatimLatitude)
-
-# Preparing columns to convert to decimal degrees
-# Keep a single type of degree (º) to be easily identified
-grau_data_modif$verbatimLatitude <-
-  grau_data_modif$verbatimLatitude %>% str_replace(pattern = "[°]", replacement = "º")
-grau_data_modif$verbatimLongitude <-
-  grau_data_modif$verbatimLongitude %>% str_replace(pattern = "[°]", replacement = "º")
-
-grau_data_modif <-
-  separate(
-    as.data.frame(grau_data_modif),
-    col = verbatimLatitude,
-    into = c("grau_lat", "verbatimLatitude"),
-    sep = "[º]"
-  )
-
-grau_data_modif <-
-  separate(
-    as.data.frame(grau_data_modif),
-    col = verbatimLongitude,
-    into = c("grau_long", "verbatimLongitude"),
-    sep = "[º]"
-  )
-
-# Remove special characters
-grau_data_modif$verbatimLongitude <-
-  str_replace_all(grau_data_modif$verbatimLongitude, "[[:alpha:] ]+", "")
-grau_data_modif$verbatimLatitude <-
-  str_replace_all(grau_data_modif$verbatimLatitude, "[[:alpha:] ]+", "")
-
-# Separate minute and second
-grau_data_modif <-
-  separate(
-    as.data.frame(grau_data_modif),
-    col = verbatimLatitude,
-    into = c("min_lat", "seg_lat"),
-    sep = "[^[:alnum:]]"
-  )
-grau_data_modif <-
-  separate(
-    as.data.frame(grau_data_modif),
-    col = verbatimLongitude,
-    into = c("min_long", "seg_long"),
-    sep = "[^[:alnum:]]"
-  )
-
-# Remove special characters
-grau_data_modif$grau_lat <-
-  str_replace_all(grau_data_modif$grau_lat, "[[:alpha:] ]+", "")
-grau_data_modif$grau_long <-
-  str_replace_all(grau_data_modif$grau_long, "[[:alpha:] ]+", "")
-
-grau_data_modif$seg_lat[grau_data_modif$seg_lat == ""] <- "0"
-grau_data_modif$seg_long[grau_data_modif$seg_long == ""] <- "0"
-
-# Convert coordinate in degrees to decimal
-lat_grau_data_modif <-
-  dms2dd(
-    as.numeric(grau_data_modif$grau_lat),
-    as.numeric(grau_data_modif$min_lat),
-    as.numeric(grau_data_modif$seg_lat),
-    "S"
-  )
-long_grau_data_modif <-
-  dms2dd(
-    as.numeric(grau_data_modif$grau_long),
-    as.numeric(grau_data_modif$min_long),
-    as.numeric(grau_data_modif$seg_long),
-    "W"
-  )
-
-coord <- data.frame(lat = as.data.frame(lat_grau_data_modif),
-                    long = as.data.frame(long_grau_data_modif))
-
-# Extracting degree and UTM coordinates to remove and later return correct
-grau_utm_data_modif_df <- 
-  data_modif %>%
-  filter(
-    str_detect(verbatimLatitude, "[[:alpha:] ]+"),
-    decimalLatitude == "" | is.na(decimalLatitude)
-  )
-
-utm_data_modif_df <- g
-rau_utm_data_modif_df %>%
-  filter(verbatimLatitude == "240487949 N")
-
-grau_data_modif_df <-
-  anti_join(grau_utm_data_modif_df, utm_data_modif_df)
-
-data_modif <- anti_join(data_modif, grau_data_modif_df)
-
-grau_data_modif_df$decimalLatitude <-
-  as.character(coord$lat_grau_data_modif)
-grau_data_modif_df$decimalLongitude <-
-  as.character(coord$long_grau_data_modif)
-data_modif$decimalLatitude <-
-  as.character(data_modif$decimalLatitude)
-data_modif$decimalLongitude <-
-  as.character(data_modif$decimalLongitude)
-
-grau_data_modif_df <-
-  grau_data_modif_df %>% 
-  select(colnames(data_modif))
-
-data_modif <- bind_rows(data_modif, grau_data_modif_df)
-
-# Convert UTM to decimal degree coordinates
-utm_data_modif <- 
+# Convert coordinates in UTM to lat/long
+utm_data_modif <-
   data_modif %>%
   filter(str_detect(geodeticDatum, "UTM")) %>%
   select(
@@ -517,7 +329,7 @@ utm_data_modif <-
   )
 
 utm <-
-  utm_data_modif %>% 
+  utm_data_modif %>%
   select(verbatimLatitude, verbatimLongitude)
 
 utm_data_modif$decimalLatitude <- NA
@@ -525,10 +337,13 @@ utm_data_modif$decimalLatitude <- NA
 df <- data.frame()
 for (i in 1:length(unique(utm$verbatimLatitude))) {
   x <-
-    utm_data_modif %>% 
-    filter(verbatimLatitude == sort(unique(utm$verbatimLatitude))[i]) %>% 
-    select(verbatimLatitude, verbatimLongitude, decimalLatitude, decimalLongitude)
-  df <- bind_rows(x[1, ], df)
+    utm_data_modif %>%
+    filter(verbatimLatitude == sort(unique(utm$verbatimLatitude))[i]) %>%
+    select(verbatimLatitude,
+           verbatimLongitude,
+           decimalLatitude,
+           decimalLongitude)
+  df <- bind_rows(x[1,], df)
 }
 
 df <- arrange(df, by = verbatimLatitude)
@@ -590,22 +405,9 @@ utm_data_modif <- merge(utm_data_modif, df, by = "verbatimLatitude")
 # Returnin to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
   utm_data_modif$decimalLatitude.y
+
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
   utm_data_modif$decimalLongitude.y
-
-# Correcting mixed latitude/longitude
-to_correct_latlong <- data_modif %>% filter(decimalLongitude < -30)
-
-lon <- to_correct_latlong$decimalLatitude
-lat <- to_correct_latlong$decimalLongitude
-
-correct_latlong <- to_correct_latlong
-correct_latlong$decimalLongitude <- lon
-correct_latlong$decimalLatitude <- lat
-
-# Removing wrong rows
-data_modif <- anti_join(data_modif, to_correct_latlong)
-data_modif <- rbind(data_modif, correct_latlong)
 
 # Manipulate references ----------------------------------------
 references_df$reference <- as.character(references_df$reference)
@@ -614,63 +416,106 @@ data_modif$reference <- as.character(data_modif$reference)
 data_modif <- merge(data_modif, references_df, all = TRUE)
 
 # Remove references
-to_remove <- data_modif %>% filter(reference_std == "removed")
+to_remove <-
+  data_modif %>%
+  filter(reference_std == "removed")
+
 data_modif <- anti_join(data_modif, to_remove)
 
 # assume thesis year, instead of publication year
-to_corret_year <- data_modif %>% filter(str_detect(reference, "Hirsch, A.,"))
+to_corret_year <-
+  data_modif %>%
+  filter(str_detect(reference, "Hirsch, A.,"))
 data_modif <- anti_join(data_modif, to_corret_year)
 
 to_corret_year$year <- "1988"
 data_modif$year <- as.character(data_modif$year)
 data_modif <- bind_rows(data_modif, to_corret_year)
 
-to_remove <- data_modif %>% filter(citation == "Aguirre (1971)", datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Aguirre (1971)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Gatti et al. (2014)", year == "1988" | datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Gatti et al. (2014)", year == "1988" |
+           datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Kinzey (1982)", datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Kinzey (1982)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Mittermeier et al. (1987)", datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Mittermeier et al. (1987)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Moura (2003)", datasetName != "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Moura (2003)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Palma (1996)", datasetName != "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Palma (1996)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Paresque et al. (2004)", datasetName != "LGA")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Paresque et al. (2004)", datasetName != "LGA")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Passamani (2000)", datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Passamani (2000)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Passamani et al. (2005)", datasetName != "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Passamani et al. (2005)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Passamani & Fernandez (2011)", datasetName == "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Passamani & Fernandez (2011)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Passamani et al. (2000)", datasetName != "")
+to_remove <-
+  data_modif %>%
+  filter(citation == "Passamani et al. (2000)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Passamani & Ribeiro (2009)", datasetName == "", scientificName != "Callithrix geoffroyi", scientificName != "Sciurus aestuans")
+to_remove <-
+  data_modif %>%
+  filter(
+    citation == "Passamani & Ribeiro (2009)",
+    datasetName == "",
+    scientificName != "Callithrix geoffroyi",
+    scientificName != "Sciurus aestuans"
+  )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Pinto (1994)", datasetName == "")
+to_remove <-
+  data_modif %>% 
+  filter(citation == "Pinto (1994)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Santos et al. (2004)", datasetName != "")
+to_remove <-
+  data_modif %>% 
+  filter(citation == "Santos et al. (2004)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(citation == "Santos et al. (1987)", datasetName == "")
+to_remove <-
+  data_modif %>% 
+  filter(citation == "Santos et al. (1987)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% filter(
+to_remove <- 
+  data_modif %>% 
+  filter(
   citation == "Soares et al. (2013)",
   scientificName != "Cerdocyon thous",
   scientificName != "Cuniculus paca",
@@ -684,74 +529,90 @@ to_remove <- data_modif %>% filter(
   scientificName != "Metachirus nudicaudatus",
   scientificName != "Nasua nasua",
   scientificName != "Philander opossum",
-  scientificName != "Sciurus aestuans")
+  scientificName != "Sciurus aestuans"
+)
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% 
-  filter(citation == "Srbek-Araujo & Chiarello (2005)",
-         scientificName != "Didelphis aurita",
-         scientificName != "Metachirus nudicaudatus",
-         scientificName != "Philander frenata", #just second year
-         scientificName != "Dasypus novemcinctus",
-         scientificName != "Euphractus sexcinctus", #just second year
-         scientificName != "Cerdocyon thous",
-         scientificName != "Nasua nasua",
-         scientificName != "Procyon cancrivorus",
-         scientificName != "Eira barbara", #just first year
-         scientificName != "Didelphis aurita",
-         scientificName != "Herpailurus yaguarondi",
-         scientificName != "Leopardus pardalis",
-         scientificName != "Herpailurus yaguarondi",
-         scientificName != "Leopardus tigrinus",
-         scientificName != "Puma concolor",
-         scientificName != "Mazama americana",
-         scientificName != "Pecari tajacu",
-         scientificName != "Sciurus aestuans",
-         scientificName != "Hydrochoerus hydrochaeris",
-         scientificName != "Cuniculus paca",
-         scientificName != "Dasyprocta leporina",
-         scientificName != "Sylvilagus brasiliensis")
+to_remove <- 
+  data_modif %>%
+  filter(
+    citation == "Srbek-Araujo & Chiarello (2005)",
+    scientificName != "Didelphis aurita",
+    scientificName != "Metachirus nudicaudatus",
+    scientificName != "Philander frenata",
+    #just second year
+    scientificName != "Dasypus novemcinctus",
+    scientificName != "Euphractus sexcinctus",
+    #just second year
+    scientificName != "Cerdocyon thous",
+    scientificName != "Nasua nasua",
+    scientificName != "Procyon cancrivorus",
+    scientificName != "Eira barbara",
+    #just first year
+    scientificName != "Didelphis aurita",
+    scientificName != "Herpailurus yaguarondi",
+    scientificName != "Leopardus pardalis",
+    scientificName != "Herpailurus yaguarondi",
+    scientificName != "Leopardus tigrinus",
+    scientificName != "Puma concolor",
+    scientificName != "Mazama americana",
+    scientificName != "Pecari tajacu",
+    scientificName != "Sciurus aestuans",
+    scientificName != "Hydrochoerus hydrochaeris",
+    scientificName != "Cuniculus paca",
+    scientificName != "Dasyprocta leporina",
+    scientificName != "Sylvilagus brasiliensis"
+  )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% 
-  filter(citation == "Srbek-Araujo & Chiarello (2013)",
-         scientificName != "Didelphis aurita",
-         scientificName != "Metachirus nudicaudatus",
-         scientificName != "Cabassous tatouay",
-         scientificName != "Euphractus sexcinctus",
-         scientificName != "Cerdocyon thous",
-         scientificName != "Tamandua tetradactyla",
-         scientificName != "Procyon cancrivorus",
-         scientificName != "Callithrix geoffroyi",
-         scientificName != "Sapajus robustus",
-         scientificName != "Cerdocyon thous",
-         scientificName != "Galictis cuja",
-         scientificName != "Nasua nasua",
-         scientificName != "Procyon cancrivorus",
-         scientificName != "Eira barbara",
-         scientificName != "Leopardus pardalis",
-         scientificName != "Leopardus wiedii",
-         scientificName != "Panthera onca",
-         scientificName != "Puma concolor",
-         scientificName != "Herpailurus yagouaroundi",
-         scientificName != "Tapirus terrestris",
-         scientificName != "Tayassu pecari",
-         scientificName != "Pecari tajacu",
-         scientificName != "Guerlinguetus ingrami",
-         scientificName != "Hydrochoerus hydrochaeris",
-         scientificName != "Cuniculus paca",
-         scientificName != "Dasyprocta leporina",
-         scientificName != "Sylvilagus brasiliensis")
+to_remove <- 
+  data_modif %>%
+  filter(
+    citation == "Srbek-Araujo & Chiarello (2013)",
+    scientificName != "Didelphis aurita",
+    scientificName != "Metachirus nudicaudatus",
+    scientificName != "Cabassous tatouay",
+    scientificName != "Euphractus sexcinctus",
+    scientificName != "Cerdocyon thous",
+    scientificName != "Tamandua tetradactyla",
+    scientificName != "Procyon cancrivorus",
+    scientificName != "Callithrix geoffroyi",
+    scientificName != "Sapajus robustus",
+    scientificName != "Cerdocyon thous",
+    scientificName != "Galictis cuja",
+    scientificName != "Nasua nasua",
+    scientificName != "Procyon cancrivorus",
+    scientificName != "Eira barbara",
+    scientificName != "Leopardus pardalis",
+    scientificName != "Leopardus wiedii",
+    scientificName != "Panthera onca",
+    scientificName != "Puma concolor",
+    scientificName != "Herpailurus yagouaroundi",
+    scientificName != "Tapirus terrestris",
+    scientificName != "Tayassu pecari",
+    scientificName != "Pecari tajacu",
+    scientificName != "Guerlinguetus ingrami",
+    scientificName != "Hydrochoerus hydrochaeris",
+    scientificName != "Cuniculus paca",
+    scientificName != "Dasyprocta leporina",
+    scientificName != "Sylvilagus brasiliensis"
+  )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- data_modif %>% 
+to_remove <- 
+  data_modif %>%
   filter(citation == "Tonini et al. (2010)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_correct <- data_modif %>% filter(citation == "Travassos & Freitas (1948)")
-correct <- to_correct %>% distinct(scientificName, .keep_all = TRUE)
+to_correct <-
+  data_modif %>% 
+  filter(citation == "Travassos & Freitas (1948)")
+correct <- 
+  to_correct %>% 
+  distinct(scientificName, .keep_all = TRUE)
 data_modif <- anti_join(data_modif, to_correct)
 data_modif <- bind_rows(data_modif, correct)
 
-# Export clean data.frame --------------------
-write_csv(data_modif, "../data/processed-data/clean-papers-data.csv")
+# Save clean data.frame --------------------
+write.csv(data_modif, "../data/processed-data/clean-papers-data.csv")
+
