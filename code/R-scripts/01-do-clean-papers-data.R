@@ -1,10 +1,6 @@
 # File purpose: Clean and standardize raw papers data
 # Date: 16/11/2020
 
-############################
-# To do:
-# correct.publication.year
-#############################
 # Load in libraries
 library(tidyverse)
 
@@ -289,11 +285,12 @@ data_modif$preparations[data_modif$preparations == "Carapaça"] <-
 # Correct columns -------------------------------------------------------------
 
 # 1. Add PublicationYear
-# Add publication year to the published data lacking this information
+# Add publication year when data lacks this information
 data_modif <- add.PublicationYear(data_modif)
 
 # 2. Add eventYear
-# Consider event date of publication year as event year when this is absent
+# Consider event date or publication year as event year when data lacks this 
+# information
 data_modif <- add.eventYear(data_modif)
 
 # 3. Correct eventYear 
@@ -402,7 +399,7 @@ df$decimalLongitude <-
 
 utm_data_modif <- merge(utm_data_modif, df, by = "verbatimLatitude")
 
-# Returnin to main dataframe
+# Return to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
   utm_data_modif$decimalLatitude.y
 
