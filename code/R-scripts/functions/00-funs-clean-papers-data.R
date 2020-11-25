@@ -163,11 +163,10 @@ remove.row.without.coordinates <- function(df) {
     filter(str_detect(decimalLatitude, "[[:alpha:] ]+"),
            !str_detect(geodeticDatum, "UTM"))
   
-  df <- anti_join(df, to_correct)
-  
-  to_correct$decimalLatitude <- ""
-  
-  df <- bind_rows(df, to_correct)
+  correct <- 
+    to_correct %>%
+    mutate(decimalLatitude = "") %>%
+    mutate(decimalLatitude = as.double(decimalLatitude))
   
   to_remove <-
     df %>%
@@ -175,7 +174,11 @@ remove.row.without.coordinates <- function(df) {
       is.na(decimalLatitude) | decimalLatitude == "",
       is.na(verbatimLatitude) | verbatimLatitude == ""
     )
+  
+  df <- anti_join(df, to_correct)
+  df <- bind_rows(df, correct)
   df <- anti_join(df, to_remove)
+  
   return(df)
   
 }
