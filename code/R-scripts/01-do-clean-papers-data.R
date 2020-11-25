@@ -28,259 +28,281 @@ data_modif <- remove.row.without.coordinates(data_modif)
 # Standardize writing ---------------------------------------------------------
 
 # Standardize scientificName writing
-# Removing special characters
-data_modif$scientificName <-
-  str_replace_all(data_modif$scientificName, "[^[:alnum:]]", " ")
+# Remove special characters and correct "Gender.species"
+data_modif <-
+  data_modif %>%
+  mutate(scientificName = str_replace(scientificName, "[^[:alnum:]]", " ")) %>%
+  mutate(scientificName = as.character(scientificName)) %>%
+  mutate(scientificName = gsub("[.]", " ", scientificName))
 
-data_modif$scientificName <- as.character(data_modif$scientificName)
-
-# Correcting "Gender.species"
-data_modif$scientificName <-
-  gsub("[.]", " ", data_modif$scientificName)
-
-data_modif$scientificName[data_modif$scientificName == "Alouatta fusca "] <-
-  "Alouatta fusca"
-data_modif$scientificName[data_modif$scientificName == "Sapajus  robustus"] <-
-  "Sapajus robustus"
-data_modif$scientificName[data_modif$scientificName == "Tamanduá tetradactyla"] <-
-  "Tamandua tetradactyla"
-data_modif$scientificName[data_modif$scientificName == "Eira barbara "] <-
-  "Eira barbara"
-data_modif$scientificName[data_modif$scientificName == "Mazama  americana "] <-
-  "Mazama americana"
-data_modif$scientificName[data_modif$scientificName == "Dicotyles labiatus "] <-
-  "Dicotyles labiatus"
-data_modif$scientificName[data_modif$scientificName == "Sapajus  robustus "] <-
-  "Sapajus robustus"
-data_modif$scientificName[data_modif$scientificName == "Panthera onca "] <-
-  "Panthera onca"
-data_modif$scientificName[data_modif$scientificName == "Phantera onca"] <-
-  "Panthera onca"
-data_modif$scientificName[data_modif$scientificName == "Oligoryzomys gr  nigripes"] <-
-  "Oligoryzomys gr. nigripes"
-data_modif$scientificName[data_modif$scientificName == "Akodon gr  cursor"] <-
-  "Akodon gr. cursor"
-data_modif$scientificName[data_modif$scientificName == "Rhipidomys cf  mastacalis"] <-
-  "Rhipidomys cf. mastacalis"
-data_modif$scientificName[data_modif$scientificName == "Dasyprocta aguti"] <-
-  "Dasyprocta agouti"
-data_modif$scientificName[data_modif$scientificName == "Didelphis aurita "] <-
-  "Didelphis aurita"
-data_modif$scientificName[data_modif$scientificName == "Galictis vittata "] <-
-  "Galictis vittata"
-data_modif$scientificName[data_modif$scientificName == "Galictis vitatta"] <-
-  "Galictis vittata"
-data_modif$scientificName[data_modif$scientificName == "Herpailurus yaguarond"] <-
-  "Herpailurus yagouaroundi"
-data_modif$scientificName[data_modif$scientificName == "Herpailurus yaguarondi"] <-
-  "Herpailurus yagouaroundi"
-data_modif$scientificName[data_modif$scientificName == "Herpailurus yagouarondi"] <-
-  "Herpailurus yagouaroundi"
-data_modif$scientificName[data_modif$scientificName == "Bradypus torquatus "] <-
-  "Bradypus torquatus"
-data_modif$scientificName[data_modif$scientificName == "Brachyteles hypoxanthus "] <-
-  "Brachyteles hypoxanthus"
-data_modif$scientificName[data_modif$scientificName == "Callithrix kuhli"] <-
-  "Callithrix kuhlii"
-data_modif$scientificName[data_modif$scientificName == "Cavis fulgida"] <-
-  "Cavia fulgida"
-data_modif$scientificName[data_modif$scientificName == "Diaemus youngi"] <-
-  "Diaemus youngii"
-data_modif$scientificName[data_modif$scientificName == "Euryoryzomys russatus"] <-
-  "Euryoryzomys russatus"
-data_modif$scientificName[data_modif$scientificName == "Hydrochaeris hydrochaeris"] <-
-  "Hydrochoerus hydrochaeris"
-data_modif$scientificName[data_modif$scientificName == "Hydrochoerus hydrochaeris "] <-
-  "Hydrochoerus hydrochaeris"
-data_modif$scientificName[data_modif$scientificName == "Hydrochoerus hydrochaeris"] <-
-  "Hydrochoerus hydrochaeris"
-data_modif$scientificName[data_modif$scientificName == "Hydrochoerus hydrocharis"] <-
-  "Hydrochoerus hydrochaeris"
-data_modif$scientificName[data_modif$scientificName == "Leontophitecus chrysomelas"] <-
-  "Leontopithecus chrysomelas"
-data_modif$scientificName[data_modif$scientificName == "Mazama gouazoupira"] <-
-  "Mazama gouazoubira"
-data_modif$scientificName[data_modif$scientificName == "Mazama guazoubira"] <-
-  "Mazama gouazoubira"
-data_modif$scientificName[data_modif$scientificName == "Metachirus nudicaudatus "] <-
-  "Metachirus nudicaudatus"
-data_modif$scientificName[data_modif$scientificName == "Myrmecophaga tridactyla "] <-
-  "Myrmecophaga tridactyla"
-data_modif$scientificName[data_modif$scientificName == "Necromys laisiurus"] <-
-  "Necromys lasiurus"
-data_modif$scientificName[data_modif$scientificName == "Olygoryzomys nigripes"] <-
-  "Oligoryzomys nigripes"
-data_modif$scientificName[data_modif$scientificName == "Oryzomys laticeps "] <-
-  "Oryzomys laticeps"
-data_modif$scientificName[data_modif$scientificName == "Peropteryx cf  kappleri"] <-
-  "Peropteryx cf. kappleri"
-data_modif$scientificName[data_modif$scientificName == "Philander frenata"] <-
-  "Philander frenatus"
-data_modif$scientificName[data_modif$scientificName == "Priodontes maximus "] <-
-  "Priodontes maximus"
-data_modif$scientificName[data_modif$scientificName == "Procyon cancrivoros"] <-
-  "Procyon cancrivorus"
-data_modif$scientificName[data_modif$scientificName == "Tapirus terrestris "] <-
-  "Tapirus terrestris"
-data_modif$scientificName[data_modif$scientificName == "Trinomys miraptanga"] <-
-  "Trinomys mirapitanga"
-data_modif$scientificName[data_modif$scientificName == "Calicebus personatus"] <-
-  "Callicebus personatus"
-data_modif$scientificName[data_modif$scientificName == "Guerlinguetus  aestuans"] <-
-  "Guerlinguetus aestuans"
-data_modif$scientificName[data_modif$scientificName == "Micoureus  paraguayanus"] <-
-  "Micoureus paraguayanus"
-data_modif$scientificName[data_modif$scientificName == "Sapajus libidinosus libidinosus"] <-
-  "Sapajus libidinosus"
-data_modif$scientificName[data_modif$scientificName == "Peropteryx cf. kappleri"] <-
-  "Peropteryx kappleri"
-data_modif$scientificName[data_modif$scientificName == "Peropteryx trinitatis trinitatis"] <-
-  "Peropteryx trinitatis"
-data_modif$scientificName[data_modif$scientificName == "Sciurus alphonsei alphonsei"] <-
-  "Sciurus alphonsei"
+data_modif <-
+  data_modif %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "fusca"),
+    "Alouatta fusca",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "tetradactyla"),
+    "Tamandua tetradactyla",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "nigripes"),
+    "Oligoryzomys nigripes",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "cursor"),
+    "Akodon cursor",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "mastacalis"),
+    "Rhipidomys mastacalis",
+    scientificName
+  )) %>%
+  mutate(
+    scientificName = ifelse(
+      str_detect(scientificName, "yaguarond") |
+        str_detect(scientificName, "yagouarondi"),
+      "Herpailurus yagouaroundi",
+      scientificName
+    )
+  ) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "kuhli"),
+    "Callithrix kuhlii",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Phantera onca"),
+    "Panthera onca",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "aguti"),
+    "Dasyprocta agouti",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "vitatta"),
+    "Galictis vittata",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Cavis fulgida"),
+    "Cavia fulgida",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Diaemus youngi"),
+    "Diaemus youngii",
+    scientificName
+  )) %>%
+  mutate(
+    scientificName = ifelse(
+      str_detect(scientificName, "hydrochaeris") |
+        str_detect(scientificName, "Hydrochoerus"),
+      "Hydrochoerus hydrochaeris",
+      scientificName
+    )
+  ) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "chrysomelas"),
+    "Leontopithecus chrysomelas",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Mazama g"),
+    "Mazama gouazoubira",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Necromys la"),
+    "Necromys lasiurus",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "zomys nigripes"),
+    "Oligoryzomys nigripes",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "kappleri"),
+    "Peropteryx kappleri",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Philander frenat"),
+    "Philander frenatus",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Procyon cancri"),
+    "Procyon cancrivorus",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Trinomys mirap"),
+    "Trinomys mirapitangas",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "licebus personatus"),
+    "Callicebus personatus",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Sapajus libidinosus"),
+    "Sapajus libidinosus",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Peropteryx trinitatis"),
+    "Peropteryx trinitatis",
+    scientificName
+  )) %>%
+  mutate(scientificName = ifelse(
+    str_detect(scientificName, "Sciurus alphonsei"),
+    "Sciurus alphonsei",
+    scientificName
+  ))
 
 # Standardize country writing
 data_modif$country <- "Brazil"
 
 # Standardize stateProvince writing
-data_modif$stateProvince <- as.character(data_modif$stateProvince)
-
-data_modif$stateProvince[data_modif$stateProvince == "Espírito Santo"] <-
-  "Espirito Santo"
-data_modif$stateProvince[data_modif$stateProvince == "ES"] <-
-  "Espirito Santo"
-data_modif$stateProvince[data_modif$stateProvince == "Espiríto Santo"] <-
-  "Espirito Santo"
-data_modif$stateProvince[data_modif$stateProvince == "ESPIRITO SANTO"] <-
-  "Espirito Santo"
-data_modif$stateProvince[data_modif$stateProvince == "BAHIA"] <-
-  "Bahia"
-data_modif$stateProvince[data_modif$stateProvince == "BA"] <-
-  "Bahia"
+data_modif <-
+  data_modif %>%
+  mutate(stateProvince = as.character(stateProvince)) %>%
+  mutate(
+    stateProvince = ifelse(
+      str_detect(stateProvince, "anto") |
+        str_detect(stateProvince, "ANTO") |
+        str_detect(stateProvince, "ES"),
+      "Espirito Santo",
+      stateProvince
+    )
+  ) %>%
+  mutate(stateProvince = ifelse(str_detect(stateProvince, "BA"),
+                                "Bahia",
+                                stateProvince))
 
 # Standardize UC writing
-data_modif$UC <- as.character(data_modif$UC)
-
-data_modif$UC[data_modif$UC == "yes"] <-
-  "Yes"
-data_modif$UC[data_modif$UC == "no"] <-
-  "No"
-data_modif$UC[data_modif$UC == "Parque Estadual da Fonte Grande"] <-
-  "Yes"
-data_modif$UC[is.na(data_modif$UC)] <-
-  ""
+data_modif <-
+  data_modif %>%
+  mutate(UC = as.character(UC)) %>%
+  mutate(UC = ifelse(str_detect(UC, "yes") |
+                       str_detect(UC, "Parque"), "Yes", UC)) %>%
+  mutate(UC = ifelse(str_detect(UC, "no"), "No", UC))
 
 # Standardize georeferencePrecision writing
-data_modif$georeferencePrecision <-
-  as.character(data_modif$georeferencePrecision)
-
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "precise"] <-
-  "Precise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "localidade"] <-
-  "Precise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Localidade"] <-
-  "Precise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "notPrecise"] <-
-  "NotPrecise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Not-Precise"] <-
-  "NotPrecise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "Not precise"] <-
-  "NotPrecise"
-data_modif$georeferencePrecision[data_modif$georeferencePrecision == "[no data]"] <-
-  ""
+data_modif <-
+  data_modif %>%
+  mutate(georeferencePrecision = as.character(georeferencePrecision)) %>%
+  mutate(
+    georeferencePrecision = ifelse(
+      str_detect(georeferencePrecision, "calidade") |
+        georeferencePrecision == "precise",
+      "Precise",
+      georeferencePrecision
+    )
+  ) %>%
+  mutate(georeferencePrecision = ifelse(
+    str_detect(georeferencePrecision, "ot"),
+    "NotPrecise",
+    georeferencePrecision
+  )) %>%
+  mutate(georeferencePrecision = ifelse(
+    str_detect(georeferencePrecision, "[no data]"),
+    "",
+    georeferencePrecision
+  ))
 
 # Standardize collectionCode writing
-data_modif$collectionCode <- as.character(data_modif$collectionCode)
-
-data_modif$collectionCode[data_modif$collectionCode == "Coleção de Mamíferos  do Museu Nacional (MN)"] <-
-  "MN - Mammal Collection"
-data_modif$collectionCode[data_modif$collectionCode == "Cole��o de Mam�feros, Universidade Estadual de Santa Cruz (UESC), Ilh�us, BA, Brazil"] <-
-  "UESC - Mammal Collection"
-data_modif$collectionCode[data_modif$collectionCode == "Cole��o Adriano L�cio Peracchi (ALP), Universidade Federal Rural do Rio de Janeiro, Serop�dica, RJ, Brazil"] <-
-  "UFRRJ - ALP Collection"
-data_modif$collectionCode[data_modif$collectionCode == "Laboratorio de Diversidade de Morcegos (LDM) and Cole��o Adriano L�cio Peracchi (ALP), Universidade Federal Rural do Rio de Janeiro, Serop�dica, RJ, Brazil"] <-
-  "UFRRJ -LDM and ALP Collections"
-data_modif$collectionCode[data_modif$collectionCode == "Museum of Vertebrate Zoology"] <-
-  "MVZ"
-data_modif$collectionCode[data_modif$collectionCode == "Not located"] <-
-  ""
+data_modif <-
+  data_modif %>%
+  mutate(collectionCode = as.character(collectionCode)) %>%
+  mutate(collectionCode = ifelse(
+    str_detect(collectionCode, "Museu Nacional"),
+    "MN - Mammal Collection",
+    collectionCode
+  )) %>%
+  mutate(collectionCode = ifelse(
+    str_detect(collectionCode, "UESC"),
+    "UESC - Mammal Collection",
+    collectionCode
+  )) %>%
+  mutate(collectionCode = ifelse(
+    str_detect(collectionCode, "ALP"),
+    "UFRRJ - ALP Collection",
+    collectionCode
+  )) %>%
+  mutate(collectionCode = ifelse(
+    str_detect(collectionCode, "Museum of Vertebrate Zoology"),
+    "MVZ",
+    collectionCode
+  )) %>%
+  mutate(collectionCode = ifelse(str_detect(collectionCode, "Not located"),
+                                 "",
+                                 collectionCode))
 
 # Standardize fieldNumber writing
-data_modif$fieldNumber <- as.character(data_modif$fieldNumber)
-
-data_modif$fieldNumber[data_modif$fieldNumber == "?"] <- ""
+data_modif <-
+  data_modif %>%
+  mutate(fieldNumber = as.character(fieldNumber)) %>%
+  mutate(fieldNumber = ifelse(str_detect(fieldNumber, "[?]"), "", fieldNumber))
 
 # Standardize preparations writing
-data_modif$preparations <- as.character(data_modif$preparations)
+data_modif <-
+  data_modif %>%
+  mutate(preparations = as.character(preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "pele"),
+                               "Skin",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "angue"),
+                               "Blood",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "arcaça"),
+                               "Carcass",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "ecido"),
+                               "Tissue",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "quido"),
+                               "Liquid",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "seca"),
+                               "Dry",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "espécime inteiro") |
+                                 str_detect(preparations, "filhotes") |
+                                 str_detect(preparations, "orpo (ETOH)"),
+                               "Body (ethanol)",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "squeleto"),
+                               "Skeleton",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "Cartilagem"),
+                               "Cartilage",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "lcool"),
+                               "Ethanol",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "embriões"),
+                               "Embryos",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "rânio"),
+                               "Skull",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "fragmento de mandíbula"),
+                               "Jaw fragment",
+                               preparations)) %>%
+  mutate(preparations = ifelse(str_detect(preparations, "Carapaça"),
+                               "Hoof",
+                               preparations))
 
-data_modif$preparations[data_modif$preparations == "pele"] <-
-  "Skin"
-data_modif$preparations[data_modif$preparations == "skin, study"] <-
-  "Skin"
-data_modif$preparations[data_modif$preparations == "skin (dry)"] <-
-  "Skin"
-data_modif$preparations[data_modif$preparations == "Pele/ pelo"] <-
-  "Skin"
-data_modif$preparations[data_modif$preparations == "espécime inteiro (ETOH)"] <-
-  "Whole animal (ethanol)"
-data_modif$preparations[data_modif$preparations == "whole animal (ethanol)"] <-
-  "Whole animal (ethanol)"
-data_modif$preparations[data_modif$preparations == "filhotes (ETOH)"] <-
-  "Whole animal (ethanol)"
-data_modif$preparations[data_modif$preparations == "whole organism (ethanol)"] <-
-  "Whole animal (ethanol)"
-data_modif$preparations[data_modif$preparations == "corpo (ETOH)"] <-
-  "Body (ethanol)"
-data_modif$preparations[data_modif$preparations == "esqueleto completo"] <-
-  "Whole skeleton"
-data_modif$preparations[data_modif$preparations == "esqueleto parcial"] <-
-  "Partial skeleton"
-data_modif$preparations[data_modif$preparations == "Sangue"] <-
-  "Blood"
-data_modif$preparations[data_modif$preparations == "sangue"] <-
-  "Blood"
-data_modif$preparations[data_modif$preparations == "Carcaça"] <-
-  "Carcass"
-data_modif$preparations[data_modif$preparations == "carcaça (ETOH)"] <-
-  "Carcass (ethanol)"
-data_modif$preparations[data_modif$preparations == "Carcaça / Fígado"] <-
-  "Carcass/Liver"
-data_modif$preparations[data_modif$preparations == "Álcool"] <-
-  "Ethanol"
-data_modif$preparations[data_modif$preparations == "embriões (ETOH)"] <-
-  "Embryos (ethanol)"
-data_modif$preparations[data_modif$preparations == "crânio"] <-
-  "Skull"
-data_modif$preparations[data_modif$preparations == "Álcool e Crânio"] <-
-  "Skull"
-data_modif$preparations[data_modif$preparations == "skull"] <-
-  "Skull"
-data_modif$preparations[data_modif$preparations == "skull (dry)"] <-
-  "Skull"
-data_modif$preparations[data_modif$preparations == "tissue (ethanol)"] <-
-  "Tissue (ethanol)"
-data_modif$preparations[data_modif$preparations == "tecido (ETOH)"] <-
-  "Tissue (ethanol)"
-data_modif$preparations[data_modif$preparations == "tissue (95% ethanol)"] <-
-  "Tissue (ethanol)"
-data_modif$preparations[data_modif$preparations == "tissue (frozen)"] <-
-  "Tissue (frozen)"
-data_modif$preparations[data_modif$preparations == "Líquido"] <-
-  "Liquid"
-data_modif$preparations[data_modif$preparations == "seca"] <-
-  "Dry"
-data_modif$preparations[data_modif$preparations == "Cartilagem"] <-
-  "Cartilage"
-data_modif$preparations[data_modif$preparations == "cytogenetic"] <-
-  "Cytogenetic"
-data_modif$preparations[data_modif$preparations == "skull; tissue (frozen); skin,"] <-
-  "Skull; tissue (frozen); skin"
-data_modif$preparations[data_modif$preparations == "skull; skin, study"] <-
-  "Skull; skin, study"
-data_modif$preparations[data_modif$preparations == "fragmento de mandíbula"] <-
-  "Jaw fragment"
-data_modif$preparations[data_modif$preparations == "Carapaça"] <-
-  "Hoof"
 
 # Correct columns -------------------------------------------------------------
 
@@ -289,11 +311,11 @@ data_modif$preparations[data_modif$preparations == "Carapaça"] <-
 data_modif <- add.PublicationYear(data_modif)
 
 # 2. Add eventYear
-# Consider event date or publication year as event year when data lacks this 
+# Consider event date or publication year as event year when data lacks this
 # information
 data_modif <- add.eventYear(data_modif)
 
-# 3. Correct eventYear 
+# 3. Correct eventYear
 # Correct eventYear column to keep just the year
 data_modif <- correct.eventYear(data_modif)
 
@@ -420,14 +442,10 @@ to_remove <-
 data_modif <- anti_join(data_modif, to_remove)
 
 # assume thesis year, instead of publication year
-to_corret_year <-
-  data_modif %>%
-  filter(str_detect(reference, "Hirsch, A.,"))
-data_modif <- anti_join(data_modif, to_corret_year)
-
-to_corret_year$year <- "1988"
-data_modif$year <- as.character(data_modif$year)
-data_modif <- bind_rows(data_modif, to_corret_year)
+data_modif %>%
+  mutate(eventYear = ifelse(str_detect(reference, "Hirsch, A.,"),
+                       "1988",
+                       eventYear))
 
 to_remove <-
   data_modif %>%
@@ -436,7 +454,8 @@ data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
   data_modif %>%
-  filter(citation == "Gatti et al. (2014)", year == "1988" |
+  filter(citation == "Gatti et al. (2014)", 
+         eventYear == "1988" |
            datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
@@ -496,41 +515,41 @@ to_remove <-
 data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
-  data_modif %>% 
+  data_modif %>%
   filter(citation == "Pinto (1994)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
-  data_modif %>% 
+  data_modif %>%
   filter(citation == "Santos et al. (2004)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
-  data_modif %>% 
+  data_modif %>%
   filter(citation == "Santos et al. (1987)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- 
-  data_modif %>% 
+to_remove <-
+  data_modif %>%
   filter(
-  citation == "Soares et al. (2013)",
-  scientificName != "Cerdocyon thous",
-  scientificName != "Cuniculus paca",
-  scientificName != "Dasyprocta leporina",
-  scientificName != "Dasypus novemcinctus",
-  scientificName != "Didelphis aurita",
-  scientificName != "Leopardus wiedii",
-  scientificName != "Lontra longicaudis",
-  scientificName != "Marmosa murina",
-  scientificName != "Mazama americana",
-  scientificName != "Metachirus nudicaudatus",
-  scientificName != "Nasua nasua",
-  scientificName != "Philander opossum",
-  scientificName != "Sciurus aestuans"
-)
+    citation == "Soares et al. (2013)",
+    scientificName != "Cerdocyon thous",
+    scientificName != "Cuniculus paca",
+    scientificName != "Dasyprocta leporina",
+    scientificName != "Dasypus novemcinctus",
+    scientificName != "Didelphis aurita",
+    scientificName != "Leopardus wiedii",
+    scientificName != "Lontra longicaudis",
+    scientificName != "Marmosa murina",
+    scientificName != "Mazama americana",
+    scientificName != "Metachirus nudicaudatus",
+    scientificName != "Nasua nasua",
+    scientificName != "Philander opossum",
+    scientificName != "Sciurus aestuans"
+  )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- 
+to_remove <-
   data_modif %>%
   filter(
     citation == "Srbek-Araujo & Chiarello (2005)",
@@ -562,7 +581,7 @@ to_remove <-
   )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- 
+to_remove <-
   data_modif %>%
   filter(
     citation == "Srbek-Araujo & Chiarello (2013)",
@@ -596,20 +615,19 @@ to_remove <-
   )
 data_modif <- anti_join(data_modif, to_remove)
 
-to_remove <- 
+to_remove <-
   data_modif %>%
   filter(citation == "Tonini et al. (2010)", datasetName != "")
 data_modif <- anti_join(data_modif, to_remove)
 
 to_correct <-
-  data_modif %>% 
+  data_modif %>%
   filter(citation == "Travassos & Freitas (1948)")
-correct <- 
-  to_correct %>% 
+correct <-
+  to_correct %>%
   distinct(scientificName, .keep_all = TRUE)
 data_modif <- anti_join(data_modif, to_correct)
 data_modif <- bind_rows(data_modif, correct)
 
 # Save clean data.frame --------------------
 write.csv(data_modif, "../data/processed-data/clean-papers-data.csv")
-
