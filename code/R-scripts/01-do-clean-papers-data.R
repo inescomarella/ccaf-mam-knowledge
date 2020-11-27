@@ -434,18 +434,22 @@ data_modif$reference <- as.character(data_modif$reference)
 
 data_modif <- merge(data_modif, references_df, all = TRUE)
 
+data_modif <- select(data_modif, -reference)
+colnames(data_modif)[34] <- "reference"
+
 # Remove references
 to_remove <-
   data_modif %>%
-  filter(reference_std == "removed")
+  filter(reference == "removed")
 
 data_modif <- anti_join(data_modif, to_remove)
 
 # assume thesis year, instead of publication year
-data_modif %>%
+data_modif <- 
+  data_modif %>%
   mutate(eventYear = ifelse(str_detect(reference, "Hirsch, A.,"),
-                       "1988",
-                       eventYear))
+                            "1988",
+                            eventYear))
 
 to_remove <-
   data_modif %>%

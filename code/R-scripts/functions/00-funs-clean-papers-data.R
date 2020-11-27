@@ -132,11 +132,12 @@ correct.mixed.latlong <- function(df) {
   #
   # Arg:
   #   df: dataframe containing "decimalLatitude" and "decimalLongitude" columns
-  
-  # Correcting mixed latitude/longitude
   to_correct_latlong <-
     df %>%
-    filter(decimalLongitude < -30)
+    filter(!is.na(decimalLatitude), !is.na(decimalLongitude)) %>%
+    mutate(decimalLatitude = as.numeric(decimalLatitude)) %>%
+    filter(decimalLatitude < -21) %>%
+    mutate(decimalLatitude = as.character(decimalLatitude))
   
   lon <- to_correct_latlong$decimalLatitude
   lat <- to_correct_latlong$decimalLongitude
@@ -195,7 +196,7 @@ convert.coordinate.degree.to.latlong <- function(df) {
     df %>%
     filter(
       str_detect(verbatimLatitude, "[[:alpha:] ]+"),
-      decimalLatitude == "" | is.na(decimalLatitude)
+      decimalLongitude == "" | is.na(decimalLongitude)
     ) %>%
     select(verbatimLatitude, verbatimLongitude)
   
@@ -291,7 +292,7 @@ convert.coordinate.degree.to.latlong <- function(df) {
     df %>%
     filter(
       str_detect(verbatimLatitude, "[[:alpha:] ]+"),
-      decimalLatitude == "" | is.na(decimalLatitude)
+      decimalLongitude == "" | is.na(decimalLongitude)
     )
   
   utm_df <-
