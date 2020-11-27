@@ -1,7 +1,7 @@
 # File purpose: Clean and standardize mammal data from paper, GBIF and
 # speciesLink
-# Pay attention: The rredlist::rl_synonyms() function always get some error and
-# take quite some time to run
+# Pay attention: The rredlist::rl_synonyms() function always gets some error 
+# and takes quite some time to run
 #
 # Date: 16/11/2020
 
@@ -11,6 +11,7 @@ lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = "filter", winner = "dplyr")
 conflict_prefer(name = "select", winner = "dplyr")
+conflict_prefer(name = "mutate", winner = "dplyr")
 
 # Source functions
 source("./R-scripts/functions/02-funs-clean-mammal-data.R")
@@ -18,336 +19,389 @@ source("./R-scripts/functions/02-funs-clean-mammal-data.R")
 # Load in data
 data_paper <-
   read.csv("../data/processed-data/clean-papers-data.csv")
-data_splink <-
-  read.csv("../data/processed-data/raw-spLink-mammal-data.csv")
-data_gbif <-
-  read.csv("../data/processed-data/raw-gbif-mammal-data.csv")
+data_downl <-
+  read.csv("../data/processed-data/raw-downloaded-mammal-data.csv")
+
 ccma <- st_read(dsn = '../data/processed-data',
                 layer = 'ccma-clipped',
                 check_ring_dir = TRUE)
 rlkey <-
   "6abf9b5a0010ab26140c401c1c394a22c43c0a555d9dee8c72976d3c71c5e402"
 
+# Pre-prepare data -----------------------------------------------------------
+
 # Standardize columns
-data_gbif$scientificName <- data_gbif$species
-colnames(data_paper)[16] <- "year"
+data_paper <- select(data_paper, -X)
+colnames(data_paper)[15] <- "year"
 
 # Binding data.frames
-data_all_raw <- rbind.fill(data_paper, data_splink, data_gbif)
+data_all_raw <- rbind.fill(data_paper, data_downl)
 
 # Keep data_paper columns, remove others
 data_all <- select(data_all_raw, colnames(data_paper))
 
-# Keep only identified species
-data_all$scientificName <- as.character(data_all$scientificName)
-to_remove_scientificName <-
-  data_all %>%
-  filter(
-    is.na(scientificName) |
-      str_detect(scientificName, " ") == FALSE |
-      str_detect(scientificName, " sp"),
-    !str_detect(scientificName, "spinosus")
-  )
-
-to_remove_acceptedNameUsage <-
-  data_all %>% filter(
-    is.na(acceptedNameUsage) |
-      str_detect(acceptedNameUsage, " ") == FALSE |
-      str_detect(acceptedNameUsage, " sp"),
-    !str_detect(acceptedNameUsage, "spinosus")
-  )
-to_remove <-
-  intersect(to_remove_acceptedNameUsage, to_remove_scientificName)
-
-data_all <- anti_join(data_all, to_remove)
-
-# Correct species name in acceptedNameUsage instead of scientificName
-sp_in_acceptedNameUsage <-
-  anti_join(to_remove_scientificName, to_remove_acceptedNameUsage)
-data_all <- anti_join(data_all, sp_in_acceptedNameUsage)
-
-sp_in_acceptedNameUsage$scientificName <-
-  sp_in_acceptedNameUsage$acceptedNameUsage
-
-data_all <- bind_rows(data_all, sp_in_acceptedNameUsage)
+# Keep only identified species and remove hybrids
+data_all_only_indetified_species <- only.indentified.species(data_all)
 
 # Remove records outside CCMA limits
-# This might take a while
-data_all_clipped <- clip.ccma(data_all)
-
-# Removing dots (to identify and remove special characters later)
-data_all_clipped$scientificName <-
-  str_replace_all(data_all_clipped$scientificName, "[.]", " ")
-
-data_all_clipped$scientificName <-
-  str_replace(data_all_clipped$scientificName,
-              pattern = " gr",
-              replacement = " ")
-data_all_clipped$scientificName <-
-  str_replace(data_all_clipped$scientificName,
-              pattern = "cf ",
-              replacement = " ")
-data_all_clipped$scientificName <-
-  str_replace(data_all_clipped$scientificName,
-              pattern = "Cf ",
-              replacement = "")
-data_all_clipped$scientificName <-
-  str_replace(data_all_clipped$scientificName,
-              pattern = " j ",
-              replacement = " ")
-data_all_clipped$scientificName <-
-  str_replace(data_all_clipped$scientificName,
-              pattern = "   ",
-              replacement = " ")
-
-to_remove <-
-  data_all_clipped %>%
-  filter(str_detect(scientificName, "[?]"))
-data_all_clipped <- anti_join(data_all_clipped, to_remove)
-
-to_remove <-
-  data_all_clipped %>%
-  filter(str_detect(scientificName, "[/]"))
-data_all_clipped <- anti_join(data_all_clipped, to_remove)
-
-to_remove <-
-  data_all_clipped %>%
-  filter(str_detect(scientificName, "brido"))
-data_all_clipped <- anti_join(data_all_clipped, to_remove)
+# Takes 3min to run
+data_all_clipped <- clip.ccma(data_all_only_indetified_species)
 
 # Species list
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
-# Get synonyms ---------------------------------------------------------------
+# Get rl.synonyms ------------------------------------------------------------
 # This might take a while and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
-#
-apply_synonyms_1 <- lapply(sp_list_all[1:100], rl.synonyms)
-apply_synonyms_2 <- lapply(sp_list_all[101:200], rl.synonyms)
-apply_synonyms_3 <- lapply(sp_list_all[201:300], rl.synonyms)
-apply_synonyms_4 <-
-  lapply(sp_list_all[301:length(sp_list_all)], rl.synonyms)
+apply_synonyms_1 <- lapply(sp_list_all[1:55], rl.synonyms)
+apply_synonyms_2 <- lapply(sp_list_all[56:110], rl.synonyms)
+apply_synonyms_3 <- lapply(sp_list_all[111:165], rl.synonyms)
+apply_synonyms_4 <- lapply(sp_list_all[166:220], rl.synonyms)
+apply_synonyms_5 <- lapply(sp_list_all[221:275], rl.synonyms)
+apply_synonyms_6 <- lapply(sp_list_all[276:330], rl.synonyms)
+apply_synonyms_7 <- lapply(sp_list_all[331:length(sp_list_all)], rl.synonyms)
 
 synonyms_df_1 <- ldply(apply_synonyms_1, data.frame)
 synonyms_df_2 <- ldply(apply_synonyms_2, data.frame)
 synonyms_df_3 <- ldply(apply_synonyms_3, data.frame)
 synonyms_df_4 <- ldply(apply_synonyms_4, data.frame)
+synonyms_df_5 <- ldply(apply_synonyms_5, data.frame)
+synonyms_df_6 <- ldply(apply_synonyms_6, data.frame)
+synonyms_df_7 <- ldply(apply_synonyms_7, data.frame)
 
 synonyms_df_corrected <-
-  rbind.data.frame(synonyms_df_1, synonyms_df_2, synonyms_df_3, synonyms_df_4)
+  rbind.data.frame(synonyms_df_1,
+                   synonyms_df_2,
+                   synonyms_df_3,
+                   synonyms_df_4,
+                   synonyms_df_5,
+                   synonyms_df_6,
+                   synonyms_df_7)
 
-# Correcting accepted_name
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Anoura geoffroyi"] <-
-  "Anoura geoffroyi"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Lagothrix lagotricha"] <-
-  "Lagothrix lagotricha"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Mimon crenulatum"] <-
-  "Mimon crenulatum"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Natalus macrourus"] <-
-  "Natalus macrourus"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Natalus stramineus"] <-
-  "Natalus macrourus"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Nectomys squamipes"] <-
-  "Nectomys squamipes"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Saguinus bicolor"] <-
-  "Saguinus martinsi"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Micoureus paraguayanus"] <-
-  "Marmosa paraguayana"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Micoureus travassosi"] <-
-  "Micoureus travassosi"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Anoura caudifer"] <-
-  "Anoura caudifer"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Alouatta fusca"] <-
-  "Alouatta guariba"
-synonyms_df_corrected$accepted_name[synonyms_df_corrected$scientificName == "Callicebus personatus"] <-
-  "Callicebus personatus"
-
-# Removing Cebus spp. to identify separately based on the record site
+# Correct accepted_name before get species backbone
 synonyms_df_corrected <-
   synonyms_df_corrected %>%
-  filter(!str_detect(scientificName, "Cebus"))
+  mutate(accepted_name = ifelse(
+    scientificName == "Anoura geoffroyi",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Lagothrix lagotricha",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Mimon crenulatum",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Natalus macrourus",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Natalus stramineus",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Nectomys squamipes",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Micoureus travassosi",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Anoura caudifer",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Callicebus personatus",
+    scientificName,
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Saguinus bicolor",
+    "Saguinus martinsi",
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Micoureus paraguayanus",
+    "Marmosa paraguayana",
+    accepted_name
+  )) %>%
+  mutate(accepted_name = ifelse(
+    scientificName == "Alouatta fusca",
+    "Alouatta guariba",
+    accepted_name
+  ))
 
-# Separate the reviewed and not-reviewed synonym
+# Remove Cebus spp. to identify separately based on the record site
+to_remove <-
+  synonyms_df_corrected %>%
+  filter(str_detect(scientificName, "Cebus"))
+synonyms_df_corrected <- anti_join(synonyms_df_corrected, to_remove)
+
+# Separate the reviewed and not-reviewed synonymd by rl.synonyms()
 iucn_synonyms_df <-
   synonyms_df_corrected %>%
   filter(!is.na(accepted_name))
+
 no_iucn_synonyms_df <-
   synonyms_df_corrected %>%
   filter(is.na(accepted_name))
 
-# Taxonomy backbone reviewed synonym ----------------------------------------
-# Get species backbone and keep a scientificName column as a key to merge
-# This might take a while
+# Get name.backbone --------------------------------------------------------
 apply_backbone_iucn <-
   lapply(iucn_synonyms_df$accepted_name, name.backbone)
-backbone_iucn_df <- ldply(apply_backbone_iucn, data.frame)
+apply_backbone_gbif <-
+  lapply(no_iucn_synonyms_df$scientificName, name.backbone)
 
+backbone_iucn_df <- ldply(apply_backbone_iucn, data.frame)
+backbone_gbif_df <- ldply(apply_backbone_gbif, data.frame)
+
+# keep a scientificName column as a key to merge
 backbone_iucn_df_selected <-
   backbone_iucn_df %>%
   select(order, family, canonicalName, scientificName)
+
 colnames(backbone_iucn_df_selected) <-
   c("order", "family", "species", "scientificName")
-
-# Taxonomy backbone not reviewed synonym ------------------------------------
-# Get species backbone and keep a scientificName column as a key to merge
-# This might take a while
-apply_backbone_gbif <-
-  lapply(no_iucn_synonyms_df$scientificName, name.backbone)
-backbone_gbif_df <- ldply(apply_backbone_gbif, data.frame)
-
-# Correcting species
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Puma yagouaroundi"] <-
-  "Herpailurus yagouaroundi"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Puma yaguarondi"] <-
-  "Herpailurus yagouaroundi"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Lutra brasiliensis"] <-
-  "Pteronura brasiliensis"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Mycetes ursinus"] <-
-  "Alouatta guariba"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Mazama simplicicornis"] <-
-  "Mazama gouazoubira"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Dicotyles labiatus"] <-
-  "Tayassu pecari"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Ateles hypoxanthus"] <-
-  "Brachyteles hypoxanthus"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Dasyprocta agouti"] <-
-  "Dasyprocta aguti"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Cavia aguti"] <-
-  "Cuniculus paca"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Cavia agouti"] <-
-  "Cuniculus paca"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Oryzomys trinitatis"] <-
-  "Oecomys trinitatis"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Callithrix leucocephalus"] <-
-  "Callithrix geoffroyi"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Lagothrix infumata"] <-
-  "Lagothrix lagotricha"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Synetheres prehensilis"] <-
-  "Coendou prehensilis"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Trinomys atiosus"] <-
-  "Trinomys gratiosus"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Guerlinguetus ingrami"] <-
-  "Guerlinguetus ingrami"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Rhipidomys tribei"] <-
-  "Rhipidomys tribei"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Philander quica"] <-
-  "Philander quica"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Metachirus myosurus"] <-
-  "Metachirus myosurus"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Lichonycteris degener"] <-
-  "Lichonycteris degener"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Epitesicus furinalis"] <-
-  "Eptesicus furinalis"
-backbone_gbif_df$order[backbone_gbif_df$scientificName == "Epitesicus furinalis"] <-
-  "Chiroptera"
-backbone_gbif_df$family[backbone_gbif_df$scientificName == "Epitesicus furinalis"] <-
-  "Vespertilionidae"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Blarynomis breviceps"] <-
-  "Blarinomys breviceps"
-backbone_gbif_df$order[backbone_gbif_df$scientificName == "Blarynomis breviceps"] <-
-  "Rodentia"
-backbone_gbif_df$family[backbone_gbif_df$scientificName == "Blarynomis breviceps"] <-
-  "Cricetidae"
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Leopardus tigrinus"] <-
-  "Leopardus guttulus"
-#Nascimento, 2010. Revisão taxonomica do gênero Leopardus. Tese doutorado, USP.
-backbone_gbif_df$species[backbone_gbif_df$scientificName == "Felis brasiliensis"] <-
-  "Leopardus pardalis"
 
 backbone_gbif_df_selected <-
   backbone_gbif_df %>%
   select(order, family, species, scientificName)
 
-# Taxonomy backbone Sapajus spp. --------------------------------------------
+# Correct species
+backbone_gbif_df_selected <-
+  backbone_gbif_df_selected %>%
+  mutate(species = ifelse(
+    scientificName == "Puma yagouaroundi"|
+      scientificName == "Puma yaguarondi",
+    "Herpailurus yagouaroundi",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Lutra brasiliensis",
+    "Pteronura brasiliensis",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Mycetes ursinus",
+    "Alouatta guariba",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Mazama simplicicornis",
+    "Mazama gouazoubira",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Dicotyles labiatus",
+    "Tayassu pecari",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Ateles hypoxanthus",
+    "Brachyteles hypoxanthus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Dasyprocta agouti",
+    "Dasyprocta aguti",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Cavia aguti"|
+      scientificName == "Cavia agouti",
+    "Cuniculus paca",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Oryzomys trinitatis",
+    "Oecomys trinitatis",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Callithrix leucocephalus",
+    "Callithrix geoffroyi",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Lagothrix infumata",
+    "Lagothrix lagotricha",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Synetheres prehensilis",
+    "Coendou prehensilis",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Trinomys atiosus",
+    "Trinomys gratiosus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Guerlinguetus ingrami",
+    "Guerlinguetus ingrami",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Rhipidomys tribei",
+    "Rhipidomys tribei",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Philander quica",
+    scientificName,
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Metachirus myosurus",
+    scientificName,
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Lichonycteris degener",
+    scientificName,
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Leopardus tigrinus",
+    "Leopardus guttulus",
+    species
+  )) %>%
+  #Nascimento, 2010. Revisão taxonomica do gênero Leopardus. Tese doutorado, USP.
+  mutate(species = ifelse(
+    scientificName == "Felis brasiliensis",
+    "Felis brasiliensis",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Epitesicus furinalis",
+    "Eptesicus furinalis",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Blarynomis breviceps",
+    "Blarynomis breviceps",
+    species
+  )) %>%
+  mutate(order = ifelse(
+    scientificName == "Blarynomis breviceps",
+    "Rodentia",
+    order
+  )) %>%
+  mutate(family = ifelse(
+    scientificName == "Blarynomis breviceps",
+    "Cricetidae",
+    family
+  )) %>%
+  mutate(order = ifelse(
+    scientificName == "Epitesicus furinalis",
+    "Chiroptera",
+    order
+  )) %>%
+  mutate(family = ifelse(
+    scientificName == "Epitesicus furinalis",
+    "Vespertilionidae",
+    family
+  ))
+
+# Bind backbones
+backbone_sp_gbif_iucn_df <-
+  bind_rows(backbone_iucn_df_selected, backbone_gbif_df_selected)
+
+# Remove repeated rows to do merge
+backbone_sp_gbif_iucn_df <-
+  as.data.frame(unique(backbone_sp_gbif_iucn_df))
+
+# Remove Cebus spp. to be handled later
+to_remove <-
+  data_all_clipped %>%
+  filter(str_detect(scientificName, "Cebus"))
+data_all_without_sapajus <- anti_join(data_all_clipped, to_remove)
+
+# Remove old columns to add new identified columns from name.backbone()
+data_all_without_sapajus <-
+  data_all_without_sapajus %>%
+  select(-c(order, family))
+
+# Merge backbones with the main dataframe
+data_all_backbone_iucn_gbif_merged <-
+  merge(data_all_without_sapajus, backbone_sp_gbif_iucn_df, by = "scientificName", all = TRUE)
+
+# Removing extra columns created during merge
+data_all_backbone_iucn_gbif_merged <-
+  data_all_backbone_iucn_gbif_merged %>%
+  filter(!is.na(decimalLatitude))
+
+# Keep the original columns order in the main dataframe
+data_iucn_gbif_ordered <-
+  data_all_backbone_iucn_gbif_merged %>%
+  select(colnames(data_all), species)
+
+# Sapajus spp. ---------------------------------------------------------------
 S_nigritus <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    str_detect(stateProvince, "Santo"),
     decimalLatitude < -19.5
   )
-S_robustus_es <-
+S_robustus <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    str_detect(stateProvince, "Santo"),
-    decimalLatitude > -19.5
+    decimalLatitude > -19.5 && decimalLatitude < -15.8
   )
-S_robustus_ba <-
-  data_all_clipped %>%
-  filter(
-    str_detect(scientificName, "Cebus"),
-    str_detect(stateProvince, "Bahia"),
-    decimalLatitude < -15.8
-  )
+
 S_xanthosternos <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    str_detect(stateProvince, "Bahia"),
     decimalLatitude > -15.8
   )
 
 S_nigritus$acceptedNameUsage <- "Sapajus nigritus"
-S_robustus_es$acceptedNameUsage <- "Sapajus robustus"
-S_robustus_ba$acceptedNameUsage <- "Sapajus robustus"
+S_robustus$acceptedNameUsage <- "Sapajus robustus"
 S_xanthosternos$acceptedNameUsage <- "Sapajus xanthosternos"
 
 sapajus_df <-
-  bind_rows(S_nigritus, S_robustus_es, S_robustus_ba, S_xanthosternos)
+  bind_rows(S_nigritus, S_robustus, S_xanthosternos)
 
-# Get species backbone and keep a scientificName column as a key to merge
+# Get name.backbone
 # This might take a while
 apply_backbone_sapajus <-
   lapply(sapajus_df$acceptedNameUsage, name.backbone)
 backbone_sapajus_df <- ldply(apply_backbone_sapajus, data.frame)
 
-# Removing Sapajus records to add separately
-# Identification not based on scietificName, so I can't use merge
-data_all_without_sapajus <-
-  data_all_clipped %>%
-  filter(!str_detect(scientificName, "Cebus"))
-
-# Add Sapajus backbone to sapajus data.frame
 backbone_sapajus_df_selected <-
   backbone_sapajus_df %>%
   select(order, family, species)
+
+# Remove old columns to add new identified columns from name.backbone()
+sapajus_df <-
+  sapajus_df %>%
+  select(-c(order, family))
+
+# Bind Sapajus backbone with Sapajus data.frame
 sapajus_df_final <-
   bind_cols(sapajus_df, backbone_sapajus_df_selected)
 
-sapajus_df_final <-
-  sapajus_df_final %>%
-  select(-c(order...28, family...29))
-colnames(sapajus_df_final)[35:36] <- c("order", "family")
-
+# Keep the original columns order in the main dataframe
 sapajus_df_final_ordered <-
   sapajus_df_final %>%
   select(colnames(data_all_clipped), species)
 
-# Merge GBIF & IUCN backbones to data.frame without Sapajus -----------------
-backbone_sp_gbif_iucn_df <-
-  bind_rows(backbone_iucn_df_selected, backbone_gbif_df_selected)
-
-backbone_sp_gbif_iucn_df <-
-  as.data.frame(unique(backbone_sp_gbif_iucn_df))
-
-data_all_backbone_iucn_gbif_merged <-
-  merge(data_all_without_sapajus, backbone_sp_gbif_iucn_df, by = "scientificName")
-
-data_all_backbone_iucn_gbif_merged <-
-  data_all_backbone_iucn_gbif_merged %>%
-  select(-c(order.x, family.x))
-
-colnames(data_all_backbone_iucn_gbif_merged)[35:36] <-
-  c("order", "family")
-
-# Reorder
-data_iucn_gbif_ordered <-
-  data_all_backbone_iucn_gbif_merged %>%
-  select(colnames(data_all), species)
-
-# Bind all data.frames ---------------------------------------------------------
+# Bind all data.frames -------------------------------------------------------
 data_all_united <-
   bind_rows(data_iucn_gbif_ordered, sapajus_df_final_ordered)
 
@@ -421,28 +475,47 @@ to_remove <-
 data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
 
 # Correct some species names ------------------------------------------
-data_all_sp_clean$species[data_all_sp_clean$species == "Puma yagouaroundi"] <-
-  "Herpailurus yagouaroundi"
-
-#Adotando nomenclatura de Reis et al. 2017
-data_all_sp_clean$species[data_all_sp_clean$species == "Gardnerycteris crenulatum"] <-
-  "Mimon crenulatum"
-
-#(retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, com exceção das Antilhas (que podem representar uma outra espécie), estariam incluídas em L. blossevillii (REID, 1997)."
-data_all_sp_clean$species[data_all_sp_clean$species == "Lasiurus borealis"] <-
-  "Lasiurus blossevillii"
-
-data_all_sp_clean$species[data_all_sp_clean$species == "Natalus stramineus"] <-
-  "Natalus macrourus"
-
-data_all_sp_clean$species[data_all_sp_clean$species == "Oxymycterus caparoae"] <-
-  "Oxymycterus caparaoe"
-
-data_all_sp_clean$species[data_all_sp_clean$scientificName == "Brucepattersonius iserufescens"] <-
-  "Brucepattersonius griserufescens"
-
-data_all_sp_clean$species[data_all_sp_clean$scientificName == "Guerlinguetus brasiliensi"] <-
-  "Guerlinguetus ingrami"
+data_all_sp_clean <-
+  data_all_sp_clean %>%
+  mutate(species = ifelse(
+    species == "Puma yagouaroundi",
+    "Herpailurus yagouaroundi",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Gardnerycteris crenulatum",
+    "Mimon crenulatum",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Natalus stramineus",
+    "Natalus macrourus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Oxymycterus caparoae",
+    "Oxymycterus caparaoe",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Brucepattersonius iserufescens",
+    "Brucepattersonius griserufescens",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    scientificName == "Guerlinguetus brasiliensi",
+    "Guerlinguetus ingrami",
+    species
+  )) %>%
+  #(retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e    #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro 
+  #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
+  #com exceção das Antilhas (que podem representar uma outra espécie), estariam
+  #incluídas em L. blossevillii (REID, 1997)."
+  mutate(species = ifelse(
+    species == "Lasiurus borealis",
+    "Lasiurus blossevillii",
+    species
+  ))
 
 # scientificName as the scientific name containing the species author, not as
 # the key to the raw data reference anymore
@@ -458,7 +531,7 @@ data_all_sp_clean <-
   data_all_sp_clean %>%
   select(-scientificName)
 
-clean_data <- merge(data_all_sp_clean, species_df, by = "species")
+clean_data <- merge(data_all_sp_clean, species_df, by = "species", all = TRUE)
 
 # Select columns of interest
 clean_data_slct <-
@@ -468,7 +541,7 @@ clean_data_slct <-
     institutionCode,
     collectionCode,
     catalogNumber,
-    reference_std,
+    reference,
     citation,
     PublicationYear,
     year,
@@ -484,7 +557,9 @@ clean_data_slct <-
     scientificName
   )
 
-colnames(clean_data_slct)[5] <- "reference"
+clean_data_slct <-
+  clean_data_slct %>%
+  filter(!is.na(species))
 
 # Export data.frame ------------------------------------------------------
 write.csv(clean_data_slct,
