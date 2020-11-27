@@ -17,11 +17,14 @@ rl.synonyms <- function(x) {
   # Make the rl_synonyms() applicable to a list of species
   # Args:
   #   x: species name as character
-  
+
   synym <- rl_synonyms(x, key = rlkey)
   result <- synym$result
-  scientificName <- synym$name
-  results <- bind_cols(scientificName, result)
+  scientificName <- x
+  suppressMessages({
+    results <- bind_cols(scientificName, result)
+  })
+  colnames(results)[1] <- "scientificName"
   return(results)
 }
 
@@ -67,4 +70,70 @@ clip.ccma <- function(pts) {
   pts$decimalLongitude <- coords$X
   pts$decimalLatitude <- coords$Y
   return(pts)
+}
+
+
+only.indentified.species <- function(df) {
+  to_remove_scientificName <-
+    df %>%
+    mutate(scientificName = as.character(scientificName)) %>%
+    filter(
+      is.na(scientificName) |
+        str_detect(scientificName, " ") == FALSE |
+        str_detect(scientificName, " sp"),
+      !str_detect(scientificName, "spinosus")
+    )
+  
+  to_remove_acceptedNameUsage <-
+    df %>% 
+    mutate(acceptedNameUsage = as.character(acceptedNameUsage)) %>%
+    filter(
+      is.na(acceptedNameUsage) |
+        str_detect(acceptedNameUsage, " ") == FALSE |
+        str_detect(acceptedNameUsage, " sp"),
+      !str_detect(acceptedNameUsage, "spinosus")
+    )
+  to_remove <-
+    intersect(to_remove_acceptedNameUsage, to_remove_scientificName)
+  
+  df <- anti_join(df, to_remove)
+  
+  # Correct species name in acceptedNameUsage instead of scientificName
+  sp_in_acceptedNameUsage <-
+    anti_join(to_remove_scientificName, to_remove_acceptedNameUsage)
+  df <- anti_join(df, sp_in_acceptedNameUsage)
+  
+  sp_in_acceptedNameUsage$scientificName <- sp_in_acceptedNameUsage$acceptedNameUsage
+  
+  df <- bind_rows(df, sp_in_acceptedNameUsage)
+  
+  df <-
+    df %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = "[.]",
+                                        replacement = " ")) %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = " gr",
+                                        replacement = " ")) %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = "cf ",
+                                        replacement = " ")) %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = "Cf ",
+                                        replacement = "")) %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = " j ",
+                                        replacement = " ")) %>%
+    mutate(scientificName = str_replace(scientificName,
+                                        pattern = "   ",
+                                        replacement = " "))
+  
+  to_remove <-
+    df %>%
+    filter(str_detect(scientificName, "[?]") |
+             str_detect(scientificName, "[/]") |
+             str_detect(scientificName, "brido")
+    )
+  df <- anti_join(df, to_remove)
+  df
 }

@@ -15,10 +15,9 @@ library(conflicted)
 
 conflict_prefer("filter", "dplyr")
 
-remove_fossil_iNaturalist <- function(dataset) {
-  dataset <- as.data.frame(dataset)
+remove.fossil.iNaturalist <- function(dataset) {
   to_remove <-
-    df %>%
+    dataset %>%
     filter(basisOfRecord == "FOSSIL_SPECIMEN" |
              str_detect(institutionCode, "iNaturalist"))
   dataset <- anti_join(dataset, to_remove)
