@@ -2,31 +2,20 @@
 # Date: 16/11/2020
 
 # Load in libraries
-x <- c("tidyverse", "rocc", "rgbif", "sf") 
+x <- c("tidyverse", "rocc", "rgbif", "plyr") 
 lapply(x, library, character.only = TRUE)
+
+conflicted::conflict_prefer("mutate", "dplyr")
 
 # Source functions
 source("./R-scripts/functions/01-funs-get-mammal-data.R")
 
-# Get occurrence data from speciesLink
-# Takes 244.321s to run
-spLink_animals_down <-
-  rspeciesLink(
-    dir = "../data/processed-data/",
-    filename = "raw-spLink-animals-data",
-    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
-    Coordinates = "Yes",
-    Scope = "animals",
-    Synonyms = "species2000"
-  )
+# GBIF data -----------------------------------------------------------------
 
-# There is come bug in the rocc::rspeciesLink() download, so just use the object
-file.remove("../data/processed-data/raw-spLink-animals-data.csv")
-
-# Just mammal data
-spLink_mamm_filtered <- 
-  spLink_animals_down %>% 
-  filter(class == "Mammalia")
+# Set GBIF profile
+options(gbif_user = "inescomarella")
+options(gbif_pwd = "********")
+options(gbif_email = "inesmottacomarella@gmail.com")
 
 # Spin up a download request for GBIF occurrence data
 # This might take a while
@@ -56,8 +45,35 @@ gbif_mamm_occ_imported <-
   occ_download_import(gbif_mamm_occ_get, path = "../data/processed-data/")
 
 # Remove fossil record and iNaturalist registers
-gbif_mamm_filtered <- remove_fossil_iNaturalist(gbif_mamm_occ_imported)
+gbif_mamm_filtered <- remove.fossil.iNaturalist(gbif_mamm_occ_imported)
 
-# Export clean data.frames
-write.csv(spLink_mamm_filtered, "../data/processed-data/raw-spLink-mammal-data.csv")
-write.csv(gbif_mamm_filtered, "../data/processed-data/raw-gbif-mammal-data.csv")
+# speciesLink data ------------------------------------------------------------
+
+# Get occurrence data from speciesLink
+# Takes 244.321s to run
+spLink_animals_down <-
+  rspeciesLink(
+    dir = "../data/processed-data/",
+    filename = "broken-spLink-animals-data",
+    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
+    Coordinates = "Yes",
+    Scope = "animals",
+    Synonyms = "species2000"
+  )
+
+# There is come bug in the rocc::rspeciesLink() download, so just use the object
+file.remove("../data/processed-data/broken-spLink-animals-data.csv")
+
+# Just mammal data
+spLink_mamm_filtered <- 
+  spLink_animals_down %>% 
+  filter(class == "Mammalia")
+
+# Save data -------------------------------------------------------------------
+gbif_mamm_filtered <-
+  gbif_mamm_filtered %>%
+  mutate(scientificName = species)
+
+mamm_binded <- rbind.fill(spLink_mamm_filtered, gbif_mamm_filtered)
+
+write.csv(mamm_binded, "../data/processed-data/raw-downloaded-mammal-data.csv")
