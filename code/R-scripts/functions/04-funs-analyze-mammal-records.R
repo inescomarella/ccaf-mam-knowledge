@@ -2,6 +2,7 @@
 # Date: 27/11/2020
 
 library(dplyr)
+conflicted::conflict_prefer("filter", "dplyr")
 
 do.reference.table <- function(df) {
   # Make a table with all collection and institutions sources of records for
@@ -16,8 +17,8 @@ do.reference.table <- function(df) {
     
     # Get the species rows 
     species_rows <-
-      data %>%
-      filter(species == unique(data$species)[i]) %>%
+      df %>%
+      filter(species == unique(df$species)[i]) %>%
       mutate(collection = paste(collectionCode, catalogNumber)) %>%
       select(citation, collection)
     
@@ -64,8 +65,7 @@ do.collection.institution.table <- function(df) {
   #     df: dataframe with collectionCode and collectionCode columns
 
   df %>%
-    select(collectionCode, collectionCode) %>%
-    unique() %>%
+    select(collectionCode, institutionCode) %>%
     mutate(
       collectionCode = as.character(collectionCode),
       institutionCode = as.character(institutionCode)
@@ -73,5 +73,7 @@ do.collection.institution.table <- function(df) {
     filter(
       str_detect(collectionCode, "[:alpha:]") |
         str_detect(institutionCode, "[:alpha:]")
-    )
+    ) %>%
+    unique()
+
 }
