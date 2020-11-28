@@ -2,7 +2,7 @@
 # Date: 16/11/2020
 
 # Load in libraries
-x <- c("tidyverse", "rocc", "rgbif", "plyr") 
+x <- c("tidyverse", "rocc", "rgbif", "plyr")
 lapply(x, library, character.only = TRUE)
 
 conflicted::conflict_prefer("mutate", "dplyr")
@@ -19,26 +19,28 @@ options(gbif_email = "inesmottacomarella@gmail.com")
 
 # Spin up a download request for GBIF occurrence data
 # This might take a while
-gbif_mamm_occ_down <- 
+gbif_mamm_occ_down <-
   occ_download(
-  user = "inescomarella",
-  pwd = "********",
-  email = "inesmottacomarella@gmail.com",
-  format = "SIMPLE_CSV",
-  pred("country", "BR"),
-  pred("taxonKey", 359),
-  pred("hasCoordinate", TRUE),
-  #greaterThanOrEquals
-  pred_gte("year", 1500),
-  #lessThanOrEquals
-  pred_lte("year", 2020)
-)
+    user = "inescomarella",
+    pwd = "********",
+    email = "inesmottacomarella@gmail.com",
+    format = "SIMPLE_CSV",
+    pred("country", "BR"),
+    pred("taxonKey", 359),
+    pred("hasCoordinate", TRUE),
+    # greaterThanOrEquals
+    pred_gte("year", 1500),
+    # lessThanOrEquals
+    pred_lte("year", 2020)
+  )
 
 # Get download from GBIF
 gbif_mamm_occ_get <-
-  occ_download_get(key = "0103075-200613084148143",
-                   path = "../data/processed-data/",
-                   overwrite = TRUE)
+  occ_download_get(
+    key = "0103075-200613084148143",
+    path = "../data/processed-data/",
+    overwrite = TRUE
+  )
 
 # Import downloaded file from GBIF
 gbif_mamm_occ_imported <-
@@ -65,8 +67,8 @@ spLink_animals_down <-
 file.remove("../data/processed-data/broken-spLink-animals-data.csv")
 
 # Just mammal data
-spLink_mamm_filtered <- 
-  spLink_animals_down %>% 
+spLink_mamm_filtered <-
+  spLink_animals_down %>%
   filter(class == "Mammalia")
 
 # Save data -------------------------------------------------------------------

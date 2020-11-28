@@ -4,12 +4,14 @@
 
 # Load in libraries
 x <-
-  c("tidyverse",
+  c(
+    "tidyverse",
     "rgbif",
     "dplyr",
     "openxlsx",
     "ggplot2",
-    "conflicted")
+    "conflicted"
+  )
 lapply(x, library, character.only = TRUE)
 
 conflict_prefer(name = "filter", winner = "dplyr")
@@ -30,7 +32,7 @@ collection_institution_df <- do.collection.institution.table(data)
 data_reference_table <- do.reference.table(data)
 
 # Reference distinguishing institutions and collections
-species_references_df <- 
+species_references_df <-
   data %>%
   group_by(scientificName) %>%
   summarise(
@@ -40,7 +42,7 @@ species_references_df <-
   )
 
 # First and last record of each species
-species_record_df <- 
+species_record_df <-
   data %>%
   group_by(scientificName) %>%
   summarise(
@@ -49,16 +51,16 @@ species_record_df <-
   )
 
 # Plot -----------------------------------------------------------------------
-first_record_df <- 
+first_record_df <-
   select(species_record_df, first_record)
-last_record_df <- 
+last_record_df <-
   select(species_record_df, last_record)
 
-colnames(first_record_df) <- 'Year'
-colnames(last_record_df) <- 'Year'
+colnames(first_record_df) <- "Year"
+colnames(last_record_df) <- "Year"
 
-first_record_df$id <- 'First record'
-last_record_df$id <- 'Last record'
+first_record_df$id <- "First record"
+last_record_df$id <- "Last record"
 
 records_df <- bind_rows(first_record_df, last_record_df)
 
@@ -73,9 +75,10 @@ plot_through_years <-
 # Save -------- --------------------------------------------------------------
 # Plot
 plot_through_years
-ggsave('../data/results/first-last-record-plot.pdf',
-       width = 5,
-       height = 4)
+ggsave("../data/results/first-last-record-plot.pdf",
+  width = 5,
+  height = 4
+)
 
 # Tables
 OUT <- createWorkbook()

@@ -14,8 +14,11 @@ references_df <-
   read.csv("../data/raw-data/references.csv")
 
 # Remove marine mammals
-data_modif <- raw_data[!(raw_data$order == "Cetartiodactyla" |
-                           raw_data$order == "Cetacea"), ]
+to_remove <-
+  raw_data %>%
+  filter(str_detect(order, "Cetariodac") | str_detect(order, "Cetacea"))
+
+data_modif <- anti_join(raw_data, to_remove)
 
 # Remove unpublished data
 data_modif <-
@@ -186,15 +189,16 @@ data_modif <-
     )
   ) %>%
   mutate(stateProvince = ifelse(str_detect(stateProvince, "BA"),
-                                "Bahia",
-                                stateProvince))
+    "Bahia",
+    stateProvince
+  ))
 
 # Standardize UC writing
 data_modif <-
   data_modif %>%
   mutate(UC = as.character(UC)) %>%
   mutate(UC = ifelse(str_detect(UC, "yes") |
-                       str_detect(UC, "Parque"), "Yes", UC)) %>%
+    str_detect(UC, "Parque"), "Yes", UC)) %>%
   mutate(UC = ifelse(str_detect(UC, "no"), "No", UC))
 
 # Standardize georeferencePrecision writing
@@ -245,8 +249,9 @@ data_modif <-
     collectionCode
   )) %>%
   mutate(collectionCode = ifelse(str_detect(collectionCode, "Not located"),
-                                 "",
-                                 collectionCode))
+    "",
+    collectionCode
+  ))
 
 # Standardize fieldNumber writing
 data_modif <-
@@ -259,49 +264,63 @@ data_modif <-
   data_modif %>%
   mutate(preparations = as.character(preparations)) %>%
   mutate(preparations = ifelse(str_detect(preparations, "pele"),
-                               "Skin",
-                               preparations)) %>%
+    "Skin",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "angue"),
-                               "Blood",
-                               preparations)) %>%
+    "Blood",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "arcaça"),
-                               "Carcass",
-                               preparations)) %>%
+    "Carcass",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "ecido"),
-                               "Tissue",
-                               preparations)) %>%
+    "Tissue",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "quido"),
-                               "Liquid",
-                               preparations)) %>%
+    "Liquid",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "seca"),
-                               "Dry",
-                               preparations)) %>%
+    "Dry",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "espécime inteiro") |
-                                 str_detect(preparations, "filhotes") |
-                                 str_detect(preparations, "orpo (ETOH)"),
-                               "Body (ethanol)",
-                               preparations)) %>%
+    str_detect(preparations, "filhotes") |
+    str_detect(preparations, "orpo (ETOH)"),
+  "Body (ethanol)",
+  preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "squeleto"),
-                               "Skeleton",
-                               preparations)) %>%
+    "Skeleton",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "Cartilagem"),
-                               "Cartilage",
-                               preparations)) %>%
+    "Cartilage",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "lcool"),
-                               "Ethanol",
-                               preparations)) %>%
+    "Ethanol",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "embriões"),
-                               "Embryos",
-                               preparations)) %>%
+    "Embryos",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "rânio"),
-                               "Skull",
-                               preparations)) %>%
+    "Skull",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "fragmento de mandíbula"),
-                               "Jaw fragment",
-                               preparations)) %>%
+    "Jaw fragment",
+    preparations
+  )) %>%
   mutate(preparations = ifelse(str_detect(preparations, "Carapaça"),
-                               "Hoof",
-                               preparations))
+    "Hoof",
+    preparations
+  ))
 
 
 # Correct columns -------------------------------------------------------------
@@ -358,11 +377,13 @@ for (i in 1:length(unique(utm$verbatimLatitude))) {
   x <-
     utm_data_modif %>%
     filter(verbatimLatitude == sort(unique(utm$verbatimLatitude))[i]) %>%
-    select(verbatimLatitude,
-           verbatimLongitude,
-           decimalLatitude,
-           decimalLongitude)
-  df <- bind_rows(x[1,], df)
+    select(
+      verbatimLatitude,
+      verbatimLongitude,
+      decimalLatitude,
+      decimalLongitude
+    )
+  df <- bind_rows(x[1, ], df)
 }
 
 df <- arrange(df, by = verbatimLatitude)
@@ -428,7 +449,7 @@ data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verba
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
   utm_data_modif$decimalLongitude.y
 
-# Manipulate references ----------------------------------------
+# Manipulate references ------------------------------------------------------
 references_df$reference <- as.character(references_df$reference)
 data_modif$reference <- as.character(data_modif$reference)
 
@@ -445,11 +466,12 @@ to_remove <-
 data_modif <- anti_join(data_modif, to_remove)
 
 # assume thesis year, instead of publication year
-data_modif <- 
+data_modif <-
   data_modif %>%
   mutate(eventYear = ifelse(str_detect(reference, "Hirsch, A.,"),
-                            "1988",
-                            eventYear))
+    "1988",
+    eventYear
+  ))
 
 to_remove <-
   data_modif %>%
@@ -458,9 +480,11 @@ data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
   data_modif %>%
-  filter(citation == "Gatti et al. (2014)", 
-         eventYear == "1988" |
-           datasetName == "")
+  filter(
+    citation == "Gatti et al. (2014)",
+    eventYear == "1988" |
+      datasetName == ""
+  )
 data_modif <- anti_join(data_modif, to_remove)
 
 to_remove <-
@@ -560,15 +584,15 @@ to_remove <-
     scientificName != "Didelphis aurita",
     scientificName != "Metachirus nudicaudatus",
     scientificName != "Philander frenata",
-    #just second year
+    # just second year
     scientificName != "Dasypus novemcinctus",
     scientificName != "Euphractus sexcinctus",
-    #just second year
+    # just second year
     scientificName != "Cerdocyon thous",
     scientificName != "Nasua nasua",
     scientificName != "Procyon cancrivorus",
     scientificName != "Eira barbara",
-    #just first year
+    # just first year
     scientificName != "Didelphis aurita",
     scientificName != "Herpailurus yaguarondi",
     scientificName != "Leopardus pardalis",

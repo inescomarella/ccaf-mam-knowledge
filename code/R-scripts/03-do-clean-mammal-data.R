@@ -1,6 +1,6 @@
 # File purpose: Clean and standardize mammal data from paper, GBIF and
 # speciesLink
-# Pay attention: The rredlist::rl_synonyms() function always gets some error 
+# Pay attention: The rredlist::rl_synonyms() function always gets some error
 # and takes quite some time to run
 #
 # Date: 16/11/2020
@@ -22,9 +22,11 @@ data_paper <-
 data_downl <-
   read.csv("../data/processed-data/raw-downloaded-mammal-data.csv")
 
-ccma <- st_read(dsn = '../data/processed-data',
-                layer = 'ccma-clipped',
-                check_ring_dir = TRUE)
+ccma <- st_read(
+  dsn = "../data/processed-data",
+  layer = "ccma-clipped",
+  check_ring_dir = TRUE
+)
 rlkey <-
   "6abf9b5a0010ab26140c401c1c394a22c43c0a555d9dee8c72976d3c71c5e402"
 
@@ -51,7 +53,7 @@ data_all_clipped <- clip.ccma(data_all_only_indetified_species)
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
 # Get rl.synonyms ------------------------------------------------------------
-# This might take a while and it's normal to get "Error: Bad Gateway (HTTP
+# Takes a few hours to run and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
 apply_synonyms_1 <- lapply(sp_list_all[1:55], rl.synonyms)
@@ -71,13 +73,15 @@ synonyms_df_6 <- ldply(apply_synonyms_6, data.frame)
 synonyms_df_7 <- ldply(apply_synonyms_7, data.frame)
 
 synonyms_df_corrected <-
-  rbind.data.frame(synonyms_df_1,
-                   synonyms_df_2,
-                   synonyms_df_3,
-                   synonyms_df_4,
-                   synonyms_df_5,
-                   synonyms_df_6,
-                   synonyms_df_7)
+  rbind.data.frame(
+    synonyms_df_1,
+    synonyms_df_2,
+    synonyms_df_3,
+    synonyms_df_4,
+    synonyms_df_5,
+    synonyms_df_6,
+    synonyms_df_7
+  )
 
 # Correct accepted_name before get species backbone
 synonyms_df_corrected <-
@@ -183,7 +187,7 @@ backbone_gbif_df_selected <-
 backbone_gbif_df_selected <-
   backbone_gbif_df_selected %>%
   mutate(species = ifelse(
-    scientificName == "Puma yagouaroundi"|
+    scientificName == "Puma yagouaroundi" |
       scientificName == "Puma yaguarondi",
     "Herpailurus yagouaroundi",
     species
@@ -219,7 +223,7 @@ backbone_gbif_df_selected <-
     species
   )) %>%
   mutate(species = ifelse(
-    scientificName == "Cavia aguti"|
+    scientificName == "Cavia aguti" |
       scientificName == "Cavia agouti",
     "Cuniculus paca",
     species
@@ -279,7 +283,7 @@ backbone_gbif_df_selected <-
     "Leopardus guttulus",
     species
   )) %>%
-  #Nascimento, 2010. Revisão taxonomica do gênero Leopardus. Tese doutorado, USP.
+  # Nascimento, 2010. Revisão taxonomica do gênero Leopardus. Tese doutorado, USP.
   mutate(species = ifelse(
     scientificName == "Felis brasiliensis",
     "Felis brasiliensis",
@@ -507,10 +511,10 @@ data_all_sp_clean <-
     "Guerlinguetus ingrami",
     species
   )) %>%
-  #(retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e    #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro 
+  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e    #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
   #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
-  #com exceção das Antilhas (que podem representar uma outra espécie), estariam
-  #incluídas em L. blossevillii (REID, 1997)."
+  # com exceção das Antilhas (que podem representar uma outra espécie), estariam
+  # incluídas em L. blossevillii (REID, 1997)."
   mutate(species = ifelse(
     species == "Lasiurus borealis",
     "Lasiurus blossevillii",
@@ -562,5 +566,7 @@ clean_data_slct <-
   filter(!is.na(species))
 
 # Export data.frame ------------------------------------------------------
-write.csv(clean_data_slct,
-          "../data/processed-data/clean-mammal-data.csv")
+write.csv(
+  clean_data_slct,
+  "../data/processed-data/clean-mammal-data.csv"
+)
