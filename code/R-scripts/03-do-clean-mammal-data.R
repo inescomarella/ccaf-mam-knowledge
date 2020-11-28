@@ -1,17 +1,17 @@
 # File purpose: Clean and standardize mammal data from paper, GBIF and
 # speciesLink
 # Pay attention: The rredlist::rl_synonyms() function always gets some error
-# and takes quite some time to run
+# and takes hours to run
 #
 # Date: 16/11/2020
 
 # Load in libraries
-x <- c("tidyverse", "rgbif", "plyr", "rredlist", "sf", "conflicted")
+x <- c("tidyverse", "rgbif", "plyr", "rredlist", "sf")
 lapply(x, library, character.only = TRUE)
 
-conflict_prefer(name = "filter", winner = "dplyr")
-conflict_prefer(name = "select", winner = "dplyr")
-conflict_prefer(name = "mutate", winner = "dplyr")
+conflicted::conflict_prefer(name = "filter", winner = "dplyr")
+conflicted::conflict_prefer(name = "select", winner = "dplyr")
+conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
 
 # Source functions
 source("./R-scripts/functions/02-funs-clean-mammal-data.R")
@@ -30,7 +30,7 @@ ccma <- st_read(
 rlkey <-
   "6abf9b5a0010ab26140c401c1c394a22c43c0a555d9dee8c72976d3c71c5e402"
 
-# Pre-prepare data -----------------------------------------------------------
+# Pre-process data -----------------------------------------------------------
 
 # Standardize columns
 data_paper <- select(data_paper, -X)
@@ -171,7 +171,7 @@ apply_backbone_gbif <-
 backbone_iucn_df <- ldply(apply_backbone_iucn, data.frame)
 backbone_gbif_df <- ldply(apply_backbone_gbif, data.frame)
 
-# keep a scientificName column as a key to merge
+# Keep a scientificName column as a key to merge
 backbone_iucn_df_selected <-
   backbone_iucn_df %>%
   select(order, family, canonicalName, scientificName)
@@ -343,12 +343,12 @@ data_all_without_sapajus <-
 data_all_backbone_iucn_gbif_merged <-
   merge(data_all_without_sapajus, backbone_sp_gbif_iucn_df, by = "scientificName", all = TRUE)
 
-# Removing extra columns created during merge
+# Removing extra rows created during merge
 data_all_backbone_iucn_gbif_merged <-
   data_all_backbone_iucn_gbif_merged %>%
   filter(!is.na(decimalLatitude))
 
-# Keep the original columns order in the main dataframe
+# Keep columns ordered as in the main dataframe
 data_iucn_gbif_ordered <-
   data_all_backbone_iucn_gbif_merged %>%
   select(colnames(data_all), species)
@@ -400,16 +400,16 @@ sapajus_df <-
 sapajus_df_final <-
   bind_cols(sapajus_df, backbone_sapajus_df_selected)
 
-# Keep the original columns order in the main dataframe
+# Keep columns ordered as in the main dataframe
 sapajus_df_final_ordered <-
   sapajus_df_final %>%
   select(colnames(data_all_clipped), species)
 
-# Bind all data.frames -------------------------------------------------------
+# Bind all dataframes --------------------------------------------------------
 data_all_united <-
   bind_rows(data_iucn_gbif_ordered, sapajus_df_final_ordered)
 
-# column "species" = current name
+# Use column "species" as the species current name
 data_all_united <-
   data_all_united %>%
   select(-acceptedNameUsage)
@@ -467,18 +467,18 @@ exotic_sp_list <- data.frame(
   )
 )
 
-# Removing CCMA non-native species
+# Remove CCMA non-native species
 data_all_sp_clean <-
   data_all_united %>%
   filter(!species %in% exotic_sp_list$species)
 
-# Removing marine mammals
+# Remove marine mammals
 to_remove <-
   data_all_sp_clean %>%
   filter(str_detect(order, "Cetacea"))
 data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
 
-# Correct some species names ------------------------------------------
+# Correct some species names -------------------------------------------------
 data_all_sp_clean <-
   data_all_sp_clean %>%
   mutate(species = ifelse(
@@ -565,7 +565,7 @@ clean_data_slct <-
   clean_data_slct %>%
   filter(!is.na(species))
 
-# Export data.frame ------------------------------------------------------
+# Save data.frame ------------------------------------------------------------
 write.csv(
   clean_data_slct,
   "../data/processed-data/clean-mammal-data.csv"

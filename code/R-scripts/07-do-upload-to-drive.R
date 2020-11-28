@@ -6,7 +6,7 @@ library(googledrive)
 
 # Login ---------------------------------------------------------------------
 
-# Authorize googledrive to view and manage your Drive files
+# Authorize googledrive to view and manage my Drive files
 drive_auth(
   email = "inesmottacomarella@gmail.com",
   path = NULL,

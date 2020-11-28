@@ -6,16 +6,16 @@
 
 # Load libraries
 x <-
-  c("dplyr", "sf", "raster", "ggplot2", "conflicted", "scatterpie")
+  c("dplyr", "ggplot2", "sf", "raster", "scatterpie")
 lapply(x, library, character.only = TRUE)
 
-conflict_prefer(name = "filter", winner = "dplyr")
-conflict_prefer(name = "select", winner = "dplyr")
+conflicted::conflict_prefer(name = "filter", winner = "dplyr")
+conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/04-funs-plot-mammal-maps.R")
+source("./R-scripts/functions/05-funs-plot-mammal-maps.R")
 
-# Load iin data
+# Load in data
 record_data <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
@@ -46,7 +46,7 @@ g050_geom <-
 municipalities <-
   st_transform(municipalities, CRS("+proj=longlat +datum=WGS84"))
 
-############################ Prepare data #####################################
+# Process data ---------------------------------------------------------------
 
 # Count records of mammals in a grid
 g025_geom$nreg <- lengths(st_intersects(g025_geom, record_data))
@@ -86,7 +86,7 @@ g050_geom$radius <- g050_geom$nreg / (max(g050_geom$nreg) * 2)
 g025_geom <- st_as_sf(g025_geom)
 g050_geom <- st_as_sf(g050_geom)
 
-############################### Plot maps #####################################
+# Plot -----------------------------------------------------------------------
 
 # Customized theme
 customPlot <- list(
@@ -261,7 +261,7 @@ plot_pie_orders_g050 <-
   ylab(element_blank()) +
   xlab(element_blank())
 
-############################### Save maps #####################################
+# Save plots -----------------------------------------------------------------
 plot_nreg_g025
 ggsave("../data/results/map-all-mammals-nreg.pdf",
   width = 3,

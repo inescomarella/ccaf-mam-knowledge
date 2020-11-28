@@ -9,7 +9,6 @@
 # Load in libraries
 x <-
   c(
-    "conflicted",
     "tidyverse",
     "raster",
     "sf",
@@ -24,11 +23,11 @@ x <-
   )
 lapply(x, library, character.only = TRUE)
 
-conflict_prefer(name = "filter", winner = "dplyr")
-conflict_prefer(name = "select", winner = "dplyr")
+conflicted::conflict_prefer(name = "filter", winner = "dplyr")
+conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/03-funs-model-mammal-data.R")
+source("./R-scripts/functions/04-funs-model-mammal-data.R")
 
 # Load in data
 record_pts <-
@@ -52,7 +51,7 @@ institute_pts <-
 g025_geom <-
   st_read(dsn = "../data/processed-data/", layer = "grid-025-ucs-joined")
 
-############################ Pre-process data ################################
+# Pre-process data -----------------------------------------------------------
 
 # Before converting to UTM, save coordinates in degree
 # Latitude in degree will be used as a variable in the GLM
@@ -90,12 +89,12 @@ g025_df_std <-
   mutate(uc_pres = is.na(UF_unique)) %>%
   select(nreg, nsp, dist_inst, uc_pres, lat)
 
-############################## Correlation test ###############################
+# Correlation test -----------------------------------------------------------
 
 g025_cor <-
   cor(g025_df_std, method = c("pearson", "kendall", "spearman"))
 
-############################## Run global models #############################
+# Run models -----------------------------------------------------------------
 
 # Fit Negative Binomial Generalized Linear Model
 summary(
@@ -107,12 +106,9 @@ summary(
     )
 )
 
-############################## Model selection ###############################
-
 # Rank by AIC
+# Select best model to rerun the GLM
 glm_025_ranked <- dredge(glm_025_fitted)
-
-############################# Run selected models #############################
 
 # Fit Negative Binomial Generalized Linear Model
 summary(
@@ -124,7 +120,7 @@ summary(
     )
 )
 
-######################### Test model quality of fit ###########################
+# Test quality of fit --------------------------------------------------------
 
 # Conventional Residuals (fittedModel)
 glm_025_simulation <- simulateResiduals(glm_025_refitted, plot = T)
@@ -144,7 +140,7 @@ testZeroInflation(glm_025_simulation, alternative = "greater")
 # > DHARMa: residual diagnostics for hierarchical (multi-level/mixed)
 # regression models
 
-############################ Save correlation plot ############################
+# Save -----------------------------------------------------------------------
 
 # Correlation test plot
 pdf(
@@ -162,34 +158,7 @@ corrplot(
 )
 dev.off()
 
-############################## Save model output ##############################
-
-glm_025_fitted_coef <-
-  as.data.frame(coef(summary(glm_025_fitted))) %>%
-  mutate_if(is.numeric, ~ round(., 3))
-
-glm_025_ranked_df <-
-  as.data.frame(glm_025_ranked) %>%
-  mutate_if(is.numeric, ~ round(., 3))
-
-glm_025_refitted_coef <-
-  as.data.frame(coef(summary(glm_025_fitted))) %>%
-  mutate_if(is.numeric, ~ round(., 3))
-
-OUT <- createWorkbook()
-
-addWorksheet(OUT, "global-model-coef-g025")
-addWorksheet(OUT, "model-selection-g025")
-addWorksheet(OUT, "selected-model-coef-g025")
-
-writeData(OUT, sheet = "global-model-coef-g025", x = glm_025_fitted_coef)
-writeData(OUT, sheet = "model-selection-g025", x = glm_025_ranked_df)
-writeData(OUT, sheet = "selected-model-coef-g025", x = glm_025_refitted_coef)
-
-saveWorkbook(OUT, "../data/results/model-results.xlsx", overwrite = TRUE)
-
-########################## Save overdispersion plots ##########################
-
+# Overdispersion plots
 pdf(
   file = "../data/results/model-residual-plot-g025.pdf",
   width = 7.5,
@@ -197,6 +166,7 @@ pdf(
 )
 plot(glm_025_simulation)
 dev.off()
+
 pdf(
   file = "../data/results/model-residual-variables-plot-g025.pdf",
   width = 8,
@@ -222,3 +192,28 @@ pdf(
 )
 testZeroInflation(glm_025_simulation, alternative = "greater")
 dev.off()
+
+# Model output
+glm_025_fitted_coef <-
+  as.data.frame(coef(summary(glm_025_fitted))) %>%
+  mutate_if(is.numeric, ~ round(., 3))
+
+glm_025_ranked_df <-
+  as.data.frame(glm_025_ranked) %>%
+  mutate_if(is.numeric, ~ round(., 3))
+
+glm_025_refitted_coef <-
+  as.data.frame(coef(summary(glm_025_fitted))) %>%
+  mutate_if(is.numeric, ~ round(., 3))
+
+OUT <- createWorkbook()
+
+addWorksheet(OUT, "global-model-coef-g025")
+addWorksheet(OUT, "model-selection-g025")
+addWorksheet(OUT, "selected-model-coef-g025")
+
+writeData(OUT, sheet = "global-model-coef-g025", x = glm_025_fitted_coef)
+writeData(OUT, sheet = "model-selection-g025", x = glm_025_ranked_df)
+writeData(OUT, sheet = "selected-model-coef-g025", x = glm_025_refitted_coef)
+
+saveWorkbook(OUT, "../data/results/model-results.xlsx", overwrite = TRUE)
