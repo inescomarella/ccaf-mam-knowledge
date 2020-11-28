@@ -43,7 +43,7 @@ g050_geom <-
     crs = CRS("+proj=longlat +datum=WGS84")
   )
 
-municipalities <- 
+municipalities <-
   st_transform(municipalities, CRS("+proj=longlat +datum=WGS84"))
 
 ############################ Prepare data #####################################
@@ -67,7 +67,6 @@ g050_geom <-
 # Count mammal species in a grid
 # Takes 29s to run
 g025_geom <- count.sp.in.polygons(record_data, g025_geom)
-g050_geom <- count.sp.in.polygons(record_data, g050_geom)
 
 # Get pies chart coordinates
 # Use centre point coordinates to specify pie chart XY coords in the map
@@ -90,11 +89,11 @@ g050_geom <- st_as_sf(g050_geom)
 ############################### Plot maps #####################################
 
 # Customized theme
-customPlot = list(
+customPlot <- list(
   theme_light() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 0.75),
-      legend.title =  element_text(size = 8),
+      legend.title = element_text(size = 8),
       legend.text = element_text(size = 8)
     )
 )
@@ -107,23 +106,9 @@ plot_nreg_g025 <-
   scale_fill_viridis_b(show.limits = TRUE) +
   customPlot
 
-plot_nreg_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = nreg), size = 0.2) +
-  labs(fill = "Number of \n mammal records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
 # Plot number of mammal species in grid
 plot_nsp_g025 <-
   ggplot(g025_geom) +
-  geom_sf(aes(fill = nsp), size = 0.2) +
-  labs(fill = "Number of mammal \n species recorded") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_nsp_g050 <-
-  ggplot(g050_geom) +
   geom_sf(aes(fill = nsp), size = 0.2) +
   labs(fill = "Number of mammal \n species recorded") +
   scale_fill_viridis_b(show.limits = TRUE) +
@@ -218,94 +203,6 @@ plot_siren_g025 <-
   scale_fill_viridis_b(show.limits = TRUE) +
   customPlot
 
-plot_roden_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Rodentia), size = 0.2) +
-  ggtitle("Rodentia") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_prima_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Primates), size = 0.2) +
-  ggtitle("Primates") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_carni_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Carnivora), size = 0.2) +
-  ggtitle("Carnivora") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_didel_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Didelphimorphia), size = 0.2) +
-  ggtitle("Didelphimorphia") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_peris_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Perissodactyla), size = 0.2) +
-  ggtitle("Perissodactyla") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_chiro_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Chiroptera), size = 0.2) +
-  ggtitle("Chiroptera") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_lagom_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Lagomorpha), size = 0.2) +
-  ggtitle("Lagomorpha") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_pilos_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Pilosa), size = 0.2) +
-  ggtitle("Pilosa") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_artio_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Artiodactyla), size = 0.2) +
-  ggtitle("Artiodactyla") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_cingu_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Cingulata), size = 0.2) +
-  ggtitle("Cingulata") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-plot_siren_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(aes(fill = Sirenia), size = 0.2) +
-  ggtitle("Sirenia") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
 # Plot municipalities
 municipalities_cropped <-
   st_crop(
@@ -366,127 +263,97 @@ plot_pie_orders_g050 <-
 
 ############################### Save maps #####################################
 plot_nreg_g025
-ggsave("../data/results/map-nreg-g025.pdf",
-       width = 3,
-       height = 4)
-
-plot_nreg_g050
-ggsave("../data/results/map-nreg-g050.pdf",
-       width = 3,
-       height = 4)
+ggsave("../data/results/map-all-mammals-nreg.pdf",
+  width = 3,
+  height = 4
+)
 
 plot_nsp_g025
-ggsave("../data/results/map-nsp-g025.pdf",
-       width = 3,
-       height = 4)
-
-plot_nsp_g050
-ggsave("../data/results/map-nsp-g050.pdf",
-       width = 3,
-       height = 4)
+ggsave("../data/results/map-all-mammals-nsp.pdf",
+  width = 3,
+  height = 4
+)
 
 plot_roden_g025
-ggsave("../data/results/map-rodentia-g025.pdf",
-       width = 3,
-       height = 4)
-plot_prima_g025
-ggsave("../data/results/map-primates-g025.pdf",
-       width = 3,
-       height = 4)
-plot_carni_g025
-ggsave("../data/results/map-carnivora-g025.pdf",
-       width = 3,
-       height = 4)
-plot_didel_g025
-ggsave("../data/results/map-didelphimorphia-g025.pdf",
-       width = 3,
-       height = 4)
-plot_peris_g025
-ggsave("../data/results/map-perissodactyla-g025.pdf",
-       width = 3,
-       height = 4)
-plot_chiro_g025
-ggsave("../data/results/map-chiroptera-g025.pdf",
-       width = 3,
-       height = 4)
-plot_lagom_g025
-ggsave("../data/results/map-lagomorpha-g025.pdf",
-       width = 3,
-       height = 4)
-plot_pilos_g025
-ggsave("../data/results/map-pilosa-g025.pdf",
-       width = 3,
-       height = 4)
-plot_artio_g025
-ggsave("../data/results/map-artiodactyla-g025.pdf",
-       width = 3,
-       height = 4)
-plot_cingu_g025
-ggsave("../data/results/map-cingulata-g025.pdf",
-       width = 3,
-       height = 4)
-plot_siren_g025
-ggsave("../data/results/map-sirenia-g025.pdf",
-       width = 3,
-       height = 4)
+ggsave("../data/results/map-order-rodentia.pdf",
+  width = 3,
+  height = 4
+)
 
-plot_roden_g050
-ggsave("../data/results/map-rodentia-g050.pdf",
-       width = 3,
-       height = 4)
-plot_prima_g050
-ggsave("../data/results/map-primates-g050.pdf",
-       width = 3,
-       height = 4)
-plot_carni_g050
-ggsave("../data/results/map-carnivora-g050.pdf",
-       width = 3,
-       height = 4)
-plot_didel_g050
-ggsave("../data/results/map-didelphimorphia-g050.pdf",
-       width = 3,
-       height = 4)
-plot_peris_g050
-ggsave("../data/results/map-perissodactyla-g050.pdf",
-       width = 3,
-       height = 4)
-plot_chiro_g050
-ggsave("../data/results/map-chiroptera-g050.pdf",
-       width = 3,
-       height = 4)
-plot_lagom_g050
-ggsave("../data/results/map-lagomorpha-g050.pdf",
-       width = 3,
-       height = 4)
-plot_pilos_g050
-ggsave("../data/results/map-pilosa-g050.pdf",
-       width = 3,
-       height = 4)
-plot_artio_g050
-ggsave("../data/results/map-artiodactyla-g050.pdf",
-       width = 3,
-       height = 4)
-plot_cingu_g050
-ggsave("../data/results/map-cingulata-g050.pdf",
-       width = 3,
-       height = 4)
-plot_siren_g050
-ggsave("../data/results/map-sirenia-g050.pdf",
-       width = 3,
-       height = 4)
+plot_prima_g025
+ggsave("../data/results/map-order-primates.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_carni_g025
+ggsave("../data/results/map-order-carnivora.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_didel_g025
+ggsave("../data/results/map-order-didelphimorphia.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_peris_g025
+ggsave("../data/results/map-order-perissodactyla.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_chiro_g025
+ggsave("../data/results/map-order-chiroptera.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_lagom_g025
+ggsave("../data/results/map-order-lagomorpha.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_pilos_g025
+ggsave("../data/results/map-order-pilosa.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_artio_g025
+ggsave("../data/results/map-order-artiodactyla.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_cingu_g025
+ggsave("../data/results/map-order-cingulata.pdf",
+  width = 3,
+  height = 4
+)
+
+plot_siren_g025
+ggsave("../data/results/map-order-sirenia.pdf",
+  width = 3,
+  height = 4
+)
 
 plot_nreg_municipalities
-ggsave("../data/results/plot_nreg_municipalities.pdf",
-       width = 3,
-       height = 4)
+ggsave("../data/results/plot-all-mammals-nreg-municipalities.pdf",
+  width = 3,
+  height = 4
+)
 
 plot_pie_orders_g025
-ggsave("../data/results/map-pie-orders-g025.pdf",
-       width = 3,
-       height = 4)
+ggsave("../data/results/map-order-pie-g025.pdf",
+  width = 3,
+  height = 4
+)
 
 plot_pie_orders_g050
-ggsave("../data/results/map-pie-orders-g050.pdf",
-       width = 3,
-       height = 4)
-
+ggsave("../data/results/map-order-pie-g050.pdf",
+  width = 3,
+  height = 4
+)

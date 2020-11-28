@@ -1,6 +1,11 @@
 # File purpose: Do data analysis, run models, correlation test
 # Data: 17/11/2020
 
+########################################################################
+# To do:
+#   - Re-run python script to see the best way to count for UC presence
+########################################################################
+
 # Load in libraries
 x <-
   c(
@@ -39,8 +44,10 @@ institute_pts <-
   st_read(
     dsn = "../data/raw-data/research-institutes.csv",
     crs = CRS("+proj=longlat +datum=WGS84"),
-    options = c("X_POSSIBLE_NAMES=longitude",
-                "Y_POSSIBLE_NAMES=latitude")
+    options = c(
+      "X_POSSIBLE_NAMES=longitude",
+      "Y_POSSIBLE_NAMES=latitude"
+    )
   )
 g025_geom <-
   st_read(dsn = "../data/processed-data/", layer = "grid-025-ucs-joined")
@@ -140,9 +147,11 @@ testZeroInflation(glm_025_simulation, alternative = "greater")
 ############################ Save correlation plot ############################
 
 # Correlation test plot
-pdf(file = "../data/results/correlation-plot-g025.pdf",
-    width = 5,
-    height = 6)
+pdf(
+  file = "../data/results/correlation-plot-g025.pdf",
+  width = 5,
+  height = 6
+)
 corrplot(
   g025_cor,
   type = "upper",
@@ -181,27 +190,35 @@ saveWorkbook(OUT, "../data/results/model-results.xlsx", overwrite = TRUE)
 
 ########################## Save overdispersion plots ##########################
 
-pdf(file = "../data/results/DHARMa-residual-plot-g025.pdf",
-    width = 7.5,
-    height = 5)
+pdf(
+  file = "../data/results/model-residual-plot-g025.pdf",
+  width = 7.5,
+  height = 5
+)
 plot(glm_025_simulation)
 dev.off()
-pdf(file = "../data/results/DHARMa-residual-variables-plot-g025.pdf",
-    width = 8,
-    height = 5)
+pdf(
+  file = "../data/results/model-residual-variables-plot-g025.pdf",
+  width = 8,
+  height = 5
+)
 par(mfrow = c(1, 2))
 plotResiduals(glm_025_simulation, g025_df_std$dist_inst)
 plotResiduals(glm_025_simulation, g025_df_std$uc_pres)
 dev.off()
 
-pdf(file = "../data/results/DHARMa-overdispersion-plot-g025.pdf",
-    width = 7.5,
-    height = 5)
+pdf(
+  file = "../data/results/model-overdispersion-plot-g025.pdf",
+  width = 7.5,
+  height = 5
+)
 testDispersion(glm_025_simulation, alternative = "greater")
 dev.off()
 
-pdf(file = "../data/results/DHARMa-zeroinflation-plot-g025.pdf",
-    width = 7.5,
-    height = 5)
+pdf(
+  file = "../data/results/model-zeroinflation-plot-g025.pdf",
+  width = 7.5,
+  height = 5
+)
 testZeroInflation(glm_025_simulation, alternative = "greater")
 dev.off()
