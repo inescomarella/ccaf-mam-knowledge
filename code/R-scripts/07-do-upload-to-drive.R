@@ -3,6 +3,7 @@
 
 # Load library
 library(googledrive)
+library(stringr)
 
 # Login ---------------------------------------------------------------------
 
@@ -36,6 +37,10 @@ if (nrow(drive_get(path = "~/ccma-tcc/results/all-mammals-maps")) == 0) {
 }
 
 # Get files path to upload
+species_table_path <- "../data/results/species-table.xlsx"
+
+records_plot_path <- "../data/results/first-last-record-plot.pdf"
+
 file_paths_correlation <-
   list.files(
     "../data/results",
@@ -69,21 +74,41 @@ file_paths_all_mammals <-
   )
 
 # Get file names by removing the path
+species_table_name <- str_replace(species_table_path, "../data/results/", "")
+
+records_plot_name <- str_replace(records_plot_path, "../data/results/", "")
+
 file_names_correlation <-
-  str_replace(file_paths_correlation, "../data/results", "")
+  str_replace(file_paths_correlation, "../data/results/", "")
 
 file_names_model_plots <-
-  str_replace(file_paths_model_plots, "../data/results", "")
+  str_replace(file_paths_model_plots, "../data/results/", "")
 
 file_names_orders <-
-  str_replace(file_paths_orders, "../data/results", "")
+  str_replace(file_paths_orders, "../data/results/", "")
 
 file_names_all_mammals <-
-  str_replace(file_paths_all_mammals, "../data/results", "")
+  str_replace(file_paths_all_mammals, "../data/results/", "")
 
 # Upload files ---------------------------------------------------------------
 
 # Upload all files to its respective folders
+drive_upload(
+  species_table_path,
+  name = species_table_name,
+  path = "~/ccma-tcc/results",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+drive_upload(
+  records_plot_path,
+  name = records_plot_name,
+  path = "~/ccma-tcc/results",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
 for (i in 1:length(file_paths_correlation)) {
   drive_upload(
     file_paths_correlation[i],
@@ -107,7 +132,7 @@ for (i in 1:length(file_paths_model_plots)) {
 for (i in 1:length(file_paths_all_mammals)) {
   drive_upload(
     file_paths_all_mammals[i],
-    name = file_names_orders[i],
+    name = file_names_all_mammals[i],
     path = "~/ccma-tcc/results/all-mammals-maps",
     overwrite = TRUE,
     verbose = TRUE
@@ -117,7 +142,7 @@ for (i in 1:length(file_paths_all_mammals)) {
 for (i in 1:length(file_paths_orders)) {
   drive_upload(
     file_paths_orders[i],
-    name = file_names_all_mammals[i],
+    name = file_names_orders[i],
     path = "~/ccma-tcc/results/order-maps",
     overwrite = TRUE,
     verbose = TRUE
