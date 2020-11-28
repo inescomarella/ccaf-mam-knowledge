@@ -19,25 +19,25 @@ count.orders.regs.in.polygons <-
     # Output:
     #   polygons sf with the record count of each order in columns named as the
     #   order name
-    
+
     for (j in 1:length(order_list)) {
       countPts <- c()
       suppressMessages({
         for (i in 1:nrow(polygons)) {
-          polySelect <- polygons[i,]
+          polySelect <- polygons[i, ]
           pts2 <- st_intersection(pts, polySelect)
           obj <-
             pts2 %>%
             filter(order == as.character(order_list[j]))
           countPts[i] <- nrow(obj)
         }
-        
       })
       polygons[, (ncol(polygons) + 1)] <- countPts
     }
     x <- ncol(polygons) - length(order_list) + 1
     colnames(polygons)[x:ncol(polygons)] <- order_list
-    return(polygons)
+    
+    polygons
   }
 
 count.sp.in.polygons <- function(pts, polygons) {
@@ -49,16 +49,15 @@ count.sp.in.polygons <- function(pts, polygons) {
   # Output:
   #   polygons sf with an extra column called "nsp" containing the number
   #   of species
-  
+
   nsp <- c()
   suppressMessages({
     for (i in 1:nrow(polygons)) {
-      polySelect <- polygons[i,]
+      polySelect <- polygons[i, ]
       pts2 <- st_intersection(pts, polySelect)
       nsp[i] <- length(unique(pts2$species))
-      
     }
   })
-  
-  return(bind_cols(polygons, nsp))
+
+  cbind(polygons, nsp)
 }

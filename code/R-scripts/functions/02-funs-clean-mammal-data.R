@@ -1,7 +1,7 @@
 # File purpose: functions useful to clean mammal data from papers, GBIF and
 # speciesLink
-# Using minimal number of objects to save memory and make (try to) it run faster
-# 
+# Using minimal number of objects to save memory and (try to) make it run faster
+#
 # Date: 16/11/2020
 
 library(dplyr)
@@ -12,68 +12,88 @@ library(conflicted)
 conflict_prefer("summarise", "dplyr")
 
 rl.synonyms <- function(x) {
-  # Manipulate rl_synonyms() S4 object to get "results" and "name" as a 
+  # Manipulate rl_synonyms() S4 object to get "results" and "name" as a
   # dataframe
   # Make the rl_synonyms() applicable to a list of species
   # Args:
   #   x: species name as character
 
   synym <- rl_synonyms(x, key = rlkey)
+  
   result <- synym$result
+  
   scientificName <- x
+  
   suppressMessages({
     results <- bind_cols(scientificName, result)
   })
   colnames(results)[1] <- "scientificName"
-  return(results)
+
+  results
 }
 
 
 name.backbone <- function(x) {
   # Add a scientificName column containing the species name as written in the
   # input
-  # Arg: 
+  # Arg:
   #   x: species names as character
-  
+
   bckbn <- name_backbone(x)
   bckbn$scientificName <- x
-  return(bckbn)
+
+  bckbn
 }
 
 
 clip.ccma <- function(pts) {
   # Use st_intersection() to remove points outside ccma layer (sf obj)
-  # 
-  # Args: 
-  #   pts: dataframe with decimalLongitude and decimalLatitude columns 
+  #
+  # Args:
+  #   pts: dataframe with decimalLongitude and decimalLatitude columns
   #   specifying coordinates
-  to_remove <- 
-    pts %>% 
+
+  to_remove <-
+    pts %>%
     filter(
-    is.na(decimalLongitude) |
-      decimalLongitude == "" |
-      is.na(decimalLatitude) |
-      decimalLatitude == ""
-  )
+      is.na(decimalLongitude) |
+        decimalLongitude == "" |
+        is.na(decimalLatitude) |
+        decimalLatitude == ""
+    )
+  
   pts <- anti_join(pts, to_remove)
+  
   pts <-
     st_as_sf(pts, coords = c("decimalLongitude", "decimalLatitude"))
   pts <-
     st_set_crs(pts, CRS("+proj=longlat +datum=WGS84"))
+  
   ccma <- st_transform(ccma, crs = CRS("+proj=longlat +datum=WGS84"))
+  
   pts <- st_intersection(pts, ccma)
+  
   coords <- as.data.frame(st_coordinates(pts))
-  
+
   pts <- st_set_geometry(pts, NULL)
-  pts <- pts[1:(ncol(pts) - 2)]
   
+  pts <- pts[1:(ncol(pts) - 2)]
+
   pts$decimalLongitude <- coords$X
   pts$decimalLatitude <- coords$Y
-  return(pts)
+
+  pts
 }
 
 
 only.indentified.species <- function(df) {
+  # Remove hybrids, not identified species, correct some writing, get species
+  # in acceptedNameUsage
+  #
+  # Args:
+  #   df: dataframe containing the columns "scientificName" and
+  #   "acceptedNameUsage"
+
   to_remove_scientificName <-
     df %>%
     mutate(scientificName = as.character(scientificName)) %>%
@@ -83,9 +103,9 @@ only.indentified.species <- function(df) {
         str_detect(scientificName, " sp"),
       !str_detect(scientificName, "spinosus")
     )
-  
+
   to_remove_acceptedNameUsage <-
-    df %>% 
+    df %>%
     mutate(acceptedNameUsage = as.character(acceptedNameUsage)) %>%
     filter(
       is.na(acceptedNameUsage) |
@@ -95,45 +115,50 @@ only.indentified.species <- function(df) {
     )
   to_remove <-
     intersect(to_remove_acceptedNameUsage, to_remove_scientificName)
-  
+
   df <- anti_join(df, to_remove)
-  
+
   # Correct species name in acceptedNameUsage instead of scientificName
   sp_in_acceptedNameUsage <-
     anti_join(to_remove_scientificName, to_remove_acceptedNameUsage)
   df <- anti_join(df, sp_in_acceptedNameUsage)
-  
+
   sp_in_acceptedNameUsage$scientificName <- sp_in_acceptedNameUsage$acceptedNameUsage
-  
+
   df <- bind_rows(df, sp_in_acceptedNameUsage)
-  
+
   df <-
     df %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = "[.]",
-                                        replacement = " ")) %>%
+      pattern = "[.]",
+      replacement = " "
+    )) %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = " gr",
-                                        replacement = " ")) %>%
+      pattern = " gr",
+      replacement = " "
+    )) %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = "cf ",
-                                        replacement = " ")) %>%
+      pattern = "cf ",
+      replacement = " "
+    )) %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = "Cf ",
-                                        replacement = "")) %>%
+      pattern = "Cf ",
+      replacement = ""
+    )) %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = " j ",
-                                        replacement = " ")) %>%
+      pattern = " j ",
+      replacement = " "
+    )) %>%
     mutate(scientificName = str_replace(scientificName,
-                                        pattern = "   ",
-                                        replacement = " "))
-  
+      pattern = "   ",
+      replacement = " "
+    ))
+
   to_remove <-
     df %>%
     filter(str_detect(scientificName, "[?]") |
-             str_detect(scientificName, "[/]") |
-             str_detect(scientificName, "brido")
-    )
-  df <- anti_join(df, to_remove)
-  df
+      str_detect(scientificName, "[/]") |
+      str_detect(scientificName, "brido"))
+
+  anti_join(df, to_remove)
 }

@@ -12,18 +12,17 @@ count.sp.in.polygons <- function(pts, polygons) {
   # Output:
   #   polygons sf with an extra column called "nsp" containing the number
   #   of species
-  
+
   nsp <- c()
   suppressMessages({
     for (i in 1:nrow(polygons)) {
-      polySelect <- polygons[i,]
+      polySelect <- polygons[i, ]
       pts2 <- st_intersection(pts, polySelect)
       nsp[i] <- length(unique(pts2$species))
-      
     }
   })
-  
-  return(cbind(polygons, nsp))
+
+  cbind(polygons, nsp)
 }
 
 
@@ -36,15 +35,16 @@ get.nearest.dist <- function(pts, polygon) {
   # Output:
   #   polygon sf with an extra column called "dist_inst" containing the distance
   #   to the nearest research institute
-  
+
   # Get centroid points to measure distance
   centroid <- coordinates(as(polygon, "Spatial"))
   pts_coords <- st_coordinates(pts)
-  
+
   # Centre point distance to the nearest research institute
   dist <- get.knnx(pts_coords, centroid, k = 1)
-  
+
   # Add distance to polygon attribute table
   polygon$dist_inst <- as.data.frame(dist)$nn.dist
-  return(polygon)
+  
+  polygon
 }

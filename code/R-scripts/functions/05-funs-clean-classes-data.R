@@ -20,13 +20,13 @@ remove.fossil.iNaturalist <- function(dataset) {
   #   dataset: GBIF data containing basisOfRecord and institutionCode columns
   #
   # Putput: GBIF data.frame
-  
+
   to_remove <-
     dataset %>%
     filter(basisOfRecord == "FOSSIL_SPECIMEN" |
-             str_detect(institutionCode, "iNaturalist"))
-  dataset <- anti_join(dataset, to_remove)
-  return(dataset)
+      str_detect(institutionCode, "iNaturalist"))
+  
+  anti_join(dataset, to_remove)
 }
 
 clip.ccma <- function(pts) {
@@ -35,7 +35,7 @@ clip.ccma <- function(pts) {
   # Args:
   #   pts: dataframe with decimalLongitude and decimalLatitude columns
   #   specifying coordinates
-  
+
   to_remove <-
     pts %>%
     filter(
@@ -46,18 +46,19 @@ clip.ccma <- function(pts) {
     )
   pts <- anti_join(pts, to_remove)
   pts <-
-    st_as_sf(pts, coords = c('decimalLongitude', 'decimalLatitude'))
+    st_as_sf(pts, coords = c("decimalLongitude", "decimalLatitude"))
   pts <-
     st_set_crs(pts, CRS("+proj=longlat +datum=WGS84"))
   pts <- st_intersection(pts, ccma)
   coords <- as.data.frame(st_coordinates(pts))
-  
+
   pts <- st_set_geometry(pts, NULL)
   pts <- pts[1:(ncol(pts) - 2)]
-  
+
   pts$decimalLongitude <- coords$X
   pts$decimalLatitude <- coords$Y
-  return(pts)
+  
+  pts
 }
 
 select.gbif.columns <- function(dataset) {
@@ -65,9 +66,8 @@ select.gbif.columns <- function(dataset) {
   #
   # Args:
   #   dataset: GBIF data
-  
-  dataset <-
-    dataset %>%
+
+  dataset %>%
     select(
       class,
       order,
@@ -87,7 +87,6 @@ select.gbif.columns <- function(dataset) {
       recordNumber,
       recordedBy
     )
-  return(dataset)
 }
 
 only.indetified.sp <- function(dataset) {
@@ -95,20 +94,24 @@ only.indetified.sp <- function(dataset) {
   #
   # Args:
   #   dataset: GBIF data
-  
+
   to_remove_scientificName <-
     dataset %>% filter(is.na(scientificName) |
-                         str_detect(scientificName, " ") == FALSE)
+      str_detect(scientificName, " ") == FALSE)
+  
   to_remove_verbatimSc <-
     dataset %>% filter(is.na(verbatimScientificName) |
-                         str_detect(verbatimScientificName, " ") == FALSE)
+      str_detect(verbatimScientificName, " ") == FALSE)
+  
   to_remove <-
     intersect(to_remove_verbatimSc, to_remove_scientificName)
   dataset <- anti_join(dataset, to_remove_scientificName)
+  
   to_return_scientificName <-
     anti_join(to_remove_scientificName, to_remove)
+  
   to_return_scientificName$scientificName <-
-    to_return_scientificName$verbatimSc
-  dataset <- bind_rows(dataset, to_return_scientificName)
-  return(dataset)
+    to_return_scientificName$verbatimScientificName
+  
+  bind_rows(dataset, to_return_scientificName)
 }
