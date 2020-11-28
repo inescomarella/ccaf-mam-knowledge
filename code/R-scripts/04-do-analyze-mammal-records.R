@@ -7,8 +7,7 @@ x <-
   c(
     "tidyverse",
     "rgbif",
-    "openxlsx",
-    "ggplot2"
+    "openxlsx"
   )
 lapply(x, library, character.only = TRUE)
 
@@ -16,7 +15,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/03-funs-analyze-mammal-records.R")
+source("./R-scripts/functions/04-funs-analyze-mammal-records.R")
 
 # Load in clean data
 data <- read.csv("../data/processed-data/clean-mammal-data.csv")
@@ -25,6 +24,30 @@ data <- read.csv("../data/processed-data/clean-mammal-data.csv")
 
 # List of collection and institutions
 collection_institution_df <- do.collection.institution.table(data)
+
+# Organize and clean table
+collection_institution_df <-
+  collection_institution_df %>%
+  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
+    str_detect(collectionCode, "LABEQ"),
+  "UFES",
+  ifelse(str_detect(collectionCode, "UESC"),
+    "UESC",
+    ifelse(str_detect(collectionCode, "USP"),
+      "USP",
+      ifelse(str_detect(collectionCode, "UFRRJ"),
+        "UFRRJ",
+        ifelse(collectionCode == "MVZ",
+          "BNHM",
+          institutionCode
+        )
+      )
+    )
+  )
+  )) %>%
+  filter(collectionCode != "Observations") %>%
+  unique() %>%
+  arrange(institutionCode)
 
 # References of each species
 data_reference_table <- do.reference.table(data)
