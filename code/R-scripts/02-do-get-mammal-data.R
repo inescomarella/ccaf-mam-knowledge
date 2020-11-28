@@ -8,7 +8,7 @@ lapply(x, library, character.only = TRUE)
 conflicted::conflict_prefer("mutate", "dplyr")
 
 # Source functions
-source("./R-scripts/functions/01-funs-get-mammal-data.R")
+source("./R-scripts/functions/02-funs-get-mammal-data.R")
 
 # GBIF data -----------------------------------------------------------------
 

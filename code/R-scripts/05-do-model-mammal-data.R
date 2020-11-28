@@ -27,7 +27,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/04-funs-model-mammal-data.R")
+source("./R-scripts/functions/05-funs-model-mammal-data.R")
 
 # Load in data
 record_pts <-
@@ -86,7 +86,7 @@ g025_df <- st_set_geometry(g025_utm, NULL)
 g025_df_std <-
   g025_df %>%
   # UC presence as a categorical variable (TRUE/FALSE)
-  mutate(uc_pres = is.na(UF_unique)) %>%
+  mutate(uc_pres = !is.na(UF_unique)) %>%
   select(nreg, nsp, dist_inst, uc_pres, lat)
 
 # Correlation test -----------------------------------------------------------

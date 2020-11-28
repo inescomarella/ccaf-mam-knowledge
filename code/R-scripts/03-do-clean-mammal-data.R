@@ -14,7 +14,7 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/02-funs-clean-mammal-data.R")
+source("./R-scripts/functions/03-funs-clean-mammal-data.R")
 
 # Load in data
 data_paper <-
@@ -358,7 +358,7 @@ S_nigritus <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    decimalLatitude < -19.5
+    decimalLatitude <= -19.5
   )
 S_robustus <-
   data_all_clipped %>%
@@ -371,7 +371,7 @@ S_xanthosternos <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    decimalLatitude > -15.8
+    decimalLatitude >= -15.8
   )
 
 S_nigritus$acceptedNameUsage <- "Sapajus nigritus"
@@ -541,13 +541,13 @@ clean_data <- merge(data_all_sp_clean, species_df, by = "species", all = TRUE)
 clean_data_slct <-
   clean_data %>%
   select(
+    reference,
+    citation,
+    PublicationYear,
     datasetName,
     institutionCode,
     collectionCode,
     catalogNumber,
-    reference,
-    citation,
-    PublicationYear,
     year,
     country,
     stateProvince,

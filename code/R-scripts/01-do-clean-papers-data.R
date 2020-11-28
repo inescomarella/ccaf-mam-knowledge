@@ -5,7 +5,7 @@
 library(tidyverse)
 
 # Source functions
-source("./R-scripts/functions/00-funs-clean-papers-data.R")
+source("./R-scripts/functions/01-funs-clean-papers-data.R")
 
 # Load in data
 raw_data <-
