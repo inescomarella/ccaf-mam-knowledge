@@ -65,12 +65,23 @@ plot_along_years <- function(myfill) {
   ggplot(map_nreg_along_years) +
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
     labs(fill = "Number of \n mammal records") +
-    scale_fill_viridis_b(limits = c(0, nmax), breaks = c(0, nmax / 5, 2 * nmax / 5, 3 * nmax / 5, 4 * nmax / 5, nmax)) +
+    scale_fill_viridis_b(
+      limits = c(0, nmax),
+      breaks = c(
+        0,
+        round(nmax / 6, 0),
+        round(2 * nmax / 6, 0),
+        round(3 * nmax / 6, 0),
+        round(4 * nmax / 6, 0),
+        round(5 * nmax / 6, 0),
+        nmax
+      )
+    ) +
     theme_light() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 0.75),
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 8)
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 9)
     ) +
     ggtitle(paste(sub("y", "", myfill))) +
     guides(
@@ -87,10 +98,11 @@ plot_list <- lapply(myfill_list, FUN = plot_along_years)
 # Save video ----------------------------------------------------------------
 
 saveVideo(
-  print(plot_list),
+  expr = print(plot_list),
   video.name = "animation.mp4",
   img.name = "Rplot",
-  ffmpeg = ani.options("ffmpeg")
+  ffmpeg = ani.options("ffmpeg"),
+  other.opts='-pix_fmt yuv420p -b 1000k'
 )
 
 saveHTML(expr = {
