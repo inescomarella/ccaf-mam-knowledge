@@ -203,64 +203,6 @@ plot_siren_g025 <-
   scale_fill_viridis_b(show.limits = TRUE) +
   customPlot
 
-# Plot municipalities
-municipalities_cropped <-
-  st_crop(
-    municipalities,
-    xmin = -41.8798,
-    xmax = -38,
-    ymin = -21.30178,
-    ymax = -13.00164
-  )
-
-plot_nreg_municipalities <-
-  ggplot(municipalities_cropped) +
-  geom_sf(aes(fill = nreg), size = 0.2) +
-  labs(fill = "Number of \n mammal records") +
-  scale_fill_viridis_b(show.limits = TRUE) +
-  customPlot
-
-# Plot pie chart maps
-plot_pie_orders_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(size = 0.2) +
-  geom_scatterpie(
-    aes(x = V1, y = V2, r = radius),
-    data = as.data.frame(g025_geom),
-    cols = orders_list,
-    size = 0.2,
-    alpha = 1.5
-  ) +
-  theme_light() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 0.75),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.key.height = unit(0.4, "cm")
-  ) +
-  ylab(element_blank()) +
-  xlab(element_blank())
-
-plot_pie_orders_g050 <-
-  ggplot(g050_geom) +
-  geom_sf(size = 0.2) +
-  geom_scatterpie(
-    aes(x = V1, y = V2, r = radius),
-    data = as.data.frame(g050_geom),
-    cols = orders_list,
-    size = 0.2,
-    alpha = 1.5
-  ) +
-  theme_light() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 0.75),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 8),
-    legend.key.height = unit(0.4, "cm")
-  ) +
-  ylab(element_blank()) +
-  xlab(element_blank())
-
 # Save plots -----------------------------------------------------------------
 plot_nreg_g025
 ggsave("../data/results/map-all-mammals-nreg.pdf",
@@ -336,24 +278,6 @@ ggsave("../data/results/map-order-cingulata.pdf",
 
 plot_siren_g025
 ggsave("../data/results/map-order-sirenia.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_nreg_municipalities
-ggsave("../data/results/plot-all-mammals-nreg-municipalities.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_pie_orders_g025
-ggsave("../data/results/map-order-pie-g025.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_pie_orders_g050
-ggsave("../data/results/map-order-pie-g050.pdf",
   width = 3,
   height = 4
 )
