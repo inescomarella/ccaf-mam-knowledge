@@ -4,7 +4,11 @@
 library(tidyverse)
 library(animation)
 library(sf)
+library(rlang)
 
+conflicted::conflict_prefer("filter", "dplyr")
+
+# Load data -------------------------------------------------------------------
 record_data <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
@@ -18,7 +22,7 @@ g025_geom <-
   st_read(
     dsn = "../data/processed-data",
     layer = "grid-025-ucs-joined"
-)
+  )
 g025_geom <- st_transform(g025_geom, sp::CRS("+proj=longlat +datum=WGS84"))
 
 # Table ----------------------------------------------------------------------
@@ -27,54 +31,65 @@ nreg_along_years <- function(pts, map_geom) {
     pts %>%
     filter(year != "NA") %>%
     mutate(year = as.character(year))
-
   suppressMessages({
     for (i in 1:length(unique(pts$year))) {
       pts_filtered_year <-
         pts %>%
         filter(year == sort(unique(pts$year))[i])
 
-      nreg <- lengths(st_intersects(map_geom, pts_filtered_year))
+      nreg2 <- lengths(st_intersects(map_geom, pts_filtered_year))
+      nreg <- nreg + nreg2
       map_geom <- bind_cols(map_geom, nreg)
     }
   })
-  
+
   name_list <- sub(" ", "", paste("y", sort(unique(pts$year))))
-  colnames(map_geom)[6:(ncol(map_geom)-1)] <- name_list
-  
+  colnames(map_geom)[6:(ncol(map_geom) - 1)] <- name_list
+
   map_geom
 }
 map_nreg_along_years <- nreg_along_years(record_data, g025_geom[1:5])
 
 # Plot -----------------------------------------------------------------------
-plot_along_years <- function(map_sf) {
-  # Customized theme
-  customPlot <- list(
-    theme_light() +
-      theme(
-        axis.text.x = element_text(angle = 45, hjust = 0.75),
-        legend.title = element_text(size = 8),
-        legend.text = element_text(size = 8)
-      )
-  )
+plot_along_years <- function(myfill) {
+  map_nreg_along_years <-
+    map_nreg_along_years %>%
+    mutate(across(starts_with("y"), as.numeric))
 
-  ggplot(map_sf) +
-    geom_sf(size = 0.2) +
-    customPlot
+  ggplot(map_nreg_along_years) +
+    geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
+    labs(fill = "Number of \n mammal records") +
+    scale_fill_viridis_b(show.limits = TRUE) +
+    theme_light() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 0.75),
+      legend.title = element_text(size = 8),
+      legend.text = element_text(size = 8)
+    ) +
+    ggtitle(paste(sub("y", "", myfill)))
 }
 
-test <-
-  apply(map_nreg_along_years[6:(ncol(map_nreg_along_years) - 1)], 2, plot_along_years)
+myfill_list <- colnames(map_nreg_along_years)[6:(ncol(map_nreg_along_years) - 1)]
+plot_list <- lapply(myfill_list, FUN = plot_along_years)
 
-test <- plot_along_years(map_nreg_along_years)
-map_sf <- map_nreg_along_years
+# Save video ----------------------------------------------------------------
 
 saveVideo(
-  expr_fun(x),
+  print(plot_list),
   video.name = "animation.mp4",
   img.name = "Rplot",
-  ffmpeg = ani.options("ffmpeg"),
-  other.opts = if (grepl("[.]mp4$",
-                         video.name))
-    "-pix_fmt yuv420p"
+  ffmpeg = ani.options("ffmpeg")
 )
+saveHTML(
+  print(plot_list),
+  img.name = "Rplot",
+  ani.options(interval = 0.01),
+  htmlfile = "index.html"
+)
+saveHTML(expr = {
+  png(ani.options("img.fmt"))
+  print(plot_list)
+  dev.off()
+}, img.name = "custom_plot", use.dev = FALSE, ani.type = "png", 
+description = "Note how we use our own graphics device in 'expr'.", 
+htmlfile = "custom_device.html")
