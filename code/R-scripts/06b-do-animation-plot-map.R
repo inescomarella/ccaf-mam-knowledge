@@ -31,6 +31,7 @@ nreg_along_years <- function(pts, map_geom) {
     pts %>%
     filter(year != "NA") %>%
     mutate(year = as.character(year))
+  nreg <- 0
   suppressMessages({
     for (i in 1:length(unique(pts$year))) {
       pts_filtered_year <-
@@ -56,17 +57,28 @@ plot_along_years <- function(myfill) {
     map_nreg_along_years %>%
     mutate(across(starts_with("y"), as.numeric))
 
+  nmax <-
+    st_drop_geometry(map_nreg_along_years) %>%
+    select({{ myfill }}) %>%
+    max()
+
   ggplot(map_nreg_along_years) +
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
     labs(fill = "Number of \n mammal records") +
-    scale_fill_viridis_b(show.limits = TRUE) +
+    scale_fill_viridis_b(limits = c(0, nmax), breaks = c(0, nmax / 5, 2 * nmax / 5, 3 * nmax / 5, 4 * nmax / 5, nmax)) +
     theme_light() +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 0.75),
       legend.title = element_text(size = 8),
       legend.text = element_text(size = 8)
     ) +
-    ggtitle(paste(sub("y", "", myfill)))
+    ggtitle(paste(sub("y", "", myfill))) +
+    guides(
+      fill = guide_colorbar(
+        draw.ulim = FALSE,
+        draw.llim = FALSE
+      )
+    )
 }
 
 myfill_list <- colnames(map_nreg_along_years)[6:(ncol(map_nreg_along_years) - 1)]
@@ -80,12 +92,7 @@ saveVideo(
   img.name = "Rplot",
   ffmpeg = ani.options("ffmpeg")
 )
-saveHTML(
-  print(plot_list),
-  img.name = "Rplot",
-  ani.options(interval = 0.01),
-  htmlfile = "index.html"
-)
+
 saveHTML(expr = {
   png(ani.options("img.fmt"))
   print(plot_list)
