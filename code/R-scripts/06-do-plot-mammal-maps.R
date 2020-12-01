@@ -1,12 +1,9 @@
 # File purpose: Plot and export all mammal maps
 # Data: 17/11/2020
-#
-# To do:
-#   - Map with Brazil in background
 
 # Load libraries
 x <-
-  c("dplyr", "ggplot2", "sf", "raster", "scatterpie")
+  c("dplyr", "ggplot2", "sf")
 lapply(x, library, character.only = TRUE)
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
@@ -19,7 +16,7 @@ source("./R-scripts/functions/06-funs-plot-mammal-maps.R")
 record_data <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
-    crs = CRS("+proj=longlat +datum=WGS84"),
+    crs = sp::CRS("+proj=longlat +datum=WGS84"),
     options = c(
       "X_POSSIBLE_NAMES=decimalLongitude",
       "Y_POSSIBLE_NAMES=decimalLatitude"
@@ -34,17 +31,17 @@ g025_geom <-
   st_read(
     dsn = "../data/processed-data",
     layer = "grid-025-ucs-joined",
-    crs = CRS("+proj=longlat +datum=WGS84")
+    crs = sp::CRS("+proj=longlat +datum=WGS84")
   )
 g050_geom <-
   st_read(
     dsn = "../data/processed-data",
     layer = "grid-050-ucs-joined",
-    crs = CRS("+proj=longlat +datum=WGS84")
+    crs = sp::CRS("+proj=longlat +datum=WGS84")
   )
 
 municipalities <-
-  st_transform(municipalities, CRS("+proj=longlat +datum=WGS84"))
+  st_transform(municipalities, sp::CRS("+proj=longlat +datum=WGS84"))
 
 # Process data ---------------------------------------------------------------
 
