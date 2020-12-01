@@ -1,10 +1,14 @@
 # File purpose: prepare a clean CU layer
 # Date: 01/12/2020
-
+ 
 library(sf)
 library(tidyverse)
 library(sp)
+library(rworldmap) # get South America map
+library(cowplot) # arrange gglots
+library(ggspatial) # north and scale
 
+# Load maps -------------------------------------------------------------------------
 ucs_ba_ICMBio <-
   st_read(
     dsn = "../data/processed-data",
@@ -38,11 +42,6 @@ ucs_br_ICMBio <-
 ccma <- st_read(
   dsn = "../data/processed-data",
   layer = "ccma-clipped",
-  check_ring_dir = TRUE
-)
-brasil <- st_read(
-  dsn = "../data/raw-data/maps/IBGE/br_unidades_da_federacao",
-  layer = "BRUFE250GC_SIR",
   check_ring_dir = TRUE
 )
 
@@ -295,37 +294,67 @@ ucs_std <-
 
 ccma_longlat <- st_transform(ccma_utm, CRS("+proj=longlat +datum=WGS84"))
 ucs_std_longlat <- st_transform(ucs_std, CRS("+proj=longlat +datum=WGS84"))
-brasil_longlat <- st_transform(brasil, CRS("+proj=longlat +datum=WGS84"))
 
-ccma_plot <-
-  ggplot() +
-  geom_sf(data = ccma_longlat) +
-  geom_sf(data = ucs_std_longlat) +
-  theme_light() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 0.75)
-  )
-
-brasil_plot <- 
-  ggplot(data = brasil_longlat) +
-  geom_sf() +
-  geom_rect(xmin = -41.87851, xmax = -38.62885, ymin = -21.30178, ymax = -13.00164, 
-            fill = NA, colour = "black", size = 0.05)
-
-
-library(rworldmap)
-sPDF <- getMap()[-which(getMap()$ADMIN=='Antarctica'),]
-#transform to robin for the Robinson projection
-sPDF <- spTransform(sPDF, CRS=CRS("+proj=longlat +datum=WGS84"))
+# Remove Antartica, cause it's an open polygon, so it's very problematic
+sPDF <- getMap()[-which(getMap()$ADMIN == 'Antarctica'), ]
+sPDF <- spTransform(sPDF, CRS = CRS("+proj=longlat +datum=WGS84"))
 mapCountryData(sPDF)
 
 sPDF_sf <- st_as_sf(sPDF)
 
-sa_rect <- sPDF_sf %>%
-  filter(Stern== "South America") %>%
+
+
+
+ccma_plot <-
+  ggplot() +
+  geom_sf(data = ccma_longlat) +
+  geom_sf(data = ucs_std_longlat, aes(fill = sigla), size = 0.3) +
+  theme_light() +
+  annotation_scale(location = "br", width_hint = 0.2) +
+  annotation_north_arrow(location = "br",  style = north_arrow_fancy_orienteering(text_size = 8), height = unit(0.9, "cm"),
+                         width = unit(0.9, "cm"), pad_y = unit(0.26, "in")) +
+  #guides(fill = guide_legend(ncol = 2)) + 
+  theme(legend.title =  element_blank(),
+        legend.key.size = unit(3, "mm"),
+        axis.text.x = element_text(angle = 45, hjust = 0.75),
+  ) +
+  # PUTA MERDA COMO FOI DIFICIL ACHAR ESSA FUNÇÃO, MAS QUE CU
+  coord_sf(
+    
+    xlim = c(-41.87851, -38.62885),
+    ylim = c(-21.30178, -13.00164),
+    expand = FALSE,
+    label_graticule = "SE"
+  )
+  
+
+sa_rect <- 
+  sPDF_sf %>%
+  filter(Stern == "South America") %>%
   ggplot() +
   geom_sf() +
-  geom_rect(xmin = -41.87851, xmax = -38.62885, ymin = -21.30178, ymax = -13.00164, 
-            fill = NA, colour = "black", size = 0.05)
+  geom_rect(
+    xmin = -41.87851,
+    xmax = -38.62885,
+    ymin = -21.30178,
+    ymax = -13.00164,
+    fill = NA,
+    colour = "black",
+    size = 0.1
+  ) + 
+  theme_light() +
+  theme_minimal_grid() +
+  background_grid('none') +
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank())
 
-cowplot::plot_grid(ccma_plot, sa_rect, nrow = 2, rel_widths = c(1, 1))
+
+ggdraw(xlim = c(0, 2), ylim = c(0, 1)) +
+  draw_plot(ccma_plot, scale = 1.55,
+            hjust = -0.75) +
+  draw_plot(sa_rect, scale = 0.6,
+            vjust = -0.24,
+            hjust = 0.23)
+
