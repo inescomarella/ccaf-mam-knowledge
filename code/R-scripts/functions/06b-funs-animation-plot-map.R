@@ -5,22 +5,23 @@ library(rlang)
 library(sf)
 library(ggplot2)
 library(dplyr)
+library(viridis)
 
 conflicted::conflict_prefer("filter", "dplyr")
 
 nreg.along.years <- function(pts, map_geom) {
   # Create table with count of records along years
-  # 
+  #
   # Args:
   #   pts: sf point map with column "year"
   #   map_gom: sf multipolygon map
-  
+
   # Remove year with "NA" (in this case is "NA", not NA)
   pts <-
     pts %>%
     filter(year != "NA") %>%
     mutate(year = as.character(year))
-  
+
   nreg <- 0
   suppressMessages({
     for (i in 1:length(unique(pts$year))) {
@@ -29,7 +30,7 @@ nreg.along.years <- function(pts, map_geom) {
         filter(year == sort(unique(pts$year))[i])
 
       nregy <- lengths(st_intersects(map_geom, pts_filtered_year))
-      
+
       # Make it cumulative through years
       nreg <- nreg + nregy
       map_geom <- bind_cols(map_geom, nreg)
@@ -46,12 +47,12 @@ nreg.along.years <- function(pts, map_geom) {
 
 plot.along.years <- function(myfill) {
   # Plot map for each year
-  # 
+  #
   # Arg:
   #   myfill: list containing the column names
-  
-  # The map wasn't add in the function input base apparently so far there is 
-  # no easy way to use apply to a sf object, so I added the map inside the 
+
+  # The map wasn't add in the function input base apparently so far there is
+  # no easy way to use apply to a sf object, so I added the map inside the
   # function instead of adding it in the function input
   map_nreg_along_years <-
     map_nreg_along_years %>%
@@ -67,17 +68,8 @@ plot.along.years <- function(myfill) {
   ggplot(map_nreg_along_years) +
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
     labs(fill = "Number of \n mammal records") +
-    scale_fill_viridis_b(
-      limits = c(0, nmax),
-      breaks = c(
-        0,
-        round(nmax / 6, 0),
-        round(2 * nmax / 6, 0),
-        round(3 * nmax / 6, 0),
-        round(4 * nmax / 6, 0),
-        round(5 * nmax / 6, 0),
-        nmax
-      )
+    scale_fill_viridis(
+      limits = c(10, 1600), breaks = c(10, 265, 530, 795, 1060, 1325, 1600), labels = c(10, 265, 530, 795, 1060, 1325, 1600)
     ) +
     theme_light() +
     theme(
