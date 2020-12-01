@@ -40,8 +40,13 @@ ccma <- st_read(
   layer = "ccma-clipped",
   check_ring_dir = TRUE
 )
+brasil <- st_read(
+  dsn = "../data/raw-data/maps/IBGE/br_unidades_da_federacao",
+  layer = "BRUFE250GC_SIR",
+  check_ring_dir = TRUE
+)
 
-# Map missing crs
+# Set CRS ---------------------------------------------------------------------------------------
 # The map is in longlat, so first set the crs, then transform to UTM
 ucs_ma_MMA_longlat <- st_set_crs(ucs_ma_MMA, CRS("+proj=longlat +datum=WGS84"))
 
@@ -57,7 +62,7 @@ ucs_es_IEMA_utm <- st_transform(ucs_es_IEMA, utm)
 ucs_br_ICMBio_utm <- st_transform(ucs_br_ICMBio, utm)
 ccma_utm <- st_transform(ccma, utm)
 
-# Clip CCMA
+# Clip CUs ---------------------------------------------------------------------------------------
 ucs_ba_ICMBio_clipped <-
   st_intersection(st_make_valid(ucs_ba_ICMBio_utm), ccma_utm)
 ucs_ma_MMA_clipped <-
@@ -71,14 +76,7 @@ ucs_es_IEMA_clipped <-
 ucs_br_ICMBio_clipped <-
   st_intersection(ucs_br_ICMBio_utm, ccma_utm)
 
-# Explore the maps
-nrow(ucs_br_ICMBio_clipped)
-nrow(ucs_ma_MMA_clipped)
-nrow(ucs_ma_Dani_clipped)
-nrow(ucs_es_IEMA_clipped)
-nrow(ucs_es_ICMBio_clipped)
-nrow(ucs_ba_ICMBio_clipped)
-
+# Standardize CU siglas and names -----------------------------------------------------------------
 ucs_br_ICMBio_clipped <-
   ucs_br_ICMBio_clipped %>%
   mutate(nome_uc = str_to_upper(nome))
@@ -197,6 +195,7 @@ ucs_binded <-
     ucs_ba_ICMBio_clipped
   )
 
+# Standardize CU names --------------------------------------------------------------------------
 ucs_std <- 
   ucs_binded %>%
   mutate(nome_uc = sub(pattern = "PARNA", replacement = "PARQUE NACIONAL", nome_uc)) %>%
@@ -292,6 +291,41 @@ ucs_std <-
   mutate(nome_uc = sub(pattern = "DE RIO PRETO", replacement = "DO RIO PRETO", nome_uc)) %>%
   filter(sigla != "<NA>", sigla != "APP", sigla != "BEM TOMB", )
 
-ggplot() + 
-  geom_sf(data = ccma_utm) + 
-  geom_sf(data = ucs_std, aes(fill = sigla))
+# Plot ------------------------------------------------------------------------------------------
+
+ccma_longlat <- st_transform(ccma_utm, CRS("+proj=longlat +datum=WGS84"))
+ucs_std_longlat <- st_transform(ucs_std, CRS("+proj=longlat +datum=WGS84"))
+brasil_longlat <- st_transform(brasil, CRS("+proj=longlat +datum=WGS84"))
+
+ccma_plot <-
+  ggplot() +
+  geom_sf(data = ccma_longlat) +
+  geom_sf(data = ucs_std_longlat) +
+  theme_light() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 0.75)
+  )
+
+brasil_plot <- 
+  ggplot(data = brasil_longlat) +
+  geom_sf() +
+  geom_rect(xmin = -41.87851, xmax = -38.62885, ymin = -21.30178, ymax = -13.00164, 
+            fill = NA, colour = "black", size = 0.05)
+
+
+library(rworldmap)
+sPDF <- getMap()[-which(getMap()$ADMIN=='Antarctica'),]
+#transform to robin for the Robinson projection
+sPDF <- spTransform(sPDF, CRS=CRS("+proj=longlat +datum=WGS84"))
+mapCountryData(sPDF)
+
+sPDF_sf <- st_as_sf(sPDF)
+
+sa_rect <- sPDF_sf %>%
+  filter(Stern== "South America") %>%
+  ggplot() +
+  geom_sf() +
+  geom_rect(xmin = -41.87851, xmax = -38.62885, ymin = -21.30178, ymax = -13.00164, 
+            fill = NA, colour = "black", size = 0.05)
+
+cowplot::plot_grid(ccma_plot, sa_rect, nrow = 2, rel_widths = c(1, 1))
