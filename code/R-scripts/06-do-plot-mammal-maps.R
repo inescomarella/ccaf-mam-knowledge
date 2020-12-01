@@ -65,23 +65,6 @@ g050_geom <-
 # Takes 29s to run
 g025_geom <- count.sp.in.polygons(record_data, g025_geom)
 
-# Get pies chart coordinates
-# Use centre point coordinates to specify pie chart XY coords in the map
-g025_coord <-
-  as.data.frame(coordinates(as(g025_geom, "Spatial")))
-g050_coord <-
-  as.data.frame(coordinates(as(g050_geom, "Spatial")))
-
-g025_geom <- bind_cols(g025_coord, g025_geom)
-g050_geom <- bind_cols(g050_coord, g050_geom)
-
-# Set radius proportional to the number of records
-g025_geom$radius <- g025_geom$nreg / (max(g025_geom$nreg) * 2)
-g050_geom$radius <- g050_geom$nreg / (max(g050_geom$nreg) * 2)
-
-# Return to sf class to plot as geom_sf()
-g025_geom <- st_as_sf(g025_geom)
-g050_geom <- st_as_sf(g050_geom)
 
 # Plot -----------------------------------------------------------------------
 
