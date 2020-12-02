@@ -53,6 +53,15 @@ ccaf <- st_read(
   layer = "ccma-clipped",
   check_ring_dir = TRUE
 )
+institute_pts <-
+  st_read(
+    dsn = "../data/raw-data/research-institutes.csv",
+    crs = CRS("+proj=longlat +datum=WGS84"),
+    options = c(
+      "X_POSSIBLE_NAMES=longitude",
+      "Y_POSSIBLE_NAMES=latitude"
+    )
+  )
 
 # Process CU maps -----------------------------------------------------------
 
@@ -346,6 +355,7 @@ ccaf_plot <-
   ggplot() +
   geom_sf(data = ccaf_longlat) +
   geom_sf(data = ucs_std_longlat, aes(fill = acronym), size = 0.3) +
+  geom_sf(data = institute_pts) +
   theme_light() +
 
   # Scale bar in the bottom right
