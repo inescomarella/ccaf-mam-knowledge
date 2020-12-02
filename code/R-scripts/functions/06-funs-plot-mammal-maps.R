@@ -8,7 +8,7 @@ library(conflicted)
 
 conflict_prefer(name = "filter", winner = "dplyr")
 
-count.orders.regs.in.polygons <-
+count.orders.recs.in.polygons <-
   function(pts, polygons, order_list) {
     # Count number of records of each order in each polygon
     # Args:
