@@ -55,6 +55,9 @@ first_last_rec_plot_path <-
 
 species_table_path <- "../data/results/species-table.xlsx"
 
+ccma_map_path <- "../data/results/CCAF-map.pdf"
+
+ccma_cus_path <- "../data/results/CUs-list.xlsx"
 
 # Get file names by removing the path
 all_mammals_names <-
@@ -68,6 +71,12 @@ first_last_rec_plot_name <-
 
 species_table_name <-
   str_replace(species_table_path, "../data/results/", "")
+
+ccma_map_name <-
+  str_replace(ccma_map_path, "../data/results/", "")
+
+ccma_cus_name <-
+  str_replace(ccma_cus_path, "../data/results/", "")
 
 # Upload files ---------------------------------------------------------------
 
@@ -104,6 +113,23 @@ drive_upload(
   species_table_path,
   name = species_table_name,
   path = "~/ccma-tcc/results/species-knowledge-gaps",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+drive_upload(
+  ccma_map_path,
+  name = ccma_map_name,
+  path = "~/ccma-tcc/results",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+
+drive_upload(
+  ccma_cus_path,
+  name = ccma_cus_name,
+  path = "~/ccma-tcc/results",
   overwrite = TRUE,
   verbose = TRUE
 )
