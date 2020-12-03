@@ -62,8 +62,9 @@ g025_utm$nrec <- lengths(st_intersects(g025_utm, rcrd_utm))
 # Get CU presence in each cell
 g025_utm$CU <- lengths(st_intersects(g025_utm, cus_utm))
 
-# Save -----------------------------------------------------------------------
-st_drop_geometry(g025_utm) %>%
+# Save plots -----------------------------------------------------------------
+scatter_plot <-
+  st_drop_geometry(g025_utm) %>%
   mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
   mutate(dist_inst = dist_inst / 1000) %>%
   ggplot() +
@@ -73,8 +74,9 @@ st_drop_geometry(g025_utm) %>%
   ylab("Number of records") +
   xlab("Distance to research institute (km)")
 
+scatter_plot
 ggsave(
-  "../data/results/scatter-plot-nrec-dist-cu.pdf",
+  "../data/results/scatter-plot-all-nrec-dist-cu.pdf",
   width = 6,
   height = 4
 )
