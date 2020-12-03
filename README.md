@@ -22,5 +22,5 @@ Os três primeiros script demoram para rodar, especialmente o script 03-do-clean
 - [x] Mapa do CCMA
 - [x] Gráfico de primeiro e último registro
 - [x] Lista de UCs
-- [ ] Tabela de último registro das espécies e seu estado de ameaça internacional, nacionale estadual
+- [x] Tabela de último registro das espécies e seu estado de ameaça internacional, nacional e estadual
 - [ ] Finalizar lista de espécies
