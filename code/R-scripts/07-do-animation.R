@@ -1,12 +1,6 @@
 # File purpose: Make a video of number of records in CCMA through time
 # Data: 30/11/020
 
-############################################################################################
-# To do:
-#   Remove break points and fix 0-1600, I hope in that way you can just see the cell getting darker
-############################################################################################
-
-
 # Load libraries
 library(tidyverse)
 library(animation)
