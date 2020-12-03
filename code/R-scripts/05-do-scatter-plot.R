@@ -10,7 +10,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/05-funs-model-mammal-data.R")
+source("./R-scripts/functions/05-funs-scatter-plot.R")
 
 # Load data -------------------------------------------------------------------
 record_pts <-

@@ -1,4 +1,4 @@
-# File purpose: functions useful to do measures necessary to model
+# File purpose: functions useful to do measures necessary to do the scatter plot
 # Date: 17/11/2020
 
 library(sf)

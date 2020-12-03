@@ -10,7 +10,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/04-funs-analyze-mammal-records.R")
+source("./R-scripts/functions/08-funs-explore-species-data.R")
 
 # Load data ----------------------------------------------------------------
 data_read <- read.csv("../data/processed-data/clean-mammal-data.csv")

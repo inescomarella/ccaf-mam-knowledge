@@ -10,7 +10,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/06-funs-plot-mammal-maps.R")
+source("./R-scripts/functions/06-funs-maps-mammals.R")
 
 # Load data -----------------------------------------------------------------
 record_data <-

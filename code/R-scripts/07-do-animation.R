@@ -9,7 +9,7 @@ library(sf)
 conflicted::conflict_prefer("filter", "dplyr")
 
 # Source functions
-source("./R-scripts/functions/06b-funs-animation-plot-map.R")
+source("./R-scripts/functions/07-funs-animation.R")
 
 # Load data -------------------------------------------------------------------
 
