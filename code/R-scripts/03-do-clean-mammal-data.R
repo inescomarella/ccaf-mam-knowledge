@@ -565,6 +565,15 @@ clean_data_slct <-
   clean_data_slct %>%
   filter(!is.na(species))
 
+# Correct some species names after revision
+clean_data_slct <-
+  clean_data_slct %>%
+  mutate(species = ifelse(str_detect(species, "Felis"),
+                          "Leopardus pardalis",
+                          species)) %>%
+  mutate(species = sub("myosurus", "myosuros", species)) %>%
+  mutate(species = sub("Blarynomis", "Blarinomys", species))
+
 # Save data.frame ------------------------------------------------------------
 write.csv(
   clean_data_slct,
