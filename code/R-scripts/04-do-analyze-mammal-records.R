@@ -3,13 +3,8 @@
 # Data: 17/11/2020
 
 # Load in libraries
-x <-
-  c(
-    "tidyverse",
-    "rgbif",
-    "openxlsx"
-  )
-lapply(x, library, character.only = TRUE)
+library(tidyverse)
+library(openxlsx)
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -17,8 +12,12 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 # Source functions
 source("./R-scripts/functions/04-funs-analyze-mammal-records.R")
 
-# Load in clean data
-data <- read.csv("../data/processed-data/clean-mammal-data.csv")
+# Load data ----------------------------------------------------------------
+data_read <- read.csv("../data/processed-data/clean-mammal-data.csv")
+cons_status <- read.csv("../data/raw-data/conservation-status.csv")
+
+# Add species conservation status
+data <- merge(data_read, cons_status, by = "species", all = TRUE)
 
 # Tables ----------------------------------------------------------------------
 
@@ -65,11 +64,31 @@ species_references_df <-
 # First and last record of each species
 species_record_df <-
   data %>%
+  mutate(
+    International = ifelse(International == "",
+                           "NE",
+                           International),
+    Nacional = ifelse(Nacional == "",
+                      "NE",
+                      Nacional),
+    Regional.BA = ifelse(Regional.BA == "",
+                         "NE",
+                         Regional.BA),
+    Regional.ES = ifelse(Regional.ES == "",
+                         "NE",
+                         Regional.ES)
+  ) %>%
+  filter(!str_detect(scientificName, "Felis"), !is.na(scientificName)) %>%
   group_by(scientificName) %>%
   summarise(
     first_record = min(as.numeric(year), na.rm = TRUE),
-    last_record = max(as.numeric(year), na.rm = TRUE)
-  )
+    last_record = max(as.numeric(year), na.rm = TRUE),
+    International = unique(International),
+    Nacional = unique(Nacional),
+    Regional.BA = unique(Regional.BA),
+    Regional.ES = unique(Regional.ES)
+  ) %>%
+  arrange(by = last_record)
 
 # Plot -----------------------------------------------------------------------
 first_record_df <-
