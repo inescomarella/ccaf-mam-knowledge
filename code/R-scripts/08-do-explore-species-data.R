@@ -8,6 +8,7 @@ library(openxlsx)
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
+conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
 source("./R-scripts/functions/08-funs-explore-species-data.R")
@@ -18,6 +19,9 @@ cons_status <- read.csv("../data/raw-data/conservation-status.csv")
 
 # Add species conservation status
 data <- merge(data_read, cons_status, by = "species", all = TRUE)
+
+to_remove <- anti_join(select(data, colnames(data_read)), data_read)
+data <- anti_join(data, to_remove)
 
 # Tables ----------------------------------------------------------------------
 
@@ -79,8 +83,9 @@ species_record_df <-
                          Regional.ES)
   ) %>%
   filter(!str_detect(scientificName, "Felis"), !is.na(scientificName)) %>%
-  group_by(scientificName) %>%
+  group_by(species) %>%
   summarise(
+    scientificName = unique(scientificName),
     first_record = min(as.numeric(year), na.rm = TRUE),
     last_record = max(as.numeric(year), na.rm = TRUE),
     International = unique(International),

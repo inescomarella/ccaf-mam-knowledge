@@ -132,11 +132,6 @@ synonyms_df_corrected <-
     accepted_name
   )) %>%
   mutate(accepted_name = ifelse(
-    scientificName == "Saguinus bicolor",
-    "Saguinus martinsi",
-    accepted_name
-  )) %>%
-  mutate(accepted_name = ifelse(
     scientificName == "Micoureus paraguayanus",
     "Marmosa paraguayana",
     accepted_name
@@ -219,7 +214,7 @@ backbone_gbif_df_selected <-
   )) %>%
   mutate(species = ifelse(
     scientificName == "Dasyprocta agouti",
-    "Dasyprocta aguti",
+    "Dasyprocta leporina",
     species
   )) %>%
   mutate(species = ifelse(
@@ -286,7 +281,7 @@ backbone_gbif_df_selected <-
   # Nascimento, 2010. Revisão taxonomica do gênero Leopardus. Tese doutorado, USP.
   mutate(species = ifelse(
     scientificName == "Felis brasiliensis",
-    "Felis brasiliensis",
+    "Leopardus pardalis",
     species
   )) %>%
   mutate(species = ifelse(
@@ -338,6 +333,11 @@ data_all_without_sapajus <- anti_join(data_all_clipped, to_remove)
 data_all_without_sapajus <-
   data_all_without_sapajus %>%
   select(-c(order, family))
+
+# Little fix
+backbone_sp_gbif_iucn_df <-
+  backbone_sp_gbif_iucn_df %>%
+  mutate(scientificName = sub("Brucepattersonius griserufescens", "Brucepattersonius iserufescens", scientificName))
 
 # Merge backbones with the main dataframe
 data_all_backbone_iucn_gbif_merged <-
@@ -496,30 +496,29 @@ data_all_sp_clean <-
     "Natalus macrourus",
     species
   )) %>%
-  mutate(species = ifelse(
-    scientificName == "Oxymycterus caparoae",
-    "Oxymycterus caparaoe",
-    species
-  )) %>%
-  mutate(species = ifelse(
-    scientificName == "Brucepattersonius iserufescens",
-    "Brucepattersonius griserufescens",
-    species
-  )) %>%
-  mutate(species = ifelse(
-    scientificName == "Guerlinguetus brasiliensi",
-    "Guerlinguetus ingrami",
-    species
-  )) %>%
-  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e    #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
+  mutate(species = sub("Oxymycterus caparoae", "Oxymycterus caparaoe", species)) %>%
+  mutate(species = sub("Brucepattersonius iserufescens", "Brucepattersonius griserufescens", species)) %>%
+  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e   #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
   #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
-  # com exceção das Antilhas (que podem representar uma outra espécie), estariam
-  # incluídas em L. blossevillii (REID, 1997)."
+  # com exceção das Antilhas (que podem representar uma outra espécie), 
+  # estariam incluídas em L. blossevillii (REID, 1997)."
   mutate(species = ifelse(
     species == "Lasiurus borealis",
     "Lasiurus blossevillii",
     species
-  ))
+  )) %>%
+  mutate(species = ifelse(str_detect(species, "Felis"),
+                          "Leopardus pardalis",
+                          species)) %>%
+  mutate(species = sub("myosurus", "myosuros", species)) %>%
+  mutate(species = sub("Blarynomis", "Blarinomys", species)) %>%
+  mutate(species = sub("arviculoides", "cursor", species)) %>%
+  mutate(species = sub("Oligoryzomys eliurus", "Oligoryzomys nigripes", species)) %>%
+  mutate(species = ifelse(str_detect(species, "Hylaeamys"),
+                          "Hylaeamys laticeps",
+                          species)) %>%
+  mutate(species = sub("Dasyprocta aguti", "Dasyprocta leporina", species))
+
 
 # scientificName as the scientific name containing the species author, not as
 # the key to the raw data reference anymore
@@ -565,17 +564,29 @@ clean_data_slct <-
   clean_data_slct %>%
   filter(!is.na(species))
 
-# Correct some species names after revision
-clean_data_slct <-
+# Remove duplicated records
+clean_data_distincted <-
   clean_data_slct %>%
-  mutate(species = ifelse(str_detect(species, "Felis"),
-                          "Leopardus pardalis",
-                          species)) %>%
-  mutate(species = sub("myosurus", "myosuros", species)) %>%
-  mutate(species = sub("Blarynomis", "Blarinomys", species))
+  
+  # Keep the first option with year, and remove the others
+  arrange(year) %>%
+  mutate(catalogNumber = str_remove_all(catalogNumber, ".0")) %>%
+  mutate(
+    catalogNumber = str_remove_all(catalogNumber, "[:alpha:]"),
+    catalogNumber = str_remove_all(catalogNumber, ":")
+  ) %>%
+  distinct(
+    species,
+    catalogNumber,
+    institutionCode,
+    decimalLatitude,
+    decimalLongitude,
+    .keep_all = TRUE
+  )
+
 
 # Save data.frame ------------------------------------------------------------
 write.csv(
-  clean_data_slct,
+  clean_data_distincted,
   "../data/processed-data/clean-mammal-data.csv"
 )

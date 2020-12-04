@@ -69,7 +69,6 @@ institute_pts <-
 ucs_af_MMA_longlat <-
   st_set_crs(ucs_af_MMA, CRS("+proj=longlat +datum=WGS84"))
 
-
 # Set UTM
 utm <-
   CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
@@ -81,7 +80,6 @@ ucs_es_ICMBio_utm <- st_transform(ucs_es_ICMBio, utm)
 ucs_es_IEMA_utm <- st_transform(ucs_es_IEMA, utm)
 ucs_br_ICMBio_utm <- st_transform(ucs_br_ICMBio, utm)
 ccaf_utm <- st_transform(ccaf, utm)
-
 
 # Clip CUs maps
 ucs_ba_ICMBio_clipped <-
@@ -101,7 +99,6 @@ ucs_es_IEMA_clipped <-
 
 ucs_br_ICMBio_clipped <-
   st_intersection(ucs_br_ICMBio_utm, ccaf_utm)
-
 
 # Standardize CU acronyms and names
 ucs_br_ICMBio_clipped <-
@@ -224,7 +221,6 @@ ucs_binded <-
     ucs_ba_ICMBio_clipped
   )
 
-
 # Standardize CU names
 ucs_std <-
   ucs_binded %>%
@@ -332,7 +328,7 @@ ucs_std <-
   mutate(
     name_cu = sub(pattern = "FLORESTA NACIONAL FLORESTA NACIONAL ", replacement = "FLORESTA NACIONAL ", name_cu)
   ) %>%
-  filter(acronym != "<NA>", acronym != "APP", acronym != "BEM TOMB", )
+  filter(acronym != "<NA>", acronym != "APP", acronym != "BEM TOMB")
 
 # Plot CCAF map -------------------------------------------------------------
 

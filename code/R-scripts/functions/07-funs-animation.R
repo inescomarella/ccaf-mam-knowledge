@@ -69,9 +69,9 @@ plot.along.years <- function(myfill) {
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
     labs(fill = "Number of \n mammal records") +
     scale_fill_viridis(
-      limits = c(5, 1961),
-      breaks = c(5, 326, 653, 980, 1307, 1634, 1961),
-      labels = c(5, 326, 653, 980, 1307, 1634, 1961)
+      limits = c(5, 1637),
+      breaks = c(5, 273, 546, 818, 1091, 1364, 1637),
+      labels = c(5, 273, 546, 818, 1091, 1364, 1637)
     ) +
     theme_light() +
     theme(

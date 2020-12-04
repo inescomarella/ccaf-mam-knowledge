@@ -75,7 +75,7 @@ clip.ccma <- function(pts) {
   
   coords <- as.data.frame(st_coordinates(pts))
 
-  pts <- st_set_geometry(pts, NULL)
+  pts <- st_drop_geometry(pts)
   
   pts <- pts[1:(ncol(pts) - 2)]
 
@@ -134,7 +134,7 @@ only.indentified.species <- function(df) {
       replacement = " "
     )) %>%
     mutate(scientificName = str_replace(scientificName,
-      pattern = " gr",
+      pattern = " gr ",
       replacement = " "
     )) %>%
     mutate(scientificName = str_replace(scientificName,
