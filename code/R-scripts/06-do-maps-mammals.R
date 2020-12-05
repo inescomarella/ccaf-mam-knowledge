@@ -23,6 +23,16 @@ record_data <-
     )
   )
 
+institute_pts <-
+  st_read(
+    dsn = "../data/raw-data/research-institutes.csv",
+    crs = CRS("+proj=longlat +datum=WGS84"),
+    options = c(
+      "X_POSSIBLE_NAMES=longitude",
+      "Y_POSSIBLE_NAMES=latitude"
+    )
+  )
+
 g025_geom <-
   st_read(dsn = "../data/processed-data/", layer = "grid-025-clipped")
 
@@ -60,8 +70,9 @@ customPlot <- list(
 
 # Plot number of mammal records in grid
 plot_nrec_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = nrec), size = 0.2) +
+  ggplot() +
+  geom_sf(data = g025_geom, aes(fill = nrec), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   labs(fill = "Number of \n mammal records") +
   scale_fill_viridis(
     limits = c(5, max(g025_geom$nrec)),
@@ -90,6 +101,7 @@ plot_nrec_g025 <-
 plot_nsp_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = nsp), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   labs(fill = "Number of mammal \n species recorded") +
   scale_fill_viridis(
     limits = c(1, max(g025_geom$nsp)),
@@ -118,6 +130,7 @@ plot_nsp_g025 <-
 plot_roden_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Rodentia), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Rodentia") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -146,6 +159,7 @@ plot_roden_g025 <-
 plot_prima_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Primates), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Primates") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -174,6 +188,7 @@ plot_prima_g025 <-
 plot_carni_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Carnivora), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Carnivora") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -202,6 +217,7 @@ plot_carni_g025 <-
 plot_didel_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Didelphimorphia), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Didelphimorphia") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -230,6 +246,7 @@ plot_didel_g025 <-
 plot_peris_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Perissodactyla), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Perissodactyla") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -258,6 +275,7 @@ plot_peris_g025 <-
 plot_chiro_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Chiroptera), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Chiroptera") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -286,6 +304,7 @@ plot_chiro_g025 <-
 plot_lagom_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Lagomorpha), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Lagomorpha") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -314,6 +333,7 @@ plot_lagom_g025 <-
 plot_pilos_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Pilosa), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Pilosa") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -342,6 +362,7 @@ plot_pilos_g025 <-
 plot_artio_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Artiodactyla), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Artiodactyla") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(
@@ -370,6 +391,7 @@ plot_artio_g025 <-
 plot_cingu_g025 <-
   ggplot(g025_geom) +
   geom_sf(aes(fill = Cingulata), size = 0.2) +
+  geom_sf(data = institute_pts, size = 0.7) +
   ggtitle("Cingulata") +
   labs(fill = "Number of \n records") +
   scale_fill_viridis(

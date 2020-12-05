@@ -472,7 +472,7 @@ save_plot(
 # List of CUs in CCAF
 cu_list <-
   st_drop_geometry(ucs_std) %>%
-  select(name_cu, acronym) %>%
+  select(name_cu, acronym, CU_type) %>%
   unique() %>%
   arrange(name_cu) %>%
   tibble()
