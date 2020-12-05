@@ -328,7 +328,32 @@ ucs_std <-
   mutate(
     name_cu = sub(pattern = "FLORESTA NACIONAL FLORESTA NACIONAL ", replacement = "FLORESTA NACIONAL ", name_cu)
   ) %>%
-  filter(acronym != "<NA>", acronym != "APP", acronym != "BEM TOMB")
+  filter(acronym != "<NA>", acronym != "APP", acronym != "BEM TOMB", acronym != "PAREC")
+
+ucs_std <-
+  ucs_std %>%
+  mutate(
+    CU_type = ifelse(
+      str_detect(acronym, "ESEC") |
+        str_detect(acronym, "REBIO") |
+        str_detect(acronym, "PARNA") |
+        str_detect(acronym, "MONA") |
+        str_detect(acronym, "REVIS") |
+        str_detect(acronym, "PES") |
+        str_detect(acronym, "PARMU"), 
+      "Integral Protection Units",
+    ifelse(
+      str_detect(acronym, "APA") |
+        str_detect(acronym, "RESEX") |
+        str_detect(acronym, "FLONA") |
+        str_detect(acronym, "ARIE") |
+        str_detect(acronym, "RDF") |
+        str_detect(acronym, "RDS") |
+        str_detect(acronym, "RPPN"),
+    "Sustainable Use Units",
+    ""
+  )))
+
 
 # Plot CCAF map -------------------------------------------------------------
 
@@ -350,8 +375,8 @@ sPDF_sf <- st_as_sf(sPDF)
 ccaf_plot <-
   ggplot() +
   geom_sf(data = ccaf_longlat) +
-  geom_sf(data = ucs_std_longlat, aes(fill = acronym), size = 0.3) +
-  geom_sf(data = institute_pts) +
+  geom_sf(data = ucs_std_longlat, aes(fill = CU_type), size = 0.05) +
+  geom_sf(data = institute_pts, size = 0.7) +
   theme_light() +
 
   # Scale bar in the bottom right
@@ -422,7 +447,7 @@ ccaf_final_plot <-
   ) +
   draw_plot(sa_rect,
     scale = 0.6,
-    vjust = -0.24,
+    vjust = -0.21,
     hjust = 0.23
   )
 
