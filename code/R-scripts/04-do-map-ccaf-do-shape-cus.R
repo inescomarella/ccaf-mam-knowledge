@@ -1,6 +1,14 @@
 # File purpose: prepare a clean CU layer
 # Date: 01/12/2020
 
+########################################################################
+# To do:
+#   - Adicionar os estados brasileiros (colorir apenas ES e BA) e o shape do CCMA ao mapa
+#   da América do Sul
+#   Adicionar os pontos na legenda do mapa
+########################################################################
+
+
 # Load libraries
 x <-
   c(
@@ -62,7 +70,16 @@ institute_pts <-
       "Y_POSSIBLE_NAMES=latitude"
     )
   )
-
+remane_ba_SOSMA <-
+  st_read(
+    dsn = "../data/raw-data/maps/Atlas-SOS/BA_atlas18_19",
+    layer = "BA_atlas18_19"
+  )
+remane_es_SOSMA <-
+  st_read(
+    dsn = "../data/raw-data/maps/Atlas-SOS/ES_atlas18_19",
+    layer = "ES_atlas18_19"
+  )
 # Process CU maps -----------------------------------------------------------
 
 # CRS missing, first set longlat, then transform to UTM
@@ -80,6 +97,8 @@ ucs_es_ICMBio_utm <- st_transform(ucs_es_ICMBio, utm)
 ucs_es_IEMA_utm <- st_transform(ucs_es_IEMA, utm)
 ucs_br_ICMBio_utm <- st_transform(ucs_br_ICMBio, utm)
 ccaf_utm <- st_transform(ccaf, utm)
+remane_ba_SOSMA_utm <- st_transform(remane_ba_SOSMA, utm)
+remane_es_SOSMA_utm <- st_transform(remane_es_SOSMA, utm)
 
 # Clip CUs maps
 ucs_ba_ICMBio_clipped <-
@@ -99,6 +118,9 @@ ucs_es_IEMA_clipped <-
 
 ucs_br_ICMBio_clipped <-
   st_intersection(ucs_br_ICMBio_utm, ccaf_utm)
+
+remane_ba_SOSMA_clipped <-
+  st_intersection(st_make_valid(remane_ba_SOSMA_utm), ccaf_utm)
 
 # Standardize CU acronyms and names
 ucs_br_ICMBio_clipped <-
@@ -362,7 +384,10 @@ ccaf_longlat <-
   st_transform(ccaf_utm, CRS("+proj=longlat +datum=WGS84"))
 ucs_std_longlat <-
   st_transform(ucs_std, CRS("+proj=longlat +datum=WGS84"))
-
+remane_es_SOSMA_longlat <-
+  st_transform(remane_es_SOSMA_utm, CRS("+proj=longlat +datum=WGS84"))
+remane_ba_SOSMA_longlat <-
+  st_transform(remane_ba_SOSMA_clipped, CRS("+proj=longlat +datum=WGS84"))
 
 # Import world map from rworldmap package
 # Remove Antarctica, cause it's an open polygon, and it's very problematic
@@ -370,12 +395,27 @@ sPDF <- getMap()[-which(getMap()$ADMIN == "Antarctica"), ]
 sPDF <- spTransform(sPDF, CRS = CRS("+proj=longlat +datum=WGS84"))
 sPDF_sf <- st_as_sf(sPDF)
 
+# Plot forest remanescents
+remane_plot <-
+  rbind(remane_es_SOSMA_longlat,
+        select(remane_ba_SOSMA_longlat, colnames(remane_ba_SOSMA_utm))) %>%
+  ggplot() +
+  geom_sf(aes(fill = 'mata'), size = 0.01) +
+  scale_fill_manual(values = "dark green") +
+  theme_minimal_grid() +
+  theme_nothing()
+
+ucs_plot <-
+  ggplot() +
+  geom_sf(data = ucs_std_longlat, aes(fill = CU_type), size = 0.05) +
+  theme_minimal_grid() +
+  theme_nothing()
 
 # Plot CCAF with the CUs colored by the CU type
 ccaf_plot <-
-  ggplot() +
-  geom_sf(data = ccaf_longlat) +
-  geom_sf(data = ucs_std_longlat, aes(fill = CU_type), size = 0.05) +
+  remane_plot +
+  geom_sf(data = ccaf_longlat, aes(fill = NA)) +
+  geom_sf(data = ucs_std_longlat, size = 0.05) +
   geom_sf(data = institute_pts, size = 0.7) +
   theme_light() +
 
