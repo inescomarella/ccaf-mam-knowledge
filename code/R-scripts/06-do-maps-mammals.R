@@ -5,6 +5,7 @@
 library(tidyverse)
 library(sf)
 library(viridis)
+library(brazilmaps)
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -12,11 +13,17 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 # Source functions
 source("./R-scripts/functions/06-funs-maps-mammals.R")
 
-# Load data -----------------------------------------------------------------
-record_data <-
+# Projections
+utm <-
+  sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+longlat <- sp::CRS("+proj=longlat +datum=WGS84")
+
+# Load data --------------------------------------------------
+record_pts <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
-    crs = sp::CRS("+proj=longlat +datum=WGS84"),
+    crs = longlat,
     options = c(
       "X_POSSIBLE_NAMES=decimalLongitude",
       "Y_POSSIBLE_NAMES=decimalLatitude"
@@ -26,467 +33,216 @@ record_data <-
 institute_pts <-
   st_read(
     dsn = "../data/raw-data/research-institutes.csv",
-    crs = CRS("+proj=longlat +datum=WGS84"),
+    crs = longlat,
     options = c(
       "X_POSSIBLE_NAMES=longitude",
       "Y_POSSIBLE_NAMES=latitude"
     )
   )
 
-g025_geom <-
-  st_read(dsn = "../data/processed-data/", layer = "grid-025-clipped")
+corridors <- st_read(
+  dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
+  layer = "corredores_ppg7",
+  check_ring_dir = TRUE
+)
+# Pre-process map --------------------------------------------
 
-g025_geom <-
-  st_transform(g025_geom, sp::CRS("+proj=longlat +datum=WGS84"))
+# Keep only CCAF
+ccaf_longlat <- 
+  corridors %>% 
+  filter(str_detect(NOME1, "Mata")) %>%
+  st_set_crs(longlat)
 
-# Process data ---------------------------------------------------------------
+# Get Brazil map
+br_longlat <-
+  get_brmap(geo = "Brazil")%>% 
+  st_as_sf() %>%
+  st_transform(longlat)
+
+# Clip, make grid and convert to metric coordinate system
+# Ignore the warnings
+ccaf_grid <- 
+  st_intersection(ccaf_longlat, br_longlat) %>%
+  st_make_grid(square = FALSE, cellsize = 0.3) %>%
+  st_transform(utm) %>%
+  st_as_sf()
+
+# Keep just the shape
+ccaf_utm <- 
+  st_intersection(ccaf_longlat, br_longlat) %>%
+  st_transform(utm) %>%
+  st_as_sf()
+
+
+# Process data -----------------------------------------------
+
+# Reproject to a metric coordinate system
+rcrd_utm <- st_transform(record_pts, utm)
+inst_utm <- st_transform(institute_pts, utm)
 
 # Count records of mammals in a grid
-g025_geom$nrec <- lengths(st_intersects(g025_geom, record_data))
+ccaf_grid$nrec <- lengths(st_intersects(ccaf_grid, rcrd_utm))
 
 # Count records of mammal orders in a grid
 # Takes 336.622s to run
-orders_list <- unique(record_data$order)
-g025_geom <-
-  count.orders.recs.in.polygons(record_data, g025_geom, orders_list)
+orders_list <- unique(rcrd_utm$order)
+ccaf_grid <-
+  count.orders.recs.in.polygons(rcrd_utm, ccaf_grid, orders_list)
 
 
 # Count mammal species in a grid
 # Takes 29s to run
-g025_geom <- count.sp.in.polygons(record_data, g025_geom)
+ccaf_grid <- count.sp.in.polygons(rcrd_utm, ccaf_grid)
 
+ccaf_grid <- st_transform(ccaf_grid, longlat)
+ccaf_utm <- st_transform(ccaf_utm, longlat)
 
-# Plot -----------------------------------------------------------------------
+# Save plots -------------------------------------------------
 
-# Customized theme
-customPlot <- list(
-  theme_light() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 0.75),
-      legend.title = element_text(size = 8),
-      legend.text = element_text(size = 8)
-    )
-)
+# Number of total records
+nmax <-
+  st_drop_geometry(ccaf_grid) %>%
+  select(nrec) %>%
+  max()
 
-# Plot number of mammal records in grid
-plot_nrec_g025 <-
+st_intersection(ccaf_grid, ccaf_utm) %>%
   ggplot() +
-  geom_sf(data = g025_geom, aes(fill = nrec), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  labs(fill = "Number of \n mammal records") +
+  geom_sf(aes(fill = nrec), size = 0.2) +
+  geom_sf(data = inst_utm, size = 0.7, color = 'white', pch = 17) +
+  coord_sf(
+    label_graticule = "NW"
+  ) +
+  labs(fill = "Records") +
   scale_fill_viridis(
-    limits = c(5, max(g025_geom$nrec)),
+    limits = c(1, nmax),
     breaks = c(
-      5,
-      round(max(g025_geom$nrec) / 6, 0),
-      round(max(g025_geom$nrec) * 2 / 6, 0),
-      round(max(g025_geom$nrec) * 3 / 6, 0),
-      round(max(g025_geom$nrec) * 4 / 6, 0),
-      round(max(g025_geom$nrec) * 5 / 6, 0),
-      max(g025_geom$nrec)
+      1,
+      round(nmax / 6, 0),
+      round(nmax * 2 / 6, 0),
+      round(nmax * 3 / 6, 0),
+      round(nmax * 4 / 6, 0),
+      round(nmax * 5 / 6, 0),
+      nmax
     ),
     labels = c(
-      5,
-      round(max(g025_geom$nrec) / 6, 0),
-      round(max(g025_geom$nrec) * 2 / 6, 0),
-      round(max(g025_geom$nrec) * 3 / 6, 0),
-      round(max(g025_geom$nrec) * 4 / 6, 0),
-      round(max(g025_geom$nrec) * 5 / 6, 0),
-      max(g025_geom$nrec)
+      1,
+      round(nmax / 6, 0),
+      round(nmax * 2 / 6, 0),
+      round(nmax * 3 / 6, 0),
+      round(nmax * 4 / 6, 0),
+      round(nmax * 5 / 6, 0),
+      nmax
     )
   ) +
-  customPlot
+  theme_light() +
+  cowplot::background_grid("none") +
+  theme(
+    axis.text.y = element_text(angle = 90, hjust = 0.3),
+    legend.title = element_text(size = 9),
+    legend.text = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    title = element_text(size = 12)
+  ) +
+  guides(fill = guide_colorbar(
+    draw.ulim = FALSE,
+    draw.llim = FALSE
+  )) +
+  
+  # Scale bar in the bottom right
+  annotation_scale(location = "br", width_hint = 0.2) +
+  
+  # North arrow in the bottom right above scale bar
+  annotation_north_arrow(
+    location = "br",
+    style = north_arrow_fancy_orienteering(text_size = 8),
+    height = unit(0.9, "cm"),
+    width = unit(0.9, "cm"),
+    pad_y = unit(0.26, "in")
+  ) +
+  theme(legend.key.size = unit(0.5, 'cm'))
 
-# Plot number of mammal species in grid
-plot_nsp_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = nsp), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
+
+plot.nrec.order("nrec") +
+  ggtitle(element_blank())
+
+# Number of species recorded
+plot.nrec.order("nsp") +
   labs(fill = "Number of mammal \n species recorded") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$nsp)),
-    breaks = c(
-      1,
-      round(max(g025_geom$nsp) / 6, 0),
-      round(max(g025_geom$nsp) * 2 / 6, 0),
-      round(max(g025_geom$nsp) * 3 / 6, 0),
-      round(max(g025_geom$nsp) * 4 / 6, 0),
-      round(max(g025_geom$nsp) * 5 / 6, 0),
-      max(g025_geom$nsp)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$nsp) / 6, 0),
-      round(max(g025_geom$nsp) * 2 / 6, 0),
-      round(max(g025_geom$nsp) * 3 / 6, 0),
-      round(max(g025_geom$nsp) * 4 / 6, 0),
-      round(max(g025_geom$nsp) * 5 / 6, 0),
-      max(g025_geom$nsp)
-    )
-  ) +
-  customPlot
+  ggtitle(element_blank())
 
-# Plot number of orders records in grid
-plot_roden_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Rodentia), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Rodentia") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Rodentia)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Rodentia) / 6, 0),
-      round(max(g025_geom$Rodentia) * 2 / 6, 0),
-      round(max(g025_geom$Rodentia) * 3 / 6, 0),
-      round(max(g025_geom$Rodentia) * 4 / 6, 0),
-      round(max(g025_geom$Rodentia) * 5 / 6, 0),
-      max(g025_geom$Rodentia)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Rodentia) / 6, 0),
-      round(max(g025_geom$Rodentia) * 2 / 6, 0),
-      round(max(g025_geom$Rodentia) * 3 / 6, 0),
-      round(max(g025_geom$Rodentia) * 4 / 6, 0),
-      round(max(g025_geom$Rodentia) * 5 / 6, 0),
-      max(g025_geom$Rodentia)
-    )
-  ) +
-  customPlot
 
-plot_prima_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Primates), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Primates") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Primates)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Primates) / 6, 0),
-      round(max(g025_geom$Primates) * 2 / 6, 0),
-      round(max(g025_geom$Primates) * 3 / 6, 0),
-      round(max(g025_geom$Primates) * 4 / 6, 0),
-      round(max(g025_geom$Primates) * 5 / 6, 0),
-      max(g025_geom$Primates)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Primates) / 6, 0),
-      round(max(g025_geom$Primates) * 2 / 6, 0),
-      round(max(g025_geom$Primates) * 3 / 6, 0),
-      round(max(g025_geom$Primates) * 4 / 6, 0),
-      round(max(g025_geom$Primates) * 5 / 6, 0),
-      max(g025_geom$Primates)
-    )
-  ) +
-  customPlot
+list_order1 <- list("Chiroptera", "Rodentia", "Didelphimorphia", "Carnivora")
+list_order2 <- list("Pilosa", "Cingulata", "Artiodactyla", "Lagomorpha")
 
-plot_carni_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Carnivora), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Carnivora") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Carnivora)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Carnivora) / 6, 0),
-      round(max(g025_geom$Carnivora) * 2 / 6, 0),
-      round(max(g025_geom$Carnivora) * 3 / 6, 0),
-      round(max(g025_geom$Carnivora) * 4 / 6, 0),
-      round(max(g025_geom$Carnivora) * 5 / 6, 0),
-      max(g025_geom$Carnivora)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Carnivora) / 6, 0),
-      round(max(g025_geom$Carnivora) * 2 / 6, 0),
-      round(max(g025_geom$Carnivora) * 3 / 6, 0),
-      round(max(g025_geom$Carnivora) * 4 / 6, 0),
-      round(max(g025_geom$Carnivora) * 5 / 6, 0),
-      max(g025_geom$Carnivora)
-    )
-  ) +
-  customPlot
+plot_order1 <- lapply(list_order1, plot.nrec.order)
+plot_order2 <- lapply(list_order2, plot.nrec.order)
 
-plot_didel_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Didelphimorphia), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Didelphimorphia") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Didelphimorphia)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Didelphimorphia) / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 2 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 3 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 4 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 5 / 6, 0),
-      max(g025_geom$Didelphimorphia)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Didelphimorphia) / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 2 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 3 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 4 / 6, 0),
-      round(max(g025_geom$Didelphimorphia) * 5 / 6, 0),
-      max(g025_geom$Didelphimorphia)
-    )
-  ) +
-  customPlot
+legend_order1 <-lapply(plot_order1, get_legend)
+legend_order2 <-lapply(plot_order2, get_legend)
 
-plot_peris_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Perissodactyla), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Perissodactyla") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Perissodactyla)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Perissodactyla) / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 2 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 3 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 4 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 5 / 6, 0),
-      max(g025_geom$Perissodactyla)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Perissodactyla) / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 2 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 3 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 4 / 6, 0),
-      round(max(g025_geom$Perissodactyla) * 5 / 6, 0),
-      max(g025_geom$Perissodactyla)
-    )
-  ) +
-  customPlot
+title_order1 <-lapply(plot_order1, get_title)
+title_order2 <-lapply(plot_order2, get_title)
 
-plot_chiro_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Chiroptera), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Chiroptera") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Chiroptera)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Chiroptera) / 6, 0),
-      round(max(g025_geom$Chiroptera) * 2 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 3 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 4 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 5 / 6, 0),
-      max(g025_geom$Chiroptera)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Chiroptera) / 6, 0),
-      round(max(g025_geom$Chiroptera) * 2 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 3 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 4 / 6, 0),
-      round(max(g025_geom$Chiroptera) * 5 / 6, 0),
-      max(g025_geom$Chiroptera)
-    )
-  ) +
-  customPlot
+plot_order1 <-lapply(plot_order1, remove.legend.title)
+plot_order2 <-lapply(plot_order2, remove.legend.title)
 
-plot_lagom_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Lagomorpha), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Lagomorpha") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Lagomorpha)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Lagomorpha) / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 2 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 3 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 4 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 5 / 6, 0),
-      max(g025_geom$Lagomorpha)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Lagomorpha) / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 2 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 3 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 4 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 5 / 6, 0),
-      max(g025_geom$Lagomorpha)
-    )
-  ) +
-  customPlot
+plot_drawed_order1 <- list()
+for(i in 1:length(plot_order1)) {
+  plot_drawed_order1[[i]] <-
+    ggdraw(plot_order1[[i]]) +
+    draw_plot(legend_order1[[i]], 
+              hjust = -0.27) +
+    draw_plot(title_order1[[i]],
+              hjust = -0.18,
+              vjust = -0.22)
+}
 
-plot_pilos_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Pilosa), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Pilosa") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Lagomorpha)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Lagomorpha) / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 2 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 3 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 4 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 5 / 6, 0),
-      max(g025_geom$Lagomorpha)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Lagomorpha) / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 2 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 3 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 4 / 6, 0),
-      round(max(g025_geom$Lagomorpha) * 5 / 6, 0),
-      max(g025_geom$Lagomorpha)
-    )
-  ) +
-  customPlot
+plot_drawed_order2 <- list()
+for(i in 1:length(plot_order2)) {
+  plot_drawed_order2[[i]] <-
+    ggdraw(plot_order2[[i]]) +
+    draw_plot(legend_order2[[i]], 
+              hjust = -0.27) +
+    draw_plot(title_order2[[i]],
+              hjust = -0.18,
+              vjust = -0.22)
+}
 
-plot_artio_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Artiodactyla), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Artiodactyla") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Artiodactyla)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Artiodactyla) / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 2 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 3 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 4 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 5 / 6, 0),
-      max(g025_geom$Artiodactyla)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Artiodactyla) / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 2 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 3 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 4 / 6, 0),
-      round(max(g025_geom$Artiodactyla) * 5 / 6, 0),
-      max(g025_geom$Artiodactyla)
-    )
-  ) +
-  customPlot
+final_plot1 <-
+  plot_grid(
+    plot_drawed_order1[[1]],
+    plot_drawed_order1[[2]],
+    plot_drawed_order1[[3]],
+    plot_drawed_order1[[4]],
+    align = "h",
+    nrow = 1
+  )
 
-plot_cingu_g025 <-
-  ggplot(g025_geom) +
-  geom_sf(aes(fill = Cingulata), size = 0.2) +
-  geom_sf(data = institute_pts, size = 0.7) +
-  ggtitle("Cingulata") +
-  labs(fill = "Number of \n records") +
-  scale_fill_viridis(
-    limits = c(1, max(g025_geom$Cingulata)),
-    breaks = c(
-      1,
-      round(max(g025_geom$Cingulata) / 6, 0),
-      round(max(g025_geom$Cingulata) * 2 / 6, 0),
-      round(max(g025_geom$Cingulata) * 3 / 6, 0),
-      round(max(g025_geom$Cingulata) * 4 / 6, 0),
-      round(max(g025_geom$Cingulata) * 5 / 6, 0),
-      max(g025_geom$Cingulata)
-    ),
-    labels = c(
-      1,
-      round(max(g025_geom$Cingulata) / 6, 0),
-      round(max(g025_geom$Cingulata) * 2 / 6, 0),
-      round(max(g025_geom$Cingulata) * 3 / 6, 0),
-      round(max(g025_geom$Cingulata) * 4 / 6, 0),
-      round(max(g025_geom$Cingulata) * 5 / 6, 0),
-      max(g025_geom$Cingulata)
-    )
-  ) +
-  customPlot
+final_plot2 <-
+  plot_grid(
+    plot_drawed_order2[[1]],
+    plot_drawed_order2[[2]],
+    plot_drawed_order2[[3]],
+    plot_drawed_order2[[4]],
+    align = "h",
+    nrow = 1
+  )
+save_plot(filename = "../data/results/orders-maps1.pdf",
+          plot = final_plot1, 
+          base_width = 8,
+          base_height = 6)
+save_plot(filename = "../data/results/orders-maps2.pdf",
+          plot = final_plot2, 
+          base_width = 8,
+          base_height = 6)
 
-# Save plots -----------------------------------------------------------------
-plot_nrec_g025
-ggsave("../data/results/map-all-mammals-nrec.pdf",
-  width = 3,
-  height = 4
+ggsave("../data/results/map-all-mammals-nreg.pdf",
+       width = 3,
+       height = 4
 )
 
-plot_nsp_g025
+
 ggsave("../data/results/map-all-mammals-nsp.pdf",
-  width = 3,
-  height = 4
+       width = 3,
+       height = 4
 )
-
-plot_roden_g025
-ggsave("../data/results/map-order-rodentia.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_prima_g025
-ggsave("../data/results/map-order-primates.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_carni_g025
-ggsave("../data/results/map-order-carnivora.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_didel_g025
-ggsave("../data/results/map-order-didelphimorphia.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_peris_g025
-ggsave("../data/results/map-order-perissodactyla.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_chiro_g025
-ggsave("../data/results/map-order-chiroptera.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_lagom_g025
-ggsave("../data/results/map-order-lagomorpha.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_pilos_g025
-ggsave("../data/results/map-order-pilosa.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_artio_g025
-ggsave("../data/results/map-order-artiodactyla.pdf",
-  width = 3,
-  height = 4
-)
-
-plot_cingu_g025
-ggsave("../data/results/map-order-cingulata.pdf",
-  width = 3,
-  height = 4
-)
-
