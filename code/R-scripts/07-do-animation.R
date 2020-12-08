@@ -5,13 +5,15 @@
 library(tidyverse)
 library(animation)
 library(sf)
+library(brazilmaps)
+
 
 conflicted::conflict_prefer("filter", "dplyr")
 
 # Source functions
 source("./R-scripts/functions/07-funs-animation.R")
 
-# Load data -------------------------------------------------------------------
+# Load data ------------------------------------------------
 
 record_data <-
   st_read(
@@ -22,29 +24,69 @@ record_data <-
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
   )
-g025_geom <-
-  st_read(
-    dsn = "../data/processed-data",
-    layer = "grid-025-ucs-joined"
-  )
-g025_geom <- st_transform(g025_geom, sp::CRS("+proj=longlat +datum=WGS84"))
 
-# Pre-process data ------------------------------------------------------------
+corridors <- st_read(
+  dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
+  layer = "corredores_ppg7",
+  check_ring_dir = TRUE
+)
+
+# Pre-process map ------------------------------------------
+
+longlat <- sp::CRS("+proj=longlat +datum=WGS84")
+
+# Get Brazil map
+br_longlat <-
+  get_brmap(geo = "Brazil")%>% 
+  st_as_sf() %>%
+  st_transform(longlat)
+
+# Keep only CCAF
+ccaf_longlat <- 
+  corridors %>% 
+  filter(str_detect(NOME1, "Mata")) %>%
+  st_set_crs(longlat)
+
+ccaf_clipped <-
+  st_intersection(ccaf_longlat, br_longlat)
+
+# Clip, make grid and convert to metric coordinate system
+# Ignore the warnings
+
+ccaf_grid <- 
+  ccaf_clipped %>%
+  st_make_grid(square = FALSE, cellsize = 0.3) %>%
+  st_intersection(ccaf_longlat, br_longlat) %>%
+  st_as_sf()
+
+ccaf_grid <-
+  st_intersection(ccaf_grid, ccaf_clipped)
+
+# Pre-process data -----------------------------------------
 
 # Create the table with counts of records along years
-map_nreg_along_years <- nreg.along.years(record_data, g025_geom[1:5])
+map_nreg_along_years <- nreg.along.years(record_data, ccaf_grid)
 
-# Plot -----------------------------------------------------------------------
+# Plot -----------------------------------------------------
 
 # Get columns names
-myfill_list <- colnames(map_nreg_along_years)[6:(ncol(map_nreg_along_years) - 1)]
+myfill_list <- colnames(map_nreg_along_years)[3:(ncol(map_nreg_along_years) - 1)]
 
 # Create plot list
 # Important! The map_nreg_along_years is read inside the function, so pay
 # attention if you chance the name
 plot_list <- lapply(myfill_list, FUN = plot.along.years)
 
-# Save video ------------------------------------------------------------------
+# Save video -----------------------------------------------
+
+# Save in gif format
+# The resolution is better than mp4
+saveGIF(
+  print(plot_list),
+  movie.name = "../animation.gif",
+  img.name = "Rplot",
+  convert = "magick"
+)
 
 # Save in mp4 format
 # Unfortunately the resolution is not very good :c
@@ -55,6 +97,7 @@ saveVideo(
   ffmpeg = ani.options("ffmpeg"),
   other.opts = "-pix_fmt yuv420p -b 1000k"
 )
+
 
 # Save in html
 # I got an error when trying to change de directory
