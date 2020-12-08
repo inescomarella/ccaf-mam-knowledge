@@ -5,6 +5,7 @@ library(sf)
 library(FNN)
 library(dplyr)
 library(conflicted)
+library(ggspatial)
 
 conflict_prefer(name = "filter", winner = "dplyr")
 
@@ -36,7 +37,7 @@ count.orders.recs.in.polygons <-
     }
     x <- ncol(polygons) - length(order_list) + 1
     colnames(polygons)[x:ncol(polygons)] <- order_list
-    
+
     polygons
   }
 
@@ -60,4 +61,88 @@ count.sp.in.polygons <- function(pts, polygons) {
   })
 
   cbind(polygons, nsp)
+}
+
+plot.nrec.order <- function(myfill) {
+  # Plot map for each year
+  #
+  # Arg:
+  #   myfill: list containing the column names
+
+  # The map wasn't add in the function input base apparently so far there is
+  # no easy way to use apply to a sf object, so I added the map inside the
+  # function instead of adding it in the function input
+
+  # Get maximum number of records to set break points later
+  nmax <-
+    st_drop_geometry(ccaf_grid) %>%
+    select({{ myfill }}) %>%
+    max()
+
+  # The {{ }} is a trick from rlang package
+  st_intersection(ccaf_grid, ccaf_utm) %>%
+    ggplot() +
+    geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
+    geom_sf(data = inst_utm, size = 0.7, color = 'white', pch = 17) +
+    coord_sf(
+      # Limits of the ccaf bbox
+      xlim = c(-41.87851, -37),
+      ylim = c(-21.30178, -12.5),
+      expand = TRUE,
+      label_graticule = "NW"
+    ) +
+    labs(fill = "Records") +
+    scale_fill_viridis(
+      limits = c(1, nmax),
+      breaks = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      ),
+      labels = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      )
+    ) +
+    theme_light() +
+    cowplot::background_grid("none") +
+    ggtitle(paste(sub("y", "", myfill))) +
+    theme(
+      axis.text.y = element_text(angle = 90, hjust = 0.3),
+      legend.title = element_text(size = 9),
+      legend.text = element_text(size = 8),
+      axis.text = element_text(size = 7),
+      title = element_text(size = 12)
+    ) +
+    guides(fill = guide_colorbar(
+      draw.ulim = FALSE,
+      draw.llim = FALSE
+    )) +
+    
+    # Scale bar in the bottom right
+    annotation_scale(location = "br", width_hint = 0.2) +
+    
+    # North arrow in the bottom right above scale bar
+    annotation_north_arrow(
+      location = "br",
+      style = north_arrow_fancy_orienteering(text_size = 8),
+      height = unit(0.9, "cm"),
+      width = unit(0.9, "cm"),
+      pad_y = unit(0.26, "in")
+    ) +
+    theme(legend.key.size = unit(0.5, 'cm'))
+    
+}
+
+remove.legend.title <- function(x){
+  x + theme(legend.position='none', title = element_blank())
 }
