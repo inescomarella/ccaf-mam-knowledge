@@ -65,24 +65,46 @@ ccaf_grid <-
 # Pre-process data -----------------------------------------
 
 # Create the table with counts of records along years
-map_nreg_along_years <- nreg.along.years(record_data, ccaf_grid)
+map_nrec_along_years <- nrec.along.years(record_data, ccaf_grid)
+
+map_nsp_along_years <- nsp.along.years(record_data, ccaf_grid)
 
 # Plot -----------------------------------------------------
 
 # Get columns names
-myfill_list <- colnames(map_nreg_along_years)[3:(ncol(map_nreg_along_years) - 1)]
+myfill_list <- colnames(map_nrec_along_years)[3:(ncol(map_nrec_along_years) - 1)]
 
 # Create plot list
-# Important! The map_nreg_along_years is read inside the function, so pay
+# Important! The map_nrec_along_years is read inside the function, so pay
 # attention if you chance the name
-plot_list <- lapply(myfill_list, FUN = plot.along.years)
+nrec_plot_list <- 
+  lapply(myfill_list, FUN = plot.nrec.along.years)
+
+nsp_plot_list <- 
+  lapply(myfill_list, FUN = plot.nsp.along.years)
+
+together_plot_list <- 
+  lapply(myfill_list, FUN = plot.together.years)
 
 # Save video -----------------------------------------------
+saveGIF(
+  print(together_plot_list),
+  movie.name = "../animation_together.gif",
+  img.name = "Rplot",
+  convert = "magick"
+)
+
+saveGIF(
+  print(nsp_plot_list),
+  movie.name = "../animation_nsp.gif",
+  img.name = "Rplot",
+  convert = "magick"
+)
 
 # Save in gif format
 # The resolution is better than mp4
 saveGIF(
-  print(plot_list),
+  print(nrec_plot_list),
   movie.name = "../animation.gif",
   img.name = "Rplot",
   convert = "magick"
@@ -92,8 +114,8 @@ saveGIF(
 # Unfortunately the resolution is not very good :c
 saveVideo(
   expr = print(plot_list),
-  video.name = "../data/results/animation-nreg-all-mammals.mp4",
-  img.name = "animation-nreg-all-mammals",
+  video.name = "../data/results/animation-nrec-all-mammals.mp4",
+  img.name = "animation-nrec-all-mammals",
   ffmpeg = ani.options("ffmpeg"),
   other.opts = "-pix_fmt yuv420p -b 1000k"
 )
