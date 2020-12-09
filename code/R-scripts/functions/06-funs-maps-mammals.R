@@ -6,6 +6,7 @@ library(FNN)
 library(dplyr)
 library(conflicted)
 library(ggspatial)
+library(cowplot)
 
 conflict_prefer(name = "filter", winner = "dplyr")
 
@@ -63,6 +64,10 @@ count.sp.in.polygons <- function(pts, polygons) {
   cbind(polygons, nsp)
 }
 
+remove.legend <- function(x) {
+  x + theme(legend.position = "none")
+}
+
 plot.nrec.order <- function(myfill) {
   # Plot map for each year
   #
@@ -80,16 +85,29 @@ plot.nrec.order <- function(myfill) {
     max()
 
   # The {{ }} is a trick from rlang package
-  st_intersection(ccaf_grid, ccaf_utm) %>%
+  ccaf_grid %>%
     ggplot() +
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
-    geom_sf(data = inst_utm, size = 0.7, color = 'white', pch = 17) +
+    geom_sf(
+      data = institute_pts,
+      size = 0.7,
+      color = "white",
+      pch = 17
+    ) +
     coord_sf(
       # Limits of the ccaf bbox
       xlim = c(-41.87851, -37),
       ylim = c(-21.30178, -12.5),
       expand = TRUE,
       label_graticule = "NW"
+    ) +
+    annotate(
+      geom = "text",
+      x = -39.5,
+      y = -12.5,
+      size = 5,
+      family = "Lato",
+      label = myfill
     ) +
     labs(fill = "Records") +
     scale_fill_viridis(
@@ -115,22 +133,22 @@ plot.nrec.order <- function(myfill) {
     ) +
     theme_light() +
     cowplot::background_grid("none") +
-    ggtitle(paste(sub("y", "", myfill))) +
     theme(
       axis.text.y = element_text(angle = 90, hjust = 0.3),
-      legend.title = element_text(size = 9),
-      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 8),
+      legend.text = element_text(size = 7),
       axis.text = element_text(size = 7),
-      title = element_text(size = 12)
+      title = element_text(size = 12, family = "Lato"),
+      axis.title = element_blank()
     ) +
     guides(fill = guide_colorbar(
       draw.ulim = FALSE,
       draw.llim = FALSE
     )) +
-    
+
     # Scale bar in the bottom right
     annotation_scale(location = "br", width_hint = 0.2) +
-    
+
     # North arrow in the bottom right above scale bar
     annotation_north_arrow(
       location = "br",
@@ -139,10 +157,5 @@ plot.nrec.order <- function(myfill) {
       width = unit(0.9, "cm"),
       pad_y = unit(0.26, "in")
     ) +
-    theme(legend.key.size = unit(0.5, 'cm'))
-    
-}
-
-remove.legend.title <- function(x){
-  x + theme(legend.position='none', title = element_blank())
+    theme(legend.key.size = unit(0.5, "cm"))
 }
