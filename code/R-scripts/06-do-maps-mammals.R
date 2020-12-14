@@ -2,23 +2,42 @@
 # Data: 17/11/2020
 
 # Load libraries
-library(tidyverse)
-library(sf)
-library(viridis)
-library(brazilmaps)
+xfun::pkg_attach(c("tidyverse", "sf", "viridis", "brazilmaps"))
 
+# To save Lato font
 extrafont::loadfonts()
+
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/06-funs-maps-mammals.R")
+source("./R-scripts/functions/funs-all-mammals-maps.R")
 
 # Projections
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")
+utm <-
+  sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
 # Load data --------------------------------------------------
-record_pts <-
+
+br_longlat <-
+  get_brmap(geo = "Brazil") %>%
+  st_as_sf() %>%
+  st_transform(longlat)
+
+ccaf_utm <-
+  st_read(
+    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
+    layer = "corredores_ppg7",
+    check_ring_dir = TRUE
+  ) %>%
+  filter(str_detect(NOME1, "Mata")) %>%
+  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
+  st_transform(utm)
+
+records_utm <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
     crs = longlat,
@@ -26,7 +45,8 @@ record_pts <-
       "X_POSSIBLE_NAMES=decimalLongitude",
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
-  )
+  ) %>%
+  st_transform(utm)
 
 institute_pts <-
   st_read(
@@ -38,72 +58,49 @@ institute_pts <-
     )
   )
 
-corridors <- st_read(
-  dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-  layer = "corredores_ppg7",
-  check_ring_dir = TRUE
-)
-# Pre-process map ------------------------------------------
+# Make grid --------------------------------------------------
 
-longlat <- sp::CRS("+proj=longlat +datum=WGS84")
+# Expected area = 1000m * 1000000m = 1e+9 m2 = 1000 km2
+cellarea <- 1000 * (1e+6)
+cellsize <- 2 * sqrt(cellarea / ((3 * sqrt(3) / 2))) * sqrt(3) / 2
 
-# Get Brazil map
-br_longlat <-
-  get_brmap(geo = "Brazil") %>%
+# Make the hexagon grid with the expected area
+ccaf_grid_utm <-
+  ccaf_utm %>%
+  st_make_grid(cellsize = cellsize, square = FALSE) %>%
   st_as_sf() %>%
-  st_transform(longlat)
-
-# Keep only CCAF
-ccaf_longlat <-
-  corridors %>%
-  filter(str_detect(NOME1, "Mata")) %>%
-  st_set_crs(longlat)
-
-ccaf_clipped <-
-  st_intersection(ccaf_longlat, br_longlat)
-
-# Clip, make grid and convert to metric coordinate system
-# Ignore the warnings
-
-ccaf_grid <-
-  ccaf_clipped %>%
-  st_make_grid(square = FALSE, cellsize = 0.3) %>%
-  st_intersection(ccaf_longlat, br_longlat) %>%
-  st_as_sf()
-
-ccaf_grid <-
-  st_intersection(ccaf_grid, ccaf_clipped)
+  st_intersection(ccaf_utm)
 
 # Process data ---------------------------------------------
 
-# Count records of mammals in a grid
-ccaf_grid$nrec <- lengths(st_intersects(ccaf_grid, record_pts))
-
-# Count records of mammal orders in a grid
+# Count records of mammal order in a grid
 # Takes 336.622s to run
-orders_list <- unique(record_pts$order)
+order_names <- sort(unique(records_utm$order))
+
+ccaf_grid_utm <-
+  count.order.recs.in.polygons(records_utm, ccaf_grid_utm, order_names)
+
+# Convert to longlat to apply plot functions
 ccaf_grid <-
-  count.orders.recs.in.polygons(record_pts, ccaf_grid, orders_list)
-
-
-# Count mammal species in a grid
-# Takes 29s to run
-ccaf_grid <- count.sp.in.polygons(record_pts, ccaf_grid)
+  ccaf_grid_utm %>%
+  st_transform(longlat)
 
 # Plot -----------------------------------------------------
-list_order <-
-  list(
-    "Chiroptera",
-    "Rodentia",
-    "Didelphimorphia",
-    "Carnivora",
-    "Pilosa",
-    "Cingulata",
-    "Artiodactyla",
-    "Lagomorpha"
+
+order_list <- as.list(order_names)
+names(order_list) <- c(order_names)
+
+# Remove Sirenia and Perissodactyla, too few records
+order_list <-
+  list_modify(
+    order_list,
+    Sirenia = zap(),
+    Perissodactyla = zap()
   )
 
-plot_order <- lapply(list_order, plot.nrec.order)
+# Important! The ccaf_grid and institute_pts are read inside the function, so
+# pay  attention if you change the name
+plot_order <- lapply(order_list, plot.nrec.order)
 
 legend_order <- lapply(plot_order, get_legend)
 
@@ -133,7 +130,7 @@ final_plot_together <-
 
 # Save -----------------------------------------------------
 save_plot(
-  filename = "../data/results/orders-maps-together.pdf",
+  filename = "../data/results/order-maps-together.pdf",
   plot = final_plot_together,
   base_width = 8,
   base_height = 7

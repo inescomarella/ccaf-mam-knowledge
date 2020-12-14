@@ -1,25 +1,23 @@
 # File purpose: Do data analysis, run models, correlation test
 # Data: 17/11/2020
 # 
-#########################################################################
+##############################################################
 # For details on overdispersion test check:
 # > Overdispersion, and how to deal with it in R and JAGS
 # > DHARMa: residual diagnostics for hierarchical (multi-level/mixed)
 # regression models
-#########################################################################
+##############################################################
 
-# Load in libraries
-x <-
-  c(
-    "tidyverse",
-    "sf",
-    "openxlsx",
-    "vegan",
-    "DHARMa",
-    "MASS",
-    "brazilmaps"
-  )
-lapply(x, library, character.only = TRUE)
+# Load libraries
+xfun::pkg_attach(c(
+  "tidyverse",
+  "sf",
+  "openxlsx",
+  "brazilmaps",
+  "vegan",
+  "DHARMa",
+  "MASS"
+))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -32,7 +30,7 @@ longlat <- sp::CRS("+proj=longlat +datum=WGS84")
 utm <-
   sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
-# Load data -------------------------------------------------------------
+# Load data --------------------------------------------------
 records_utm <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
@@ -69,7 +67,7 @@ ccaf_longlat <-
   st_set_crs(longlat) %>%
   # Only Central Corridor of Atlantic Forest
   filter(str_detect(NOME1, "Mata")) %>%
-  # Keep only terrestrial area
+  # Only terrestrial area
   st_intersection(br_longlat) %>%
   # Fix name
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica")
@@ -81,7 +79,7 @@ cus_utm <-
   st_intersection(ccaf_longlat) %>%
   st_transform(utm)
 
-# Make grid -------------------------------------------------------------
+# Make grid --------------------------------------------------
 
 # Reproject CCAF map to a metric coordinate system
 ccaf_utm <- 
@@ -103,19 +101,10 @@ a <- st_area(ccaf_grid_utm)[1]
 units(a) <- "km^2"
 a
 
-# Pre-process data ------------------------------------------------------
+# Pre-process data -------------------------------------------
 
-# Check CU presence in the grid cell (presence/absence = 1/NA)
-ccaf_grid_utm$CU_presence <-
-  ccaf_grid_utm %>%
-  st_intersects(st_buffer(cus_utm, 0)) %>%
-  as.numeric() %>%
-  tibble()
-
-# Convert to presence/absence = TRUE/FALSE
-ccaf_grid_utm <-
-  ccaf_grid_utm %>%
-  mutate(CU_presence = !is.na(CU_presence))
+# Get CU presence in each cell
+ccaf_grid_utm$CU <- lengths(st_intersects(ccaf_grid_utm, cus_utm))
 
 # Measure the distance from each cell grid centre to the nearest research institute
 ccaf_grid_utm <- get.nearest.dist(institutes_utm, ccaf_grid_utm)
@@ -127,9 +116,10 @@ ccaf_grid_utm$nreg <-
 # Extract dataframe
 ccaf_grid_df <-
   st_drop_geometry(ccaf_grid_utm) %>%
+  mutate(CU_presence = ifelse(CU == 1, "Present", "Absent")) %>%
   select(CU_presence, dist_inst, nreg)
 
-# Run models ------------------------------------------------------------
+# Run models -------------------------------------------------
 
 # Fit Negative Binomial Generalized Linear Model
 summary(
@@ -141,7 +131,7 @@ summary(
     )
 )
 
-# Test quality of fit ---------------------------------------------------
+# Test quality of fit -----------------------------------------
 par(mar = c(1, 1, 1, 1))
 
 # Conventional Residuals (fittedModel)
@@ -157,7 +147,7 @@ testDispersion(glm_simulation, alternative = "greater")
 # Test if there are more zeros than expected
 testZeroInflation(glm_simulation, alternative = "greater")
 
-# Save ------------------------------------------------------------------
+# Save --------------------------------------------------------
 
 # Overdispersion plots
 pdf(

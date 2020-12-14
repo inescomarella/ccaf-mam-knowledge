@@ -2,9 +2,7 @@
 # Data: 17/11/2020
 
 # Load in libraries
-library(tidyverse)
-library(sf)
-library(brazilmaps)
+xfun::pkg_attach(c("tidyverse", "sf", "brazilmaps"))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -13,13 +11,36 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 source("./R-scripts/functions/05-funs-scatter-plot.R")
 
 # Projections
-utm <-
-  sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
-
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")
+utm <- sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
-# Load data -------------------------------------------------------------------
-record_pts <-
+# Load data --------------------------------------------------
+
+br_longlat <-
+  get_brmap(geo = "Brazil") %>%
+  st_as_sf() %>%
+  st_transform(longlat)
+
+ccaf_utm <-
+  st_read(
+    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
+    layer = "corredores_ppg7",
+    check_ring_dir = TRUE
+  ) %>%
+  filter(str_detect(NOME1, "Mata")) %>%
+  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
+  st_transform(utm)
+
+cus_utm <-
+  st_read(dsn = "../data/processed-data/", layer = "CUs-map") %>%
+  st_transform(longlat) %>%
+  st_make_valid() %>%
+  st_intersection(st_transform(ccaf_utm, longlat)) %>%
+  st_transform(utm)
+
+records_utm <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
     crs = longlat,
@@ -27,9 +48,10 @@ record_pts <-
       "X_POSSIBLE_NAMES=decimalLongitude",
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
-  )
+  ) %>%
+  st_transform(utm)
 
-institute_pts <-
+institute_utm <-
   st_read(
     dsn = "../data/raw-data/research-institutes.csv",
     crs = longlat,
@@ -39,60 +61,32 @@ institute_pts <-
     )
   )
 
-cus_geom <-
-  st_read(dsn = "../data/processed-data/", layer = "CUs-map")
+# Make grid --------------------------------------------------
 
-corridors <- st_read(
-  dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-  layer = "corredores_ppg7",
-  check_ring_dir = TRUE
-)
+# Expected area = 1000m * 1000000m = 1e+9 m2 = 1000 km2
+cellarea <- 1000 * (1e+6)
+cellsize <- 2 * sqrt(cellarea / ((3 * sqrt(3) / 2))) * sqrt(3) / 2
 
-# Pre-process map ------------------------------------------------------------
-
-# Keep only CCAF
-ccaf_longlat <- 
-  corridors %>% 
-  filter(str_detect(NOME1, "Mata")) %>%
-  st_set_crs(longlat)
-
-# Get Brazil map
-br_longlat <-
-  get_brmap(geo = "Brazil")%>% 
-  st_as_sf() %>%
-  st_transform(longlat)
-
-# Clip, make grid and convert to metric coordinate system
-ccaf_grid <- 
-  st_intersection(ccaf_longlat, br_longlat) %>%
-  st_make_grid(square = FALSE, cellsize = 0.3) %>%
-  st_transform(utm) %>%
+# Make the hexagon grid with the expected area
+ccaf_grid_utm <-
+  ccaf_utm %>%
+  st_make_grid(cellsize = cellsize, square = FALSE) %>%
   st_as_sf()
 
-# Check cellsize
-ccaf_grid %>% 
-  st_area() %>% 
-  mean()
-
-# Process data ----------------------------------------------------------------
-
-# Reproject to a metric coordinate system
-rcrd_utm <- st_transform(record_pts, utm)
-inst_utm <- st_transform(institute_pts, utm)
-cus_utm <- st_set_crs(cus_geom, utm)
+# Process data -----------------------------------------------
 
 # Measure the distance of each cell grid to the nearest research institute
-ccaf_grid <- get.nearest.dist(inst_utm, ccaf_grid)
+ccaf_grid_utm <- get.nearest.dist(institute_utm, ccaf_grid_utm)
 
 # Count records per cell
-ccaf_grid$nrec <- lengths(st_intersects(ccaf_grid, rcrd_utm))
+ccaf_grid_utm$nrec <- lengths(st_intersects(ccaf_grid_utm, records_utm))
 
 # Get CU presence in each cell
-ccaf_grid$CU <- lengths(st_intersects(ccaf_grid, cus_utm))
+ccaf_grid_utm$CU <- lengths(st_intersects(ccaf_grid_utm, cus_utm))
 
-# Save plots -----------------------------------------------------------------
+# Plot -------------------------------------------------------
 scatter_plot <-
-  st_drop_geometry(ccaf_grid) %>%
+  st_drop_geometry(ccaf_grid_utm) %>%
   mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
   mutate(dist_inst = dist_inst / 1000) %>%
   ggplot() +
@@ -102,6 +96,7 @@ scatter_plot <-
   ylab("Number of records") +
   xlab("Distance to research institute (km)")
 
+# Save plot --------------------------------------------------
 scatter_plot
 ggsave(
   "../data/results/scatter-plot-all-nrec-dist-cu.pdf",
