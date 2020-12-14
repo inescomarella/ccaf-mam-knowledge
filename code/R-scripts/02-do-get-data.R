@@ -12,7 +12,7 @@ xfun::pkg_attach(c(
 conflicted::conflict_prefer("mutate", "dplyr")
 
 # Source functions
-source("./R-scripts/functions/02-funs-get-mammal-data.R")
+source("./R-scripts/functions/02-funs-get-data.R")
 
 # GBIF data ---------------------------------------------------
 

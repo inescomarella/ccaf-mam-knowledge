@@ -11,7 +11,7 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/08-funs-explore-species-data.R")
+source("./R-scripts/functions/06-funs-explore-data.R")
 
 # Load data --------------------------------------------------
 

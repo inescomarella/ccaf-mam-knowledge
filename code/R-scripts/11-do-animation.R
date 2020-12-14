@@ -7,7 +7,7 @@ xfun::pkg_attach(c("tidyverse", "sf", "animation", "brazilmaps"))
 conflicted::conflict_prefer("filter", "dplyr")
 
 # Source functions
-source("./R-scripts/functions/07-funs-animation.R")
+source("./R-scripts/functions/11-funs-animation.R")
 
 # Set projections
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")

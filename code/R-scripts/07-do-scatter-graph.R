@@ -8,7 +8,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/05-funs-scatter-plot.R")
+source("./R-scripts/functions/07-funs-scatter-graph.R")
 
 # Projections
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")

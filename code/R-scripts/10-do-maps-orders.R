@@ -11,7 +11,7 @@ conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/funs-all-mammals-maps.R")
+source("./R-scripts/functions/10-funs-maps-orders.R")
 
 # Projections
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")
