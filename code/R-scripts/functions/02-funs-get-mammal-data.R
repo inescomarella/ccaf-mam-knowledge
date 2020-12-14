@@ -9,11 +9,12 @@
 #' @export
 #'
 #'
-library(dplyr)
-library(stringr)
-library(conflicted)
+xfun::pkg_attach(c(
+  "dplyr",
+  "stringr",
+))
 
-conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("filter", "dplyr")
 
 remove.fossil.iNaturalist <- function(dataset) {
   to_remove <-

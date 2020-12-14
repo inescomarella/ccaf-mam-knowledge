@@ -2,15 +2,19 @@
 # Date: 16/11/2020
 
 # Load in libraries
-x <- c("tidyverse", "rocc", "rgbif", "plyr")
-lapply(x, library, character.only = TRUE)
+xfun::pkg_attach(c(
+  "tidyverse",
+  "rocc",
+  "rgbif",
+  "plyr"
+))
 
 conflicted::conflict_prefer("mutate", "dplyr")
 
 # Source functions
 source("./R-scripts/functions/02-funs-get-mammal-data.R")
 
-# GBIF data -----------------------------------------------------------------
+# GBIF data ---------------------------------------------------
 
 # Set GBIF profile
 options(gbif_user = "inescomarella")
@@ -49,7 +53,7 @@ gbif_mamm_occ_imported <-
 # Remove fossil record and iNaturalist registers
 gbif_mamm_filtered <- remove.fossil.iNaturalist(gbif_mamm_occ_imported)
 
-# speciesLink data ------------------------------------------------------------
+# speciesLink data --------------------------------------------
 
 # Get occurrence data from speciesLink
 # Takes 244.321s to run
@@ -71,7 +75,7 @@ spLink_mamm_filtered <-
   spLink_animals_down %>%
   filter(class == "Mammalia")
 
-# Save data -------------------------------------------------------------------
+# Save data ---------------------------------------------------
 gbif_mamm_filtered <-
   gbif_mamm_filtered %>%
   mutate(scientificName = species)

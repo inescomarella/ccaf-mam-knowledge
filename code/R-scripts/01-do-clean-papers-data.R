@@ -557,89 +557,98 @@ to_remove <-
   filter(citation == "Santos et al. (1987)", datasetName == "")
 data_modif <- anti_join(data_modif, to_remove)
 
+to_keep_list <- c(
+  "Cerdocyon thous",
+  "Cuniculus paca",
+  "Dasyprocta leporina",
+  "Dasypus novemcinctus",
+  "Didelphis aurita",
+  "Leopardus wiedii",
+  "Lontra longicaudis",
+  "Marmosa murina",
+  "Mazama americana",
+  "Metachirus nudicaudatus",
+  "Nasua nasua",
+  "Philander opossum",
+  "Sciurus aestuans"
+)
 to_remove <-
   data_modif %>%
   filter(
     citation == "Soares et al. (2013)",
-    scientificName != "Cerdocyon thous",
-    scientificName != "Cuniculus paca",
-    scientificName != "Dasyprocta leporina",
-    scientificName != "Dasypus novemcinctus",
-    scientificName != "Didelphis aurita",
-    scientificName != "Leopardus wiedii",
-    scientificName != "Lontra longicaudis",
-    scientificName != "Marmosa murina",
-    scientificName != "Mazama americana",
-    scientificName != "Metachirus nudicaudatus",
-    scientificName != "Nasua nasua",
-    scientificName != "Philander opossum",
-    scientificName != "Sciurus aestuans"
-  )
+    (!scientificName %in% to_keep_list))
 data_modif <- anti_join(data_modif, to_remove)
+
+to_keep_list <- c(
+  "Didelphis aurita",
+  "Metachirus nudicaudatus",
+  "Philander frenata",
+  # just second year
+  "Dasypus novemcinctus",
+  "Euphractus sexcinctus",
+  # just second year
+  "Cerdocyon thous",
+  "Nasua nasua",
+  "Procyon cancrivorus",
+  "Eira barbara",
+  # just first year
+  "Didelphis aurita",
+  "Herpailurus yaguarondi",
+  "Leopardus pardalis",
+  "Herpailurus yaguarondi",
+  "Leopardus tigrinus",
+  "Puma concolor",
+  "Mazama americana",
+  "Pecari tajacu",
+  "Sciurus aestuans",
+  "Hydrochoerus hydrochaeris",
+  "Cuniculus paca",
+  "Dasyprocta leporina",
+  "Sylvilagus brasiliensis"
+)
 
 to_remove <-
   data_modif %>%
   filter(
     citation == "Srbek-Araujo & Chiarello (2005)",
-    scientificName != "Didelphis aurita",
-    scientificName != "Metachirus nudicaudatus",
-    scientificName != "Philander frenata",
-    # just second year
-    scientificName != "Dasypus novemcinctus",
-    scientificName != "Euphractus sexcinctus",
-    # just second year
-    scientificName != "Cerdocyon thous",
-    scientificName != "Nasua nasua",
-    scientificName != "Procyon cancrivorus",
-    scientificName != "Eira barbara",
-    # just first year
-    scientificName != "Didelphis aurita",
-    scientificName != "Herpailurus yaguarondi",
-    scientificName != "Leopardus pardalis",
-    scientificName != "Herpailurus yaguarondi",
-    scientificName != "Leopardus tigrinus",
-    scientificName != "Puma concolor",
-    scientificName != "Mazama americana",
-    scientificName != "Pecari tajacu",
-    scientificName != "Sciurus aestuans",
-    scientificName != "Hydrochoerus hydrochaeris",
-    scientificName != "Cuniculus paca",
-    scientificName != "Dasyprocta leporina",
-    scientificName != "Sylvilagus brasiliensis"
-  )
+    (!scientificName %in% to_keep_list)
+    )
 data_modif <- anti_join(data_modif, to_remove)
 
+to_keep_list <- c(
+  "Didelphis aurita",
+  "Metachirus nudicaudatus",
+  "Cabassous tatouay",
+  "Euphractus sexcinctus",
+  "Cerdocyon thous",
+  "Tamandua tetradactyla",
+  "Procyon cancrivorus",
+  "Callithrix geoffroyi",
+  "Sapajus robustus",
+  "Cerdocyon thous",
+  "Galictis cuja",
+  "Nasua nasua",
+  "Procyon cancrivorus",
+  "Eira barbara",
+  "Leopardus pardalis",
+  "Leopardus wiedii",
+  "Panthera onca",
+  "Puma concolor",
+  "Herpailurus yagouaroundi",
+  "Tapirus terrestris",
+  "Tayassu pecari",
+  "Pecari tajacu",
+  "Guerlinguetus ingrami",
+  "Hydrochoerus hydrochaeris",
+  "Cuniculus paca",
+  "Dasyprocta leporina",
+  "Sylvilagus brasiliensis"
+)
 to_remove <-
   data_modif %>%
   filter(
     citation == "Srbek-Araujo & Chiarello (2013)",
-    scientificName != "Didelphis aurita",
-    scientificName != "Metachirus nudicaudatus",
-    scientificName != "Cabassous tatouay",
-    scientificName != "Euphractus sexcinctus",
-    scientificName != "Cerdocyon thous",
-    scientificName != "Tamandua tetradactyla",
-    scientificName != "Procyon cancrivorus",
-    scientificName != "Callithrix geoffroyi",
-    scientificName != "Sapajus robustus",
-    scientificName != "Cerdocyon thous",
-    scientificName != "Galictis cuja",
-    scientificName != "Nasua nasua",
-    scientificName != "Procyon cancrivorus",
-    scientificName != "Eira barbara",
-    scientificName != "Leopardus pardalis",
-    scientificName != "Leopardus wiedii",
-    scientificName != "Panthera onca",
-    scientificName != "Puma concolor",
-    scientificName != "Herpailurus yagouaroundi",
-    scientificName != "Tapirus terrestris",
-    scientificName != "Tayassu pecari",
-    scientificName != "Pecari tajacu",
-    scientificName != "Guerlinguetus ingrami",
-    scientificName != "Hydrochoerus hydrochaeris",
-    scientificName != "Cuniculus paca",
-    scientificName != "Dasyprocta leporina",
-    scientificName != "Sylvilagus brasiliensis"
+    (!scientificName %in% to_keep_list)
   )
 data_modif <- anti_join(data_modif, to_remove)
 

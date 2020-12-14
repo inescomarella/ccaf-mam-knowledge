@@ -2,13 +2,15 @@
 # Date: 13/12/2020
 
 # Load libraries
-library(tidyverse)
-library(sf)
-library(raster)
-library(brazilmaps)
-library(ggspatial)
-library(rworldmap)
-library(cowplot)
+xfun::pkg_attach(c(
+  "tidyverse",
+  "sf",
+  "brazilmaps",
+  "raster",
+  "ggspatial",
+  "cowplot",
+  "rworldmap"
+))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -16,8 +18,7 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 # Set projection
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")
 
-# Load data ---------------------------------------------------
-
+# Load data --------------------------------------------------
 br_sf <-
   get_brmap(geo = "Brazil") %>%
   st_as_sf() %>%
@@ -81,7 +82,7 @@ ccaf_all_area_sf <-
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_as_sf()
 
-# Pre-process data --------------------------------------------
+# Pre-process data -------------------------------------------
 
 land_use_table_df <-
   land_use_table_df %>%

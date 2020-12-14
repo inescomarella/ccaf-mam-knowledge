@@ -1,14 +1,15 @@
 # File purpose: Functions to process data and plot maps to make animation
 # Date: 30/11/2020
 
-library(rlang)
-library(sf)
-library(ggplot2)
-library(dplyr)
-library(viridis)
-library(cowplot)
-library(ggspatial)
-
+xfun::pkg_attach(c(
+  "rlang",
+  "sf",
+  "dplyr",
+  "ggspatial",
+  "cowplot",
+  "ggplot2",
+  "viridis"
+))
 
 conflicted::conflict_prefer("filter", "dplyr")
 

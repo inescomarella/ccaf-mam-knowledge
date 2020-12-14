@@ -2,11 +2,13 @@
 # read
 # Date: 21/11/2020
 
-library(dplyr)
-library(CoordinateCleaner)
-library(stringr)
-library(biogeo)
-library(lubridate)
+xfun::pkg_attach(c(
+  "dplyr",
+  "CoordinateCleaner",
+  "stringr",
+  "biogeo",
+  "lubridate"
+))
 
 conflicted::conflict_prefer("filter", "dplyr")
 

@@ -1,8 +1,11 @@
 # File purpose: functions useful to do measures necessary to do the scatter plot
 # Date: 17/11/2020
 
-library(sf)
-library(FNN)
+xfun::pkg_attach(c(
+  "FNN",
+  "sf",
+  "rgdal"
+))
 
 get.nearest.dist <- function(pts, polygon) {
   # Get distance from the centre point of each polygon in a multipolygon sf to

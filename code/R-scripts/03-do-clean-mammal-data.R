@@ -6,8 +6,13 @@
 # Date: 16/11/2020
 
 # Load in libraries
-x <- c("tidyverse", "rgbif", "plyr", "rredlist", "sf")
-lapply(x, library, character.only = TRUE)
+xfun::pkg_attach(c(
+  "tidyverse",
+  "rredlist",
+  "rgbif",
+  "plyr",
+  "sf"
+))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
@@ -22,15 +27,10 @@ data_paper <-
 data_downl <-
   read.csv("../data/processed-data/raw-downloaded-mammal-data.csv")
 
-ccma <- st_read(
-  dsn = "../data/processed-data",
-  layer = "ccma-clipped",
-  check_ring_dir = TRUE
-)
 rlkey <-
-  "6abf9b5a0010ab26140c401c1c394a22c43c0a555d9dee8c72976d3c71c5e402"
+  "*******"
 
-# Pre-process data -----------------------------------------------------------
+# Pre-process data -------------------------------------------
 
 # Standardize columns
 data_paper <- select(data_paper, -X)
@@ -52,7 +52,7 @@ data_all_clipped <- clip.ccma(data_all_only_indetified_species)
 # Species list
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
-# Get rl.synonyms ------------------------------------------------------------
+# Get rl.synonyms --------------------------------------------
 # Takes a few hours to run and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
@@ -157,7 +157,7 @@ no_iucn_synonyms_df <-
   synonyms_df_corrected %>%
   filter(is.na(accepted_name))
 
-# Get name.backbone --------------------------------------------------------
+# Get name.backbone ------------------------------------------
 apply_backbone_iucn <-
   lapply(iucn_synonyms_df$accepted_name, name.backbone)
 apply_backbone_gbif <-
@@ -337,7 +337,10 @@ data_all_without_sapajus <-
 # Little fix
 backbone_sp_gbif_iucn_df <-
   backbone_sp_gbif_iucn_df %>%
-  mutate(scientificName = sub("Brucepattersonius griserufescens", "Brucepattersonius iserufescens", scientificName))
+  mutate(scientificName = sub(
+    "Brucepattersonius griserufescens", 
+    "Brucepattersonius iserufescens", 
+    scientificName))
 
 # Merge backbones with the main dataframe
 data_all_backbone_iucn_gbif_merged <-
@@ -353,7 +356,7 @@ data_iucn_gbif_ordered <-
   data_all_backbone_iucn_gbif_merged %>%
   select(colnames(data_all), species)
 
-# Sapajus spp. ---------------------------------------------------------------
+# Sapajus spp. -----------------------------------------------
 S_nigritus <-
   data_all_clipped %>%
   filter(
@@ -405,7 +408,7 @@ sapajus_df_final_ordered <-
   sapajus_df_final %>%
   select(colnames(data_all_clipped), species)
 
-# Bind all dataframes --------------------------------------------------------
+# Bind all dataframes ----------------------------------------
 data_all_united <-
   bind_rows(data_iucn_gbif_ordered, sapajus_df_final_ordered)
 
@@ -414,7 +417,7 @@ data_all_united <-
   data_all_united %>%
   select(-acceptedNameUsage)
 
-# Remove non-native species --------------------------------------------------
+# Remove non-native species ----------------------------------
 exotic_sp_list <- data.frame(
   species = c(
     "Canis lupus",
@@ -478,7 +481,7 @@ to_remove <-
   filter(str_detect(order, "Cetacea"))
 data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
 
-# Correct some species names -------------------------------------------------
+# Correct some species names ---------------------------------
 data_all_sp_clean <-
   data_all_sp_clean %>%
   mutate(species = ifelse(
@@ -496,8 +499,16 @@ data_all_sp_clean <-
     "Natalus macrourus",
     species
   )) %>%
-  mutate(species = sub("Oxymycterus caparoae", "Oxymycterus caparaoe", species)) %>%
-  mutate(species = sub("Brucepattersonius iserufescens", "Brucepattersonius griserufescens", species)) %>%
+  mutate(species = sub(
+    "Oxymycterus caparoae", 
+    "Oxymycterus caparaoe", 
+    species
+    )) %>%
+  mutate(species = sub(
+    "Brucepattersonius iserufescens", 
+    "Brucepattersonius griserufescens", 
+    species
+    )) %>%
   # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e   #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
   #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
   # com exceção das Antilhas (que podem representar uma outra espécie), 
@@ -507,17 +518,40 @@ data_all_sp_clean <-
     "Lasiurus blossevillii",
     species
   )) %>%
-  mutate(species = ifelse(str_detect(species, "Felis"),
-                          "Leopardus pardalis",
-                          species)) %>%
-  mutate(species = sub("myosurus", "myosuros", species)) %>%
-  mutate(species = sub("Blarynomis", "Blarinomys", species)) %>%
-  mutate(species = sub("arviculoides", "cursor", species)) %>%
-  mutate(species = sub("Oligoryzomys eliurus", "Oligoryzomys nigripes", species)) %>%
-  mutate(species = ifelse(str_detect(species, "Hylaeamys"),
-                          "Hylaeamys laticeps",
-                          species)) %>%
-  mutate(species = sub("Dasyprocta aguti", "Dasyprocta leporina", species))
+  mutate(species = ifelse(
+    str_detect(species, "Felis"),
+    "Leopardus pardalis",
+    species
+    )) %>%
+  mutate(species = sub(
+    "myosurus", 
+    "myosuros", 
+    species
+    )) %>%
+  mutate(species = sub(
+    "Blarynomis", 
+    "Blarinomys", 
+    species
+    )) %>%
+  mutate(species = sub(
+    "arviculoides", 
+    "cursor", 
+    species
+    )) %>%
+  mutate(species = sub(
+    "Oligoryzomys eliurus", 
+    "Oligoryzomys nigripes", 
+    species
+    )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "Hylaeamys"),
+    "Hylaeamys laticeps",
+    species
+    )) %>%
+  mutate(species = sub(
+    "Dasyprocta aguti", 
+    "Dasyprocta leporina", 
+    species))
 
 
 # scientificName as the scientific name containing the species author, not as
@@ -547,6 +581,7 @@ clean_data_slct <-
     institutionCode,
     collectionCode,
     catalogNumber,
+    recordedBy,
     year,
     country,
     stateProvince,
@@ -585,7 +620,7 @@ clean_data_distincted <-
   )
 
 
-# Save data.frame ------------------------------------------------------------
+# Save data.frame --------------------------------------------
 write.csv(
   clean_data_distincted,
   "../data/processed-data/clean-mammal-data.csv"

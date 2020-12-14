@@ -13,9 +13,12 @@ conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 # Source functions
 source("./R-scripts/functions/08-funs-explore-species-data.R")
 
-# Load data ----------------------------------------------------------------
+# Load data --------------------------------------------------
+
 data_read <- read.csv("../data/processed-data/clean-mammal-data.csv")
 cons_status <- read.csv("../data/raw-data/conservation-status.csv")
+
+# Pre-process data -------------------------------------------
 
 # Add species conservation status
 data <- merge(data_read, cons_status, by = "species", all = TRUE)
@@ -23,7 +26,7 @@ data <- merge(data_read, cons_status, by = "species", all = TRUE)
 to_remove <- anti_join(select(data, colnames(data_read)), data_read)
 data <- anti_join(data, to_remove)
 
-# Tables ----------------------------------------------------------------------
+# Tables -----------------------------------------------------
 
 # List of collection and institutions
 collection_institution_df <- do.collection.institution.table(data)
@@ -69,18 +72,22 @@ species_references_df <-
 species_record_df <-
   data %>%
   mutate(
-    International = ifelse(International == "",
-                           "NE",
-                           International),
-    Nacional = ifelse(Nacional == "",
-                      "NE",
-                      Nacional),
-    Regional.BA = ifelse(Regional.BA == "",
-                         "NE",
-                         Regional.BA),
-    Regional.ES = ifelse(Regional.ES == "",
-                         "NE",
-                         Regional.ES)
+    International = ifelse(
+      International == "",
+      "NE",
+      International),
+    Nacional = ifelse(
+      Nacional == "",
+      "NE",
+      Nacional),
+    Regional.BA = ifelse(
+      Regional.BA == "",
+      "NE",
+      Regional.BA),
+    Regional.ES = ifelse(
+      Regional.ES == "",
+      "NE",
+      Regional.ES)
   ) %>%
   filter(!str_detect(scientificName, "Felis"), !is.na(scientificName)) %>%
   group_by(species) %>%
@@ -95,7 +102,8 @@ species_record_df <-
   ) %>%
   arrange(by = last_record)
 
-# Plot -----------------------------------------------------------------------
+# Plot -------------------------------------------------------
+
 first_record_df <-
   select(species_record_df, first_record)
 last_record_df <-
@@ -117,7 +125,7 @@ plot_through_years <-
   xlab("Years") +
   theme(legend.title = element_blank())
 
-# Save -----------------------------------------------------------------------
+# Save -------------------------------------------------------
 # Plot
 plot_through_years
 ggsave("../data/results/first-last-record-plot.pdf",

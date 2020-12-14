@@ -1,14 +1,15 @@
 # File purpose: Count record number of mammal orders and species
 # Date: 17/11/2020
 
-library(sf)
-library(FNN)
-library(dplyr)
-library(conflicted)
-library(ggspatial)
-library(cowplot)
+xfun::pkg_attach(c(
+  "FNN",
+  "sf",
+  "dplyr",
+  "ggspatial",
+  "cowplot"
+))
 
-conflict_prefer(name = "filter", winner = "dplyr")
+conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 
 count.orders.recs.in.polygons <-
   function(pts, polygons, order_list) {

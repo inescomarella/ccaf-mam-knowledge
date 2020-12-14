@@ -5,7 +5,7 @@
 library(googledrive)
 library(stringr)
 
-# Login ---------------------------------------------------------------------
+# Login ------------------------------------------------------
 
 # Authorize googledrive to view and manage my Drive files
 drive_auth(
@@ -17,7 +17,7 @@ drive_auth(
   token = NULL
 )
 
-# Prepare folder and files ---------------------------------------------------
+# Prepare folder and files -----------------------------------
 
 # Check if folders already exist and create them
 if (nrow(drive_get(path = "~/ccma-tcc/results/ccma-knowledge-hotspots")) == 0) {
@@ -78,7 +78,7 @@ ccma_map_name <-
 ccma_cus_name <-
   str_replace(ccma_cus_path, "../data/results/", "")
 
-# Upload files ---------------------------------------------------------------
+# Upload files -----------------------------------------------
 
 # Upload all files to its respective folders
 for (i in 1:length(all_mammals_paths)) {

@@ -4,12 +4,13 @@
 #
 # Date: 16/11/2020
 
-library(dplyr)
-library(sf)
-library(sp)
-library(conflicted)
-
-conflict_prefer("summarise", "dplyr")
+xfun::pkg_attach(c(
+  "dplyr",
+  "sf",
+  "sp",
+  "brazilmaps"
+))
+conflicted::conflict_prefer("summarise", "dplyr")
 
 rl.synonyms <- function(x) {
   # Manipulate rl_synonyms() S4 object to get "results" and "name" as a
@@ -46,13 +47,29 @@ name.backbone <- function(x) {
 }
 
 
-clip.ccma <- function(pts) {
+clip.ccaf <- function(pts) {
   # Use st_intersection() to remove points outside ccma layer (sf obj)
   #
   # Args:
   #   pts: dataframe with decimalLongitude and decimalLatitude columns
   #   specifying coordinates
 
+  br_longlat <-
+    get_brmap(geo = "Brazil") %>%
+    st_as_sf() %>%
+    st_transform(CRS("+proj=longlat +datum=WGS84"))
+  
+  ccaf <-
+    st_read(
+      dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
+      layer = "corredores_ppg7",
+      check_ring_dir = TRUE
+    ) %>%
+    st_set_crs(CRS("+proj=longlat +datum=WGS84")) %>%
+    filter(str_detect(NOME1, "Mata")) %>%
+    st_intersection(br_longlat) %>%
+    mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica")
+  
   to_remove <-
     pts %>%
     filter(
@@ -62,16 +79,11 @@ clip.ccma <- function(pts) {
         decimalLatitude == ""
     )
   
-  pts <- anti_join(pts, to_remove)
-  
-  pts <-
-    st_as_sf(pts, coords = c("decimalLongitude", "decimalLatitude"))
-  pts <-
-    st_set_crs(pts, CRS("+proj=longlat +datum=WGS84"))
-  
-  ccma <- st_transform(ccma, crs = CRS("+proj=longlat +datum=WGS84"))
-  
-  pts <- st_intersection(pts, ccma)
+  pts <- 
+    anti_join(pts, to_remove) %>%
+    st_as_sf(coords = c("decimalLongitude", "decimalLatitude")) %>%
+    st_set_crs(CRS("+proj=longlat +datum=WGS84")) %>%
+    st_intersection(ccma)
   
   coords <- as.data.frame(st_coordinates(pts))
 
