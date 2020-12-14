@@ -99,7 +99,7 @@ ggsave("../data/results/map-all-mammals-nsp.pdf",
 )
 
 nrec_nsp_plot_list
-ggsave("../data/results/map-all-mammals-together.pdf",
+ggsave("../data/results/map-all-mammals-nrec-nsp.pdf",
        width = 8,
        height = 6
 )

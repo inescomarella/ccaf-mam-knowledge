@@ -130,8 +130,8 @@ final_plot_together <-
 
 # Save -----------------------------------------------------
 save_plot(
-  filename = "../data/results/order-maps-together.pdf",
+  filename = "../data/results/maps-orders-nrec.pdf",
   plot = final_plot_together,
   base_width = 8,
-  base_height = 7
+  base_height = 6 #7
 )

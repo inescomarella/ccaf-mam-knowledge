@@ -88,24 +88,23 @@ together_plot_list <-
 
 # Save video -----------------------------------------------
 # Save in gif format
-# The resolution is better than mp4
 saveGIF(
   print(nrec_plot_list),
-  movie.name = "animation_nrec.gif",
+  movie.name = "animation-nrec.gif",
   img.name = "Rplot",
   convert = "magick"
 )
 
 saveGIF(
   print(nsp_plot_list),
-  movie.name = "animation_nsp.gif",
+  movie.name = "animation-nsp.gif",
   img.name = "Rplot",
   convert = "magick"
 )
 
 saveGIF(
   print(together_plot_list),
-  movie.name = "animation_together.gif",
+  movie.name = "animation-nrec-nsp.gif",
   img.name = "Rplot",
   convert = "magick"
 )

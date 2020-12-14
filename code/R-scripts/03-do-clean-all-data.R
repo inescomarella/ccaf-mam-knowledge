@@ -25,7 +25,7 @@ source("./R-scripts/functions/03-funs-clean-all-data.R")
 data_paper <-
   read.csv("../data/processed-data/clean-papers-data.csv")
 data_downl <-
-  read.csv("../data/processed-data/raw-downloaded-mammal-data.csv")
+  read.csv("../data/processed-data/downloaded-data.csv")
 
 rlkey <-
   "*******"

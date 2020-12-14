@@ -12,7 +12,7 @@ xfun::pkg_attach(c(
 conflicted::conflict_prefer("mutate", "dplyr")
 
 # Source functions
-source("./R-scripts/functions/02-funs-get-data.R")
+source("./R-scripts/functions/02-funs-download-data.R")
 
 # GBIF data ---------------------------------------------------
 
@@ -82,4 +82,4 @@ gbif_mamm_filtered <-
 
 mamm_binded <- rbind.fill(spLink_mamm_filtered, gbif_mamm_filtered)
 
-write.csv(mamm_binded, "../data/processed-data/raw-downloaded-mammal-data.csv")
+write.csv(mamm_binded, "../data/processed-data/downloaded-data.csv")

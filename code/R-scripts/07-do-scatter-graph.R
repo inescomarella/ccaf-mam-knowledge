@@ -99,7 +99,7 @@ scatter_plot <-
 # Save plot --------------------------------------------------
 scatter_plot
 ggsave(
-  "../data/results/scatter-plot-all-nrec-dist-cu.pdf",
+  "../data/results/scatter-graph.pdf",
   width = 6,
   height = 4
 )
