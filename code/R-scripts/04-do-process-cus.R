@@ -52,7 +52,7 @@ cus_ba_ICMBio_utm <-
 cus_af_MMA_utm <-
   st_read(
     dsn = "../data/processed-data",
-    layer = "MMA-custodas-geom-fixed"
+    layer = "MMA-ucstodas-geom-fixed"
   ) %>%
   st_set_crs(longlat) %>%
   st_transform(utm) %>%
@@ -68,8 +68,8 @@ cus_es_ICMBio_utm <-
 
 cus_es_IEMA_utm <-
   st_read(
-    dsn = "../data/raw-data/maps/IEMA/20190510_cus_estaduais090519shp",
-    layer = "cus_Estaduais190418"
+    dsn = "../data/raw-data/maps/IEMA/20190510_UCs_estaduais090519shp",
+    layer = "UCs_Estaduais190418"
   ) %>%
   st_transform(utm) %>%
   st_intersection(ccaf_utm)

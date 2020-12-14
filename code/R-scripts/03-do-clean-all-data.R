@@ -17,6 +17,7 @@ xfun::pkg_attach(c(
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
 conflicted::conflict_prefer(name = "select", winner = "dplyr")
 conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
+conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
 source("./R-scripts/functions/03-funs-clean-all-data.R")
@@ -466,7 +467,8 @@ exotic_sp_list <- data.frame(
     # (retirado de Reis et al., 2017) "De acordo com Nogueira et al. (2014a), os registros de Carollia castanea H. Allen, 1890 indicados para o Brasil eram equivocados." Não dá para saber se é C. brevicauda ou C. perspicillata
     "Carollia castanea",
     # (retirado de Reis et al., 2017) "O gênero Platyrrhinus atualmente é composto por vinte espécies (VELAZCO et al., 2010) e, segundo Nogueira et al. (2014a), apenas oito ocorrem em território brasileiro." P. helleri não está incluindo nestas 8 spp
-    "Platyrrhinus helleri"
+    "Platyrrhinus helleri",
+    "Akodon montensis"
   )
 )
 

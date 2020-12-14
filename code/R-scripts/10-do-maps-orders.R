@@ -78,7 +78,7 @@ ccaf_grid_utm <-
 order_names <- sort(unique(records_utm$order))
 
 ccaf_grid_utm <-
-  count.order.recs.in.polygons(records_utm, ccaf_grid_utm, order_names)
+  count.orders.recs.in.polygons(records_utm, ccaf_grid_utm, order_names)
 
 # Convert to longlat to apply plot functions
 ccaf_grid <-
@@ -111,7 +111,7 @@ for (i in 1:length(plot_order)) {
   plot_drawed_order[[i]] <-
     ggdraw(plot_order[[i]]) +
     draw_plot(legend_order[[i]],
-      hjust = -0.296
+      hjust = -0.25
     )
 }
 

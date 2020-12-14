@@ -43,8 +43,8 @@ maps_paths <-
 
 animation_paths <-
   list.files(
-    "./",
-    pattern = "animation",
+    ".",
+    pattern = "animation-n",
     full.names = TRUE,
     recursive = TRUE
   )
@@ -69,7 +69,7 @@ maps_names <-
   str_replace(maps_paths, "../data/results/", "")
 
 animation_names <-
-  str_replace(animation_paths, "../data/results/", "")
+  str_replace(animation_paths, "./", "")
 
 models_names <-
   str_replace(models_paths, "../data/results/", "")
@@ -142,8 +142,8 @@ drive_upload(
 
 
 drive_upload(
-  ccma_cus_path,
-  name = ccma_cus_name,
+  cus_path,
+  name = cus_name,
   path = "~/ccma-tcc/results",
   overwrite = TRUE,
   verbose = TRUE

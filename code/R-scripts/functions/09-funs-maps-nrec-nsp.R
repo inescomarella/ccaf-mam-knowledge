@@ -4,7 +4,9 @@ xfun::pkg_attach(c(
   "sf",
   "dplyr",
   "cowplot",
-  "ggplot2"
+  "ggplot2",
+  "viridis",
+  "ggspatial"
 ))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")

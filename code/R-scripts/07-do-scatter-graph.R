@@ -59,7 +59,8 @@ institute_utm <-
       "X_POSSIBLE_NAMES=longitude",
       "Y_POSSIBLE_NAMES=latitude"
     )
-  )
+  ) %>%
+  st_transform(utm)
 
 # Make grid --------------------------------------------------
 
