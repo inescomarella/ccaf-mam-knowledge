@@ -8,7 +8,8 @@ xfun::pkg_attach(c(
   "brazilmaps",
   "openxlsx",
   "ggspatial",
-  "cowplot"
+  "cowplot",
+  "qgisprocess"
 ))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
@@ -26,11 +27,7 @@ br_longlat <-
   st_transform(longlat)
 
 ccaf_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-    layer = "corredores_ppg7",
-    check_ring_dir = TRUE
-  ) %>%
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
   st_set_crs(longlat) %>%
   # Only Central Corridor of Atlantic Forest
   filter(str_detect(NOME1, "Mata")) %>%
@@ -40,55 +37,62 @@ ccaf_utm <-
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_transform(utm)
 
-cus_ba_ICMBio_utm <-
-  st_read(
-    dsn = "../data/processed-data",
-    layer = "ICMBio-BA-geom-fixed"
-  ) %>%
+cus_es_ICMBio_utm <-
+  read_sf("../data/raw-data/maps/ICMBio/ES/ES.shp") %>%
+  st_transform(utm) %>%
+  st_intersection(ccaf_utm)
+
+cus_es_IEMA_utm <-
+  read_sf("../data/raw-data/maps/IEMA/20190510_UCs_estaduais090519shp/UCs_Estaduais190418.shp") %>%
+  st_transform(utm) %>%
+  st_intersection(ccaf_utm)
+
+cus_br_ICMBio_utm <-
+  read_sf("../data/raw-data/maps/ICMBio/UC_fed_julho_2019/UC_fed_julho_2019.shp") %>%
+  st_transform(utm) %>%
+  st_intersection(ccaf_utm)
+
+cus_ba_ICMBio <- read_sf("../data/raw-data/maps/ICMBio/BA/BA.shp")
+
+cus_af_MMA <- read_sf("../data/raw-data/maps/MMA/ucstodas/ucstodas.shp")
+
+# Fix geometries ----------------------------------------------
+
+qgis_configure()
+
+cus_ba_ICMBio_fixed <- 
+  qgis_run_algorithm(
+  "native:fixgeometries",
+  INPUT =  cus_ba_ICMBio,
+  OUTPUT = qgis_tmp_vector()
+)
+
+cus_af_MMA_fixed <- 
+  qgis_run_algorithm(
+    "native:fixgeometries",
+    INPUT =  cus_af_MMA,
+    OUTPUT = qgis_tmp_vector()
+  )
+
+cus_ba_ICMBio_utm <- 
+  read_sf(qgis_output(cus_ba_ICMBio_fixed, "OUTPUT")) %>%
   st_transform(utm) %>%
   st_make_valid() %>%
   st_intersection(ccaf_utm)
 
 cus_af_MMA_utm <-
-  st_read(
-    dsn = "../data/processed-data",
-    layer = "MMA-ucstodas-geom-fixed"
-  ) %>%
+  read_sf(qgis_output(cus_af_MMA_fixed, "OUTPUT")) %>%
   st_set_crs(longlat) %>%
   st_transform(utm) %>%
   st_intersection(ccaf_utm)
-
-cus_es_ICMBio_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/ICMBio/ES",
-    layer = "ES"
-  ) %>%
-  st_transform(utm) %>%
-  st_intersection(ccaf_utm)
-
-cus_es_IEMA_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/IEMA/20190510_UCs_estaduais090519shp",
-    layer = "UCs_Estaduais190418"
-  ) %>%
-  st_transform(utm) %>%
-  st_intersection(ccaf_utm)
-
-cus_br_ICMBio_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/ICMBio/UC_fed_julho_2019",
-    layer = "UC_fed_julho_2019"
-  ) %>%
-  st_transform(utm) %>%
-  st_intersection(ccaf_utm)
-
 
 # Process CU maps --------------------------------------------
 
 # Standardize CU acronyms and names
 cus_br_ICMBio_utm <-
   cus_br_ICMBio_utm %>%
-  mutate(name_cu = str_to_upper(nome))
+  mutate(name_cu = str_to_upper(nome)) %>%
+  mutate(acronym = sigla)
 
 cus_es_ICMBio_utm <-
   cus_es_ICMBio_utm %>%
@@ -97,11 +101,13 @@ cus_es_ICMBio_utm <-
 
 cus_ba_ICMBio_utm <-
   cus_ba_ICMBio_utm %>%
+  mutate(geometry = geom) %>%
   mutate(name_cu = str_to_upper(nome)) %>%
   mutate(acronym = "RPPN")
 
 cus_af_MMA_utm <-
   cus_af_MMA_utm %>%
+  mutate(geometry = geom) %>%
   mutate(name_cu = str_to_upper(NOME_UC1)) %>%
   mutate(acronym = ifelse(
     str_detect(CATEGORI3, "Particular"),
@@ -194,9 +200,9 @@ cus_es_IEMA_utm <-
 cus_binded <-
   bind_rows(
     cus_br_ICMBio_utm,
-    cus_af_MMA_utm,
     cus_es_IEMA_utm,
     cus_es_ICMBio_utm,
+    cus_af_MMA_utm,
     cus_ba_ICMBio_utm
   )
 
