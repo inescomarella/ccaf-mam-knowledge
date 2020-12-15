@@ -14,7 +14,6 @@ xfun::pkg_attach(c(
   "sf",
   "openxlsx",
   "brazilmaps",
-  "vegan",
   "DHARMa",
   "MASS"
 ))
@@ -31,6 +30,27 @@ utm <-
   sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
 # Load data --------------------------------------------------
+
+br_longlat <-
+  get_brmap(geo = "Brazil") %>%
+  st_as_sf() %>%
+  st_transform(longlat)
+
+ccaf_utm <-
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
+  filter(str_detect(NOME1, "Mata")) %>%
+  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
+  st_transform(utm)
+
+cus_utm <-
+  read_sf("../data/processed-data/CUs-map.shp") %>%
+  st_transform(longlat) %>%
+  st_make_valid() %>%
+  st_intersection(st_transform(ccaf_utm, longlat)) %>%
+  st_transform(utm)
+
 records_utm <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
@@ -53,38 +73,7 @@ institutes_utm <-
   ) %>%
   st_transform(utm)
 
-br_longlat <-
-  get_brmap(geo = "Brazil") %>%
-  st_as_sf() %>%
-  st_transform(longlat)
-
-ccaf_longlat <- 
-  st_read(
-  dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-  layer = "corredores_ppg7",
-  check_ring_dir = TRUE
-  ) %>%
-  st_set_crs(longlat) %>%
-  # Only Central Corridor of Atlantic Forest
-  filter(str_detect(NOME1, "Mata")) %>%
-  # Only terrestrial area
-  st_intersection(br_longlat) %>%
-  # Fix name
-  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica")
-
-cus_utm <-
-  st_read(dsn = "../data/processed-data/", layer = "CUs-map") %>%
-  st_transform(longlat) %>%
-  st_make_valid() %>%
-  st_intersection(ccaf_longlat) %>%
-  st_transform(utm)
-
 # Make grid --------------------------------------------------
-
-# Reproject CCAF map to a metric coordinate system
-ccaf_utm <- 
-  ccaf_longlat %>%
-  st_transform(utm)
 
 # Expected area = 1000m * 1000000m = 1e+9 m2 = 1000 km2
 cellarea <- 1000 * (1e+6)

@@ -11,7 +11,7 @@
 #'
 xfun::pkg_attach(c(
   "dplyr",
-  "stringr",
+  "stringr"
 ))
 
 conflicted::conflict_prefer("filter", "dplyr")

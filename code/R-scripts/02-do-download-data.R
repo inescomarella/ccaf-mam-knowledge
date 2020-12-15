@@ -10,6 +10,7 @@ xfun::pkg_attach(c(
 ))
 
 conflicted::conflict_prefer("mutate", "dplyr")
+conflicted::conflict_prefer("filter", "dplyr")
 
 # Source functions
 source("./R-scripts/functions/02-funs-download-data.R")
@@ -18,16 +19,13 @@ source("./R-scripts/functions/02-funs-download-data.R")
 
 # Set GBIF profile
 options(gbif_user = "inescomarella")
-options(gbif_pwd = "********")
+options(gbif_pwd = "***")
 options(gbif_email = "inesmottacomarella@gmail.com")
 
 # Spin up a download request for GBIF occurrence data
 # This might take a while
 gbif_mamm_occ_down <-
   occ_download(
-    user = "inescomarella",
-    pwd = "********",
-    email = "inesmottacomarella@gmail.com",
     format = "SIMPLE_CSV",
     pred("country", "BR"),
     pred("taxonKey", 359),
@@ -61,7 +59,7 @@ spLink_animals_down <-
   rspeciesLink(
     dir = "../data/processed-data/",
     filename = "broken-spLink-animals-data",
-    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA"),
+    stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA", "BAHIA", "ESPIRITO SANTO"),
     Coordinates = "Yes",
     Scope = "animals",
     Synonyms = "species2000"

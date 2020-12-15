@@ -19,24 +19,17 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 longlat <- sp::CRS("+proj=longlat +datum=WGS84")
 
 # Load data --------------------------------------------------
-br_sf <-
+br_longlat <-
   get_brmap(geo = "Brazil") %>%
   st_as_sf() %>%
   st_transform(longlat)
 
 ccaf_spatial <-
-  st_read(
-    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-    layer = "corredores_ppg7",
-    check_ring_dir = TRUE
-  ) %>%
-  st_set_crs(longlat) %>%
-  # Only Central Corridor of Atlantic Forest
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
   filter(str_detect(NOME1, "Mata")) %>%
-  # Only terrestrial area
-  st_intersection(br_sf) %>%
-  # Fix name
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
   as(., "Spatial")
 
 land_use_spdf <-
@@ -53,8 +46,14 @@ land_use_table_df <-
     "../data/raw-data/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-area.csv"
   )
 
+ccaf_all_area_sf <-
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
+  filter(str_detect(NOME1, "Mata")) %>%
+  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat)
+
 cus_sf <-
-  st_read(dsn = "../data/processed-data/", layer = "CUs-map") %>%
+  read_sf("../data/processed-data/CUs-map.shp") %>%
   st_transform(longlat) %>%
   st_make_valid() %>%
   st_intersection(st_as_sf(ccaf_spatial))
@@ -68,19 +67,6 @@ institute_sf <-
       "Y_POSSIBLE_NAMES=latitude"
     )
   )
-
-ccaf_all_area_sf <-
-  st_read(
-    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-    layer = "corredores_ppg7",
-    check_ring_dir = TRUE
-  ) %>%
-  st_set_crs(longlat) %>%
-  # Only Central Corridor of Atlantic Forest
-  filter(str_detect(NOME1, "Mata")) %>%
-  # Fix name
-  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
-  st_as_sf()
 
 # Pre-process data -------------------------------------------
 

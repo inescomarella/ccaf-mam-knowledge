@@ -22,11 +22,7 @@ br_longlat <-
   st_transform(longlat)
 
 ccaf_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-    layer = "corredores_ppg7",
-    check_ring_dir = TRUE
-  ) %>%
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
   filter(str_detect(NOME1, "Mata")) %>%
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_set_crs(longlat) %>%
@@ -34,7 +30,7 @@ ccaf_utm <-
   st_transform(utm)
 
 cus_utm <-
-  st_read(dsn = "../data/processed-data/", layer = "CUs-map") %>%
+  read_sf("../data/processed-data/CUs-map.shp") %>%
   st_transform(longlat) %>%
   st_make_valid() %>%
   st_intersection(st_transform(ccaf_utm, longlat)) %>%

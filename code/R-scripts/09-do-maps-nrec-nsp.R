@@ -16,7 +16,27 @@ utm <-
 
 # Load data ------------------------------------------------
 
-record_utm <-
+br_longlat <-
+  get_brmap(geo = "Brazil") %>%
+  st_as_sf() %>%
+  st_transform(longlat)
+
+ccaf_utm <-
+  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
+  filter(str_detect(NOME1, "Mata")) %>%
+  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
+  st_transform(utm)
+
+cus_utm <-
+  read_sf("../data/processed-data/CUs-map.shp") %>%
+  st_transform(longlat) %>%
+  st_make_valid() %>%
+  st_intersection(st_transform(ccaf_utm, longlat)) %>%
+  st_transform(utm)
+
+records_utm <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
     crs = longlat,
@@ -25,26 +45,6 @@ record_utm <-
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
   ) %>%
-  st_transform(utm)
-
-br_longlat <-
-  get_brmap(geo = "Brazil") %>%
-  st_as_sf() %>%
-  st_transform(longlat)
-
-ccaf_utm <-
-  st_read(
-    dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-    layer = "corredores_ppg7",
-    check_ring_dir = TRUE
-  ) %>%
-  st_set_crs(longlat) %>%
-  # Only Central Corridor of Atlantic Forest
-  filter(str_detect(NOME1, "Mata")) %>%
-  # Only terrestrial area
-  st_intersection(br_longlat) %>%
-  # Fix name
-  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_transform(utm)
 
 # Make grid --------------------------------------------------
@@ -64,10 +64,10 @@ ccaf_grid_utm <-
 
 # Count mammal species in a grid
 # Takes 29s to run
-ccaf_grid_utm <- count.sp.in.polygons(record_utm, ccaf_grid_utm)
+ccaf_grid_utm <- count.sp.in.polygons(records_utm, ccaf_grid_utm)
 
 # Count records of mammals in a grid
-ccaf_grid_utm$nrec <- lengths(st_intersects(ccaf_grid_utm, record_utm))
+ccaf_grid_utm$nrec <- lengths(st_intersects(ccaf_grid_utm, records_utm))
 
 ccaf_grid <-
   ccaf_grid_utm %>%

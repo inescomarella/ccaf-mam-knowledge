@@ -28,13 +28,10 @@ br_longlat <-
 
 ccaf_utm <-
   read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
-  st_set_crs(longlat) %>%
-  # Only Central Corridor of Atlantic Forest
   filter(str_detect(NOME1, "Mata")) %>%
-  # Only terrestrial area
-  st_intersection(br_longlat) %>%
-  # Fix name
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
+  st_set_crs(longlat) %>%
+  st_intersection(br_longlat) %>%
   st_transform(utm)
 
 cus_es_ICMBio_utm <-
