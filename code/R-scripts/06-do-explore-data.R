@@ -28,6 +28,13 @@ data <- anti_join(data, to_remove)
 
 # Tables -----------------------------------------------------
 
+# List of species
+species_list <- 
+  data %>%
+  select(order, family, species) %>%
+  arrange(order, family, species) %>%
+  unique()
+  
 # List of collection and institutions
 collection_institution_df <- do.collection.institution.table(data)
 
@@ -136,12 +143,14 @@ ggsave("../data/results/first-last-record-plot.pdf",
 # Tables
 OUT <- createWorkbook()
 
+addWorksheet(OUT, "species-list")
 addWorksheet(OUT, "first-last-record")
 addWorksheet(OUT, "species-reference-table")
 addWorksheet(OUT, "species-refs-sep-cols")
 addWorksheet(OUT, "collections-institutions")
 addWorksheet(OUT, "mammal-database")
 
+writeData(OUT, sheet = "species-list", x = species_list)
 writeData(OUT, sheet = "first-last-record", x = species_record_df)
 writeData(OUT, sheet = "species-reference-table", x = data_reference_table)
 writeData(OUT, sheet = "species-refs-sep-cols", x = species_references_df)
