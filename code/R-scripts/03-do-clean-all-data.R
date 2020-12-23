@@ -29,9 +29,9 @@ data_downl <-
   read.csv("../data/processed-data/downloaded-data.csv")
 
 rlkey <-
-  "*******"
+  "*********"
 
-# Pre-process data -------------------------------------------
+# Pre-process data ----------------------------------------
 
 # Standardize columns
 data_paper <- select(data_paper, -X)
@@ -48,12 +48,12 @@ data_all_only_indetified_species <- only.indentified.species(data_all)
 
 # Remove records outside CCMA limits
 # Takes 3min to run
-data_all_clipped <- clip.ccma(data_all_only_indetified_species)
+data_all_clipped <- clip.ccaf(data_all_only_indetified_species)
 
 # Species list
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
-# Get rl.synonyms --------------------------------------------
+# Get rl.synonyms ----------------------------------------
 # Takes a few hours to run and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
@@ -468,7 +468,19 @@ exotic_sp_list <- data.frame(
     "Carollia castanea",
     # (retirado de Reis et al., 2017) "O gênero Platyrrhinus atualmente é composto por vinte espécies (VELAZCO et al., 2010) e, segundo Nogueira et al. (2014a), apenas oito ocorrem em território brasileiro." P. helleri não está incluindo nestas 8 spp
     "Platyrrhinus helleri",
-    "Akodon montensis"
+    "Akodon montensis",
+    "Nectomys rattus",
+    "Mazama bororo",
+    "Didelphis marsupialis",
+    "Marmosops paulensis",
+    "Akodon aerosus",
+    "Calomys laucha",
+    "Delomys dorsalis",
+    "Oxymycterus quaestor",
+    "Dasyprocta azarae",
+    "Myocastor coypus",
+    "Lycalopex gymnocercus",
+    "Speothos venaticus"
   )
 )
 
@@ -553,6 +565,38 @@ data_all_sp_clean <-
   mutate(species = sub(
     "Dasyprocta aguti", 
     "Dasyprocta leporina", 
+    species)) %>%
+  mutate(species = sub(
+    "Metachirus nudicaudatus", 
+    "Metachirus myosuros", 
+    species)) %>%
+  mutate(species = sub(
+    "Philander frenatus", 
+    "Philander quica", 
+    species)) %>%
+  mutate(species = sub(
+    "Philander opossum", 
+    "Philander quica", 
+    species)) %>%
+  mutate(species = sub(
+    "Akodon serrensis", 
+    "Castoria angustidens", 
+    species)) %>%
+  mutate(species = sub(
+    "Calomys cerqueirai", 
+    "Calomys expulsus", 
+    species)) %>%
+  mutate(species = sub(
+    "Trinomys paratus", 
+    "Trinomys gratiosus", 
+    species)) %>%
+  mutate(species = sub(
+    "Guerlinguetus ingrami", 
+    "Guerlinguetus brasiliensis", 
+    species)) %>%
+  mutate(species = sub(
+    "Sciurus aestuans", 
+    "Guerlinguetus brasiliensis", 
     species))
 
 
