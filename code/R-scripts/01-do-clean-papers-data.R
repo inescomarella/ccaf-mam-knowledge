@@ -28,7 +28,7 @@ data_modif <-
 # Remove rows without coordinates
 data_modif <- remove.row.without.coordinates(data_modif)
 
-# Standardize writing ---------------------------------------------------------
+# Standardize writing -------------------------------------
 
 # Standardize scientificName writing
 # Remove special characters and correct "Gender.species"
@@ -323,7 +323,7 @@ data_modif <-
   ))
 
 
-# Correct columns -------------------------------------------------------------
+# Correct columns -----------------------------------------
 
 # 1. Add PublicationYear
 # Add publication year when data lacks this information
@@ -345,7 +345,7 @@ data_modif <- correct.coordinates.in.geodeticDatum(data_modif)
 # Correct mixed latitude/longitude
 data_modif <- correct.mixed.latlong(data_modif)
 
-# Convert coordinates to lat/long --------------------------------------------
+# Convert coordinates to lat/long -------------------------
 
 # Convert coordinates in degree to lat/long
 # Ignore:
@@ -449,7 +449,7 @@ data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verba
 data_modif$decimalLongitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
   utm_data_modif$decimalLongitude.y
 
-# Manipulate references ------------------------------------------------------
+# Manipulate references -----------------------------------
 references_df$reference <- as.character(references_df$reference)
 data_modif$reference <- as.character(data_modif$reference)
 
@@ -666,5 +666,5 @@ correct <-
 data_modif <- anti_join(data_modif, to_correct)
 data_modif <- bind_rows(data_modif, correct)
 
-# Save clean data.frame --------------------
+# Save clean data.frame -----------------------------------
 write.csv(data_modif, "../data/processed-data/clean-papers-data.csv")
