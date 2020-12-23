@@ -9,7 +9,8 @@ xfun::pkg_attach(c(
   "raster",
   "ggspatial",
   "cowplot",
-  "rworldmap"
+  "rworldmap",
+  "grid"
 ))
 
 conflicted::conflict_prefer(name = "filter", winner = "dplyr")
@@ -20,9 +21,10 @@ longlat <- sp::CRS("+proj=longlat +datum=WGS84")
 
 # Load data --------------------------------------------------
 br_longlat <-
-  get_brmap(geo = "Brazil") %>%
-  st_as_sf() %>%
-  st_transform(longlat)
+  read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
+  filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
+  st_transform(longlat) %>%
+  st_combine()
 
 ccaf_spatial <-
   read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
@@ -30,6 +32,7 @@ ccaf_spatial <-
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_set_crs(longlat) %>%
   st_intersection(br_longlat) %>%
+  st_crop(xmax = -38.7, xmin = -41.87851, ymax = -13.00164, ymin = -21.30178) %>%
   as(., "Spatial")
 
 land_use_spdf <-
@@ -53,10 +56,8 @@ ccaf_all_area_sf <-
   st_set_crs(longlat)
 
 cus_sf <-
-  read_sf("../data/processed-data/CUs-map.shp") %>%
-  st_transform(longlat) %>%
-  st_make_valid() %>%
-  st_intersection(st_as_sf(ccaf_spatial))
+  read_sf("../data/processed-data/CUs-map-full.shp") %>%
+  st_transform(longlat)
 
 institute_sf <-
   st_read(
@@ -73,22 +74,30 @@ institute_sf <-
 land_use_table_df <-
   land_use_table_df %>%
   mutate(id = ifelse(class == 0,
-    "Non observed",
+    "Others",
     ifelse(
       class < 10,
       "Forest",
       ifelse(
         class > 10 & class < 14 | class == 29 | class == 32,
-        "Non Forest Natural Formation",
+        "Others",
         ifelse(
-          class > 14 & class < 22 | class == 41 | class == 39 | class == 36,
-          "Farming",
+          class == 15,
+          "Pasture",
           ifelse(
-            class > 22 & class < 26 | class == 30,
-            "Non vegetated area",
-            ifelse(class == 31 | class == 33,
-              "Water",
-              ""
+            class > 16 & class < 21 | class == 41 | class == 39 | class == 36,
+            "Agriculture",
+            ifelse(
+              class == 21,
+              "Mosaic of Agriculture \nand Pasture",
+              ifelse(
+                class > 22 & class < 26 | class == 30,
+                "Others",
+                ifelse(class == 31 | class == 33,
+                  "Water",
+                  ""
+                )
+              )
             )
           )
         )
@@ -97,32 +106,6 @@ land_use_table_df <-
   )) %>%
   mutate(value = class) %>%
   select(value, id, class_name)
-
-color_table <-
-  tibble(
-    id = c(
-      "Forest",
-      "Non Forest Natural Formation",
-      "Farming",
-      "Non vegetated area",
-      "Water",
-      "Non observed"
-    ),
-    color = c(
-      # dark green
-      "#06bd00",
-      # light green
-      "#2bff00",
-      # yellow
-      "#ffe100",
-      # magenta
-      "#ff00cc",
-      # blue
-      "#0000FF",
-      # grey
-      "#a6a6a6"
-    )
-  )
 
 colnames(land_use_spdf) <- c("value", "x", "y")
 
@@ -134,11 +117,11 @@ land_use_spdf$id <-
     land_use_spdf$id,
     levels = c(
       "Forest",
-      "Non Forest Natural Formation",
-      "Farming",
-      "Non vegetated area",
+      "Agriculture",
+      "Pasture",
+      "Mosaic of Agriculture \nand Pasture",
       "Water",
-      "Non observed"
+      "Others"
     )
   )
 
@@ -169,27 +152,36 @@ brazil_states_sf <-
   st_transform(longlat)
 
 # Plot maps ---------------------------------------------------
-
+cbPalette <- c(
+  "#009E73", #green
+  "#D55E00", #red
+  "#F0E442", #yellow
+  "#CC79A7", #pink
+  "#0072B2", #blue
+  "#999999" #grey
+)
 zoom_in_map <-
   ggplot() +
   geom_sf(data = brazil_cropped) +
   geom_raster(data = land_use_spdf, aes(x = x, y = y, fill = id)) +
-  scale_fill_manual(values = color_table$color) +
-  geom_sf(
-    data = ccaf_all_area_sf,
-    fill = NA,
-    size = 0.2
-  ) +
-  geom_sf(data = ccaf_marine_area_sf, fill = "#0000FF", size = 0.2) +
+  scale_fill_manual(
+    values = cbPalette,
+    name = "Land use") +
+  geom_sf(data = ccaf_marine_area_sf, fill = "#0072B2", size = NA) +
   geom_sf(
     data = cus_sf,
+    aes(color = "black"),
     fill = NA,
-    size = 0.3,
-    color = "black"
+    size = 0.3
+  ) +
+  scale_color_identity(
+    guide = "legend",
+    name = element_blank(),
+    labels = "Conservation Unit"
   ) +
   geom_sf(
     data = institute_sf,
-    size = 0.7,
+    size = 1,
     color = "white",
     pch = 17
   ) +
@@ -206,17 +198,18 @@ zoom_in_map <-
   ) +
   background_grid("none") +
   theme(
-    axis.text.y = element_text(angle = 90, hjust = 0.3),
+    axis.text.y = element_text(angle = 90),
     axis.title = element_blank(),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 11),
-    axis.text = element_text(size = 10),
-    legend.key.size = unit(0.7, "cm")
+    #legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    legend.key.size = unit(0.65, "cm"),
+    legend.key = element_rect(size = 0.5)
   ) +
-  coord_sf( 
+  coord_sf(
     # Plot axis y in the right
     label_graticule = "SE"
-  )
+  ) 
 
 zoom_out_map <-
   ggplot() +
@@ -225,9 +218,9 @@ zoom_out_map <-
   geom_sf(
     data = st_as_sf(ccaf_spatial),
     fill = "red",
-    size = 0.2
+    size = 0
   ) +
-  geom_sf(data = ccaf_all_area_sf, fill = "red", size = 0.2) +
+  geom_sf(data = ccaf_all_area_sf, fill = "purple", size = NA) +
   geom_sf(data = BA_ES_sf, fill = NA, size = 0.4) +
   geom_rect(
     data = ccaf_all_area_sf,
@@ -237,19 +230,39 @@ zoom_out_map <-
     ymax = -13.00164,
     fill = NA,
     size = 0.2,
-    colour = "black"
+    color = "#999999"
   ) +
-  background_grid("none") +
-  theme_nothing()
+  theme_light() +
+  theme(axis.text = element_blank(),
+        axis.ticks = element_blank()) +
+  #theme_nothing() +
+  background_grid("none")
 
+legend_map <- get_legend(zoom_in_map)
+
+zoom_in_map <- 
+  zoom_in_map + 
+  theme(legend.position = "none")
+  
 final_plot <-
   ggdraw() +
   draw_plot(zoom_in_map, hjust = -0.1) +
   draw_plot(zoom_out_map,
     scale = 0.5,
-    hjust = 0.38,
+    hjust = 0.24,
     vjust = -0.25
-  )
+  ) +
+  draw_plot(
+    legend_map,
+    hjust = 0.24,
+    vjust = 0.23
+  ) +
+  draw_grob(
+    rectGrob(gp = gpar(fill = NA, col = "#999999"),
+                  width = 0.23, 
+                  height = 0.43),
+    hjust = 0.24,
+    vjust = 0.23)
 
 # Save map ---------------------------------------------------
 save_plot("../data/results/ccaf-map.pdf",
