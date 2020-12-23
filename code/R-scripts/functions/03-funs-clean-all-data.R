@@ -48,7 +48,7 @@ name.backbone <- function(x) {
 
 
 clip.ccaf <- function(pts) {
-  # Use st_intersection() to remove points outside ccma layer (sf obj)
+  # Use st_intersection() to remove points outside ccaf layer (sf obj)
   #
   # Args:
   #   pts: dataframe with decimalLongitude and decimalLatitude columns
@@ -83,7 +83,7 @@ clip.ccaf <- function(pts) {
     anti_join(pts, to_remove) %>%
     st_as_sf(coords = c("decimalLongitude", "decimalLatitude")) %>%
     st_set_crs(CRS("+proj=longlat +datum=WGS84")) %>%
-    st_intersection(ccma)
+    st_intersection(ccaf)
   
   coords <- as.data.frame(st_coordinates(pts))
 

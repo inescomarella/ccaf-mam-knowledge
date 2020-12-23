@@ -13,6 +13,28 @@ xfun::pkg_attach(c(
 
 conflicted::conflict_prefer("filter", "dplyr")
 
+count.sp.in.polygons <- function(pts, polygons) {
+  # Count number of species in each polygon
+  # Args:
+  #   pts: sf point object containing a "species" columns
+  #   polygons: sf multipolygon object
+  #
+  # Output:
+  #   polygons sf with an extra column called "nsp" containing the number
+  #   of species
+  
+  nsp <- c()
+  suppressMessages({
+    for (i in 1:nrow(polygons)) {
+      polySelect <- polygons[i, ]
+      pts2 <- st_intersection(pts, polySelect)
+      nsp[i] <- length(unique(pts2$species))
+    }
+  })
+  
+  cbind(polygons, nsp)
+}
+
 nrec.along.years <- function(pts, map_geom) {
   # Create table with count of records along years
   #
@@ -107,7 +129,6 @@ plot.nrec.along.years <- function(myfill) {
     select(y2020) %>%
     max()
 
-
   # The {{ }} is a trick from rlang package
   plot <-
     ggplot(map_nrec_along_years) +
@@ -162,10 +183,8 @@ plot.nrec.along.years <- function(myfill) {
       draw.ulim = FALSE,
       draw.llim = FALSE
     )) +
-
     # Scale bar in the bottom right
     annotation_scale(location = "br", width_hint = 0.5) +
-
     # North arrow in the bottom right above scale bar
     annotation_north_arrow(
       location = "br",
@@ -176,9 +195,87 @@ plot.nrec.along.years <- function(myfill) {
     )
 
   legend <- get_legend(plot)
+  
   plot <-
     plot + theme(legend.position = "none", title = element_blank())
 
+  if(sub("y", "", myfill) >= 1949) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 1949),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if (sub("y", "", myfill) >= 1960) {
+    plot <-
+      plot +
+      geom_sf(
+        data = filter(institute_pts, year == 1960),
+        size = 1.5,
+        color = "white",
+        pch = 17
+      ) +
+    coord_sf(
+      # Limits of the ccaf bbox
+      xlim = c(-41.87851, -37),
+      expand = TRUE,
+      label_graticule = "NW"
+    )
+  }
+  
+  if(sub("y", "", myfill) >= 1986) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 1986),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2005) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 2005),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2006) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 2006),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
   ggdraw(plot) +
     draw_plot(legend,
       hjust = -0.2
@@ -275,6 +372,83 @@ plot.nsp.along.years <- function(myfill) {
   legend <- get_legend(plot)
   plot <-
     plot + theme(legend.position = "none", title = element_blank())
+  
+  if(sub("y", "", myfill) >= 1949) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 1949),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if (sub("y", "", myfill) >= 1960) {
+    plot <-
+      plot +
+      geom_sf(
+        data = filter(institute_pts, year == 1960),
+        size = 1.5,
+        color = "white",
+        pch = 17
+      ) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 1986) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 1986),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2005) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 2005),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2006) {
+    plot <- 
+      plot +
+      geom_sf(data = filter(institute_pts, year == 2006),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
   
   ggdraw(plot) +
     draw_plot(legend,
@@ -443,6 +617,149 @@ plot.together.years <- function(myfill){
     plot_nrec + theme(legend.position = "none", title = element_blank())
   plot_nsp <-
     plot_nsp + theme(legend.position = "none", title = element_blank())
+  
+  if(sub("y", "", myfill) >= 1949) {
+    plot_nrec <- 
+      plot_nrec +
+      geom_sf(data = filter(institute_pts, year == 1949),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+    plot_nsp <- 
+      plot_nsp +
+      geom_sf(data = filter(institute_pts, year == 1949),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if (sub("y", "", myfill) >= 1960) {
+    plot_nrec <-
+      plot_nrec +
+      geom_sf(
+        data = filter(institute_pts, year == 1960),
+        size = 1.5,
+        color = "white",
+        pch = 17
+      ) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+    
+    plot_nsp <-
+      plot_nsp +
+      geom_sf(
+        data = filter(institute_pts, year == 1960),
+        size = 1.5,
+        color = "white",
+        pch = 17
+      ) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 1986) {
+    plot_nrec <- 
+      plot_nrec +
+      geom_sf(data = filter(institute_pts, year == 1986),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+    
+    plot_nsp <- 
+      plot_nsp +
+      geom_sf(data = filter(institute_pts, year == 1986),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2005) {
+    plot_nrec <- 
+      plot_nrec +
+      geom_sf(data = filter(institute_pts, year == 2005),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+    
+    plot_nsp <- 
+      plot_nsp +
+      geom_sf(data = filter(institute_pts, year == 2005),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
+  
+  if(sub("y", "", myfill) >= 2006) {
+    plot_nrec <- 
+      plot_nrec +
+      geom_sf(data = filter(institute_pts, year == 2006),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+    
+    plot_nsp <- 
+      plot_nsp +
+      geom_sf(data = filter(institute_pts, year == 2005),
+              size = 1.5,
+              color = "white",
+              pch = 17) +
+      coord_sf(
+        # Limits of the ccaf bbox
+        xlim = c(-41.87851, -37),
+        expand = TRUE,
+        label_graticule = "NW"
+      )
+  }
   
   plot_nrec_final <- ggdraw(plot_nrec) +
     draw_plot(legend_nrec,

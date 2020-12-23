@@ -65,7 +65,7 @@ plot.ccaf.grid.count <- function(myfill) {
     geom_sf(aes_string(fill = {{ myfill }}), size = 0.2) +
     geom_sf(
       data = institute_pts,
-      size = 1,
+      size = 1.5,
       color = "white",
       pch = 17
     ) +
@@ -160,6 +160,12 @@ plot.nrec.nsps <- function(nrec, nsp){
   plot_nrec <-
     ggplot(ccaf_grid) +
     geom_sf(aes(fill = nrec), size = 0.2) +
+    geom_sf(
+      data = institute_pts,
+      size = 1.5,
+      color = "white",
+      pch = 17
+    ) +
     coord_sf(
       # Limits of the ccaf bbox
       xlim = c(-41.87851, -37),
@@ -218,6 +224,12 @@ plot.nrec.nsps <- function(nrec, nsp){
   plot_nsp <-
     ggplot(ccaf_grid) +
     geom_sf(aes(fill = nsp), size = 0.2) +
+    geom_sf(
+      data = institute_pts,
+      size = 1.5,
+      color = "white",
+      pch = 17
+    ) +
     coord_sf(
       # Limits of the ccaf bbox
       xlim = c(-41.87851, -37),

@@ -17,9 +17,10 @@ utm <-
 # Load data ------------------------------------------------
 
 br_longlat <-
-  get_brmap(geo = "Brazil") %>%
-  st_as_sf() %>%
-  st_transform(longlat)
+  read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
+  filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
+  st_transform(longlat) %>%
+  st_combine()
 
 ccaf_utm <-
   read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
@@ -27,6 +28,7 @@ ccaf_utm <-
   mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
   st_set_crs(longlat) %>%
   st_intersection(br_longlat) %>%
+  st_crop(xmax = -38.7, xmin = -41.87851, ymax = -13.00164, ymin = -21.30178) %>%
   st_transform(utm)
 
 cus_utm <-
@@ -46,6 +48,16 @@ records_utm <-
     )
   ) %>%
   st_transform(utm)
+
+institute_pts <-
+  st_read(
+    dsn = "../data/raw-data/research-institutes.csv",
+    crs = longlat,
+    options = c(
+      "X_POSSIBLE_NAMES=longitude",
+      "Y_POSSIBLE_NAMES=latitude"
+    )
+  )
 
 # Make grid --------------------------------------------------
 
