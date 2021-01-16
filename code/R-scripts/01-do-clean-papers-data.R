@@ -2,7 +2,7 @@
 # Date: 16/11/2020
 
 # Load in libraries
-library(tidyverse)
+xfun::pkg_attach(c("tidyverse", "lubridate"))
 
 # Source functions
 source("./R-scripts/functions/01-funs-clean-papers-data.R")
@@ -337,6 +337,23 @@ data_modif <- add.eventYear(data_modif)
 # 3. Correct eventYear
 # Correct eventYear column to keep just the year
 data_modif <- correct.eventYear(data_modif)
+
+# Correct eventDate column
+data_modif <- correct.eventDate(data_modif)
+
+# Match years
+data_modif <-
+  data_modif %>%
+  mutate(eventYear = ifelse(
+    test = format(as.Date(eventDate, "%Y-%m-%d"), "%Y") != eventYear,
+    yes = format(as.Date(eventDate, "%Y-%m-%d"), "%Y"),
+    no = eventYear
+  )) %>%
+  mutate(eventYear = ifelse(
+    test = !is.na(eventDate) & is.na(eventYear),
+    yes = format(as.Date(eventDate, "%Y-%m-%d"), "%Y"),
+    no = eventYear
+  ))
 
 # Correct geographical coordinates
 # Move coordinates in the wrong column to the correct one

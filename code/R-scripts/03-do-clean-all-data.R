@@ -8,6 +8,7 @@
 # Load in libraries
 xfun::pkg_attach(c(
   "tidyverse",
+  "lubridate",
   "rredlist",
   "rgbif",
   "plyr",
@@ -29,13 +30,19 @@ data_downl <-
   read.csv("../data/processed-data/downloaded-data.csv")
 
 rlkey <-
-  "*********"
+  "6abf9b5a0010ab26140c401c1c394a22c43c0a555d9dee8c72976d3c71c5e402"
 
 # Pre-process data ----------------------------------------
 
 # Standardize columns
 data_paper <- select(data_paper, -X)
 colnames(data_paper)[15] <- "year"
+
+# Correct eventDate
+data_downl <-
+  data_downl %>%
+  mutate(eventDate = ymd_hms(eventDate)) %>%
+  mutate(eventDate = word(eventDate, 1))
 
 # Binding data.frames
 data_all_raw <- rbind.fill(data_paper, data_downl)
@@ -469,7 +476,6 @@ exotic_sp_list <- data.frame(
     # (retirado de Reis et al., 2017) "O gênero Platyrrhinus atualmente é composto por vinte espécies (VELAZCO et al., 2010) e, segundo Nogueira et al. (2014a), apenas oito ocorrem em território brasileiro." P. helleri não está incluindo nestas 8 spp
     "Platyrrhinus helleri",
     "Akodon montensis",
-    "Nectomys rattus",
     "Mazama bororo",
     "Didelphis marsupialis",
     "Marmosops paulensis",
@@ -498,6 +504,11 @@ data_all_sp_clean <- anti_join(data_all_sp_clean, to_remove)
 # Correct some species names ---------------------------------
 data_all_sp_clean <-
   data_all_sp_clean %>%
+  mutate(species = ifelse(
+    species == "Nectomys rattus",
+    "Nectomys squamipes",
+    species
+  )) %>%
   mutate(species = ifelse(
     species == "Puma yagouaroundi",
     "Herpailurus yagouaroundi",
@@ -628,6 +639,7 @@ clean_data_slct <-
     collectionCode,
     catalogNumber,
     recordedBy,
+    eventDate,
     year,
     country,
     stateProvince,
