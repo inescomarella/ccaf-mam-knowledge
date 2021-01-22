@@ -683,5 +683,55 @@ correct <-
 data_modif <- anti_join(data_modif, to_correct)
 data_modif <- bind_rows(data_modif, correct)
 
+# Correct bat data -------------------------------------------------------------
+# BATS dataset is unreliable
+data_modif <- 
+  data_modif %>% 
+  filter(!str_detect(datasetName, "BATS"))
+
+# Import Faria (2006) pdf
+article <-
+  pdf_text("../documents/record-references/Faria (2006).pdf")
+
+# Select Table 1
+bat_table <- article[7][1]
+
+# Split rows
+bat_table_splited <- str_split(bat_table, "\n")
+
+# Remove table header and footnotes
+bat_table_splited_clean <- as.data.frame(unlist(bat_table_splited))[9:51, ]
+
+# Remove numbers
+bat_table_splited_clean <-
+  gsub("[[:digit:]]+", "", bat_table_splited_clean)
+
+# Keep only species names
+bat_table_splited_clean <-
+  word(bat_table_splited_clean, start = 1, end = 7)
+
+# Remove unnecessary spaces
+bat_table_df <-
+  stri_trim_both(bat_table_splited_clean) %>%
+  as.data.frame() %>%
+  filter(!is.na(.))
+
+# Add record information
+colnames(bat_table_df) <- "scientificName"
+bat_table_df$PublicationYear <- 2006
+bat_table_df$typeOfPublication <- "Article"
+bat_table_df$eventYear <- 2000
+bat_table_df$country <- "Brazil"
+bat_table_df$stateProvince <- "Bahia"
+bat_table_df$county <- "Una"
+bat_table_df$locality <- "Una Biological Reserve"
+bat_table_df$decimalLatitude <- -15.1802118
+bat_table_df$decimalLongitude <- -39.1729935
+bat_table_df$reference <-
+  "Faria, D., 2006. Phyllostomid bats of a fragmented landscape in the north-eastern Atlantic forest, Brazil. Journal of Tropical Ecology, 22(5), pp.531-542."
+bat_table_df$citation <- "Faria (2006)"
+
+data_final <- plyr::rbind.fill(data_modif, bat_table_df)
+
 # Save clean data.frame -----------------------------------
-write.csv(data_modif, "../data/processed-data/clean-papers-data.csv")
+write.csv(data_final, "../data/processed-data/clean-papers-data.csv")
