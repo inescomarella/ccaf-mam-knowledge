@@ -706,7 +706,7 @@ cus_std <-
 # CUs map
 # Dissolve internal lines to write shapefile
 st_write(
-  st_combine(cus_std),
+  st_union(cus_std),
   paste0("../data/processed-data/", "/", "CUs-map.shp"),
   delete_layer = TRUE
 )
