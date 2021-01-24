@@ -3,7 +3,20 @@
 # Inês M. Comarella
 
 # Load libraries
-xfun::pkg_attach2(c("tidyverse", "sf", "sp", "bdvis", "raster", "elevatr"))
+xfun::pkg_attach2(
+  c(
+    "tidyverse",
+    "sf",
+    "sp",
+    "bdvis",
+    "raster",
+    "elevatr",
+    "patchwork",
+    "viridis",
+    "cowplot",
+    "dgof"
+  )
+)
 
 conflicted::conflict_scout()
 conflicted::conflict_prefer("filter", "dplyr")
@@ -33,6 +46,12 @@ ccaf <-
     ymin = -21.30178
   )
 
+cus_longlat <-
+  read_sf("../data/processed-data/CUs-map.shp") %>%
+  st_transform(longlat) %>%
+  st_make_valid() %>%
+  st_intersection(ccaf)
+
 records_longlat <-
   st_read(
     dsn = "../data/processed-data/clean-mammal-data.csv",
@@ -45,17 +64,25 @@ records_longlat <-
   arrange(order, species) %>%
   mutate(id = seq(1, nrow(.)))
 
-# Process data ---------------------------------------------------------
+# Pre-process data ---------------------------------------------------------
+
+# Get dataframe
 records_df <-
   st_drop_geometry(records_longlat)
 
-# All recorded orders with a minimum number of records
+# Remove orders with too few records
 orders <-
   records_df %>%
   select(order) %>%
   unique() %>%
-  filter(order != "Sirenia", order != "Perissodactyla")
+  filter(
+    order != "Sirenia",
+    order != "Perissodactyla",
+    order != "Artiodactyla",
+    order != "Lagomorpha"
+  )
 
+# Separate orders
 order_records_longlat <- list()
 for (i in 1:nrow(orders)) {
   order_records_longlat[[i]] <-
@@ -64,22 +91,26 @@ for (i in 1:nrow(orders)) {
 }
 names(order_records_longlat) <- as.character(orders$order)
 
+# Separate by 5 years
 j <- 1
-records_year_longlat <- list()
+year_records_longlat <- list()
 for (i in seq(as.numeric(min(records_df$year, na.rm = FALSE)), 2015, 5)) {
-  records_year_longlat[[j]] <-
+  year_records_longlat[[j]] <-
     records_longlat %>%
     filter(year <= (i + 5))
   j <- j + 1
 }
 
+# Get dataframes
 order_records_df <-
   lapply(order_records_longlat, st_drop_geometry)
 
-records_year_df <-
-  lapply(records_year_longlat, st_drop_geometry)
+year_records_df <-
+  lapply(year_records_longlat, st_drop_geometry)
 
-# bdvis data.frame standards
+# Estimate completeness ---------------------------------------------------
+
+# bdvis dataframe standards
 conf <-
   list(
     Latitude = "decimalLatitude",
@@ -88,36 +119,35 @@ conf <-
     Scientific_name = "species"
   )
 
+# Format dataframe to bdvis standards
 records_bdvis <- format_bdvis(records_df, config = conf)
 order_records_bdvis <-
   lapply(order_records_df, format_bdvis, config = conf)
-records_year_bdvis <-
-  lapply(records_year_df, format_bdvis, config = conf)
+year_records_bdvis <-
+  lapply(year_records_df, format_bdvis, config = conf)
 
+# Get cell id to estimate completeness
 records_cell_id <- getcellid(records_bdvis)
 order_records_cell_id <- lapply(order_records_bdvis, getcellid)
-records_year_cell_id <- lapply(records_year_bdvis, getcellid)
+year_records_cell_id <- lapply(year_records_bdvis, getcellid)
 
 # Estimate completeness based on Chao2 index of species richness
 bdcompleted <-
-  bdcomplete(
-    indf = records_cell_id,
-    recs = 5,
-    gridscale = 0.1
-  )
+  bdcomplete(indf = records_cell_id,
+             recs = 10,
+             gridscale = 0.1)
 order_bdcompleted <-
   lapply(order_records_cell_id,
-    bdcomplete,
-    recs = 5,
-    gridscale = 0.1
-  )
+         bdcomplete,
+         recs = 10,
+         gridscale = 0.1)
 year_bdcompleted <-
-  lapply(records_year_cell_id,
-    bdcomplete,
-    recs = 5,
-    gridscale = 0.1
-  )
+  lapply(year_records_cell_id,
+         bdcomplete,
+         recs = 10,
+         gridscale = 0.1)
 
+# Merge completeness estimate and cell id
 records_bdcomplete <- merge(records_cell_id, bdcompleted, all = T)
 
 order_records_bdcomplete <- list()
@@ -127,21 +157,22 @@ for (i in 1:length(order_records_cell_id)) {
 }
 names(order_records_bdcomplete) <- names(order_records_cell_id)
 
-records_year_bdcomplete <- list()
-for (i in 1:length(records_year_cell_id)) {
-  records_year_bdcomplete[[i]] <-
-    merge(records_year_cell_id[[i]], year_bdcompleted[[i]], all = TRUE)
+year_records_bdcomplete <- list()
+for (i in 1:length(year_records_cell_id)) {
+  year_records_bdcomplete[[i]] <-
+    merge(year_records_cell_id[[i]], year_bdcompleted[[i]], all = TRUE)
 }
 
 # Classify inventory completeness ---------------------------------------
+# Troia & McManamay (2016)
 records_bdcomplete_longlat <-
-  merge(records_longlat, records_bdcomplete, by = "id") %>%
+  merge(records_longlat, records_bdcomplete) %>%
   mutate(
     completeness = ifelse(
-      test = nrec >= 10 & c >= 0.5,
+      test = nrec >= 10 & c >= 0.6,
       yes = "Well-surveyed (low threshold)",
       no = ifelse(
-        test = nrec >= 25 & c >= 0.65,
+        test = nrec >= 25 & c >= 0.7,
         yes = "Well-surveyed (medium threshold)",
         no = ifelse(
           test = nrec >= 50 & c >= 0.8,
@@ -155,13 +186,13 @@ records_bdcomplete_longlat <-
 order_records_bdcomplete_longlat <- list()
 for (i in 1:length(order_records_bdcomplete)) {
   order_records_bdcomplete_longlat[[i]] <-
-    merge(order_records_longlat[[i]], order_records_bdcomplete[[i]], by = "id") %>%
+    merge(order_records_longlat[[i]], order_records_bdcomplete[[i]]) %>%
     mutate(
       completeness = ifelse(
-        test = nrec >= 10 & c >= 0.5,
+        test = nrec >= 10 & c >= 0.6,
         yes = "Well-surveyed (low threshold)",
         no = ifelse(
-          test = nrec >= 25 & c >= 0.65,
+          test = nrec >= 25 & c >= 0.7,
           yes = "Well-surveyed (medium threshold)",
           no = ifelse(
             test = nrec >= 50 & c >= 0.8,
@@ -173,16 +204,16 @@ for (i in 1:length(order_records_bdcomplete)) {
     )
 }
 
-records_year_bdcomplete_longlat <- list()
-for (i in 1:length(records_year_bdcomplete)) {
-  records_year_bdcomplete_longlat[[i]] <-
-    merge(records_year_longlat[[i]], records_year_bdcomplete[[i]], by = "id") %>%
+year_records_bdcomplete_longlat <- list()
+for (i in 1:length(year_records_bdcomplete)) {
+  year_records_bdcomplete_longlat[[i]] <-
+    merge(year_records_longlat[[i]], year_records_bdcomplete[[i]]) %>%
     mutate(
       completeness = ifelse(
-        test = nrec >= 10 & c >= 0.5,
+        test = nrec >= 10 & c >= 0.6,
         yes = "Well-surveyed (low threshold)",
         no = ifelse(
-          test = nrec >= 25 & c >= 0.65,
+          test = nrec >= 25 & c >= 0.7,
           yes = "Well-surveyed (medium threshold)",
           no = ifelse(
             test = nrec >= 50 & c >= 0.8,
@@ -194,6 +225,7 @@ for (i in 1:length(records_year_bdcomplete)) {
     )
 }
 
+# Make grid ---------------------------------------------------------------
 grid <-
   ccaf %>%
   st_make_grid(cellsize = 0.1) %>%
@@ -221,9 +253,9 @@ names(order_bdcomplete_grid) <-
   names(order_records_bdcomplete)
 
 year_bdcomplete_grid <- list()
-for (i in 1:length(records_year_bdcomplete_longlat)) {
+for (i in 1:length(year_records_bdcomplete_longlat)) {
   year_bdcomplete_grid[[i]] <-
-    st_join(grid, records_year_bdcomplete_longlat[[i]]) %>%
+    st_join(grid, year_records_bdcomplete_longlat[[i]]) %>%
     mutate(completeness = ifelse(
       test = is.na(completeness),
       yes = "Not surveyed",
@@ -233,34 +265,22 @@ for (i in 1:length(records_year_bdcomplete_longlat)) {
 
 # Environment ------------------------------------------------------------
 
-# Get enviroment data
+# Get environment data
 worldclim_data <- getData("worldclim", var = "bio", res = 10)
 
 # BIO1 = Annual Mean Temperature
 # BIO12 = Annual Precipitation
 worldclim_amt_ap <- worldclim_data[[c(1, 12)]]
 names(worldclim_amt_ap) <-
-  c("Annual Mean Temperature", "Annual Precipitation")
+  c("AMT", "AP")
 
 # Remove points outside study are
 bdcomplete_grid_clipped <-
   st_intersection(bdcomplete_grid, ccaf)
 
-order_bdcomplete_grid_clipped <- list()
-for (i in 1:length(order_bdcomplete_grid)) {
-  order_bdcomplete_grid_clipped[[i]] <-
-    st_intersection(order_bdcomplete_grid[[i]], ccaf)
-}
-
 # Get elevation data
 elevation_bdcomplete_grid_clipped <-
   get_elev_point(st_centroid(bdcomplete_grid_clipped), src = "aws")
-
-order_elevation_bdcomplete_grid_clipped <- list()
-for (i in 1:length(order_bdcomplete_grid_clipped)) {
-  order_elevation_bdcomplete_grid_clipped[[i]] <-
-    get_elev_point(st_centroid(order_bdcomplete_grid_clipped[[i]]), src = "aws")
-}
 
 # Sample points
 sample <-
@@ -268,103 +288,407 @@ sample <-
   st_centroid() %>%
   st_coordinates()
 
-order_sample <- list()
-for (i in 1:length(order_elevation_bdcomplete_grid_clipped)) {
-  order_sample[[i]] <-
-    order_elevation_bdcomplete_grid_clipped[[i]] %>%
-    st_centroid() %>%
-    st_coordinates()
-}
-
 # Extract environment data from sample points
 pts_amt_ap <- extract(worldclim_amt_ap, sample)
 
-order_pts_amt_ap <- list()
-for (i in 1:length(order_sample)) {
-  order_pts_amt_ap[[i]] <- extract(worldclim_amt_ap, order_sample[[i]])
-}
-
 # Convert grid to data.frame
-df <- cbind.data.frame(pts_amt_ap, elevation_bdcomplete_grid_clipped)
+df <-
+  cbind.data.frame(pts_amt_ap, elevation_bdcomplete_grid_clipped)
 
-order_df <- list()
-for (i in 1:length(order_pts_amt_ap)) {
-  order_df[[i]] <-
-    cbind.data.frame(order_pts_amt_ap[[i]], order_elevation_bdcomplete_grid_clipped[[i]])
-}
-names(order_df) <- names(order_bdcompleted)
+# Statistics -----------------------------------
 
+# Spatial: long, lat
+long_x <- df %>%
+  filter(c >= 0.6) %>%
+  select(Longitude)
+long_y <- df %>%
+  select(Longitude)
+
+lat_x <- df %>%
+  filter(c >= 0.6) %>%
+  select(Latitude)
+lat_y <- df %>%
+  select(Latitude)
+
+# Temporal: year
+year_x <- df %>%
+  filter(c >= 0.6, !is.na(year), year != "NA") %>%
+  select(year)
+year_y <- df %>%
+  filter(!is.na(year), year != "NA") %>%
+  select(year)
+
+# Environmental: elevation, AMT, AP
+ele_x <- df %>%
+  filter(c >= 0.6) %>%
+  select(elevation)
+ele_y <- df %>%
+  select(elevation)
+
+amt_x <- df %>%
+  filter(c >= 0.6) %>%
+  select(AMT)
+amt_y <- df %>%
+  select(AMT)
+
+ap_x <- df %>%
+  filter(c >= 0.6) %>%
+  select(AP)
+ap_y <- df %>%
+  select(AP)
+
+long_ks <-
+  ks.test(as.numeric(long_x$Longitude), as.numeric(long_y$Longitude))
+lat_ks <-
+  ks.test(as.numeric(lat_x$Latitude), as.numeric(lat_y$Latitude))
+year_ks <-
+  ks.test(as.numeric(year_x$year), as.numeric(year_y$year))
+ele_ks <-
+  ks.test(as.numeric(ele_x$elevation), as.numeric(ele_y$elevation))
+amt_ks <-
+  ks.test(
+    as.numeric(amt_x$AMT),
+    as.numeric(amt_y$AMT)
+  )
+ap_ks <-
+  ks.test(as.numeric(ap_x$AP),
+          as.numeric(ap_y$AP))
+
+ks_statistics <-
+  data.frame(
+    "Variable" = c("Year", "Longitude", "Latitude", "elevation", "AMT", "AP"),
+    "D-statistics" = rbind(
+      year_ks$statistic,
+      long_ks$statistic,
+      lat_ks$statistic,
+      ele_ks$statistic,
+      amt_ks$statistic,
+      ap_ks$statistic
+    )
+  )
+
+# Temporal completeness ----------------------------
+
+# Number of cell with at least 10 records and c >= 0.6
+temporal_completeness_plot <-
+  df %>%
+  filter(year != "NA", !is.na(year), c >= 0.6) %>%
+  arrange(year) %>%
+  mutate(year = as.Date(year, "%Y")) %>%
+  group_by(year) %>%
+  summarise(nrec = n_distinct(id)) %>%
+  ggplot() +
+  scale_x_date(date_labels = "%Y") +
+  geom_line(aes(x = year, y = nrec)) +
+  ylab("Number of grid cells") +
+  xlab("Years") + 
+  theme_light()
+  
 
 # Plot --------------------------------------------------------------
-library(cowplot)
 
 plot.inventory.completeness <- function(sf_obj) {
- sf_obj %>%
+  sf_obj %>%
+    filter(completeness != "Not surveyed") %>%
+    mutate(c = c * 100) %>%
+    ggplot() +
+    geom_sf(size = 0, aes(fill = c)) +
+    geom_sf(data = ccaf, fill = NA) +
+    geom_sf(data = cus_longlat,
+            fill = NA,
+            size = 0.2) +
+    scale_fill_viridis(
+      limits = c(0.5, 100),
+      breaks = c(0.5, 20, 40, 60, 80, 100),
+      labels = c(0.5, 20, 40, 60, 80, 100)
+    ) +
+    theme(
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    ) +
+    labs(fill = element_blank())
+}
+
+# Plot orders completeness
+all_m_inv_comp_plot <-  plot.inventory.completeness(bdcomplete_grid)
+
+m_inv_comp_plot <-
+  lapply(order_bdcomplete_grid, plot.inventory.completeness)
+
+names(m_inv_comp_plot) <- names(order_bdcomplete_grid)
+
+# Add title
+for (i in 1:length(m_inv_comp_plot)) {
+  m_inv_comp_plot[[i]] <-
+    m_inv_comp_plot[[i]] +
+    annotate(
+      geom = "text",
+      size = 3,
+      x = -39.5,
+      y = -12,
+      family = "Lato",
+      label = names(m_inv_comp_plot)[i]
+    ) +
+    coord_sf(clip = "off") +
+    theme(legend.position = "none", axis.title = element_blank())
+}
+
+legend <- get_legend(
+  all_m_inv_comp_plot +
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom")
+)
+
+m_inv_comp_plot$All <-
+  all_m_inv_comp_plot +
+  annotate(
+    geom = "text",
+    size = 3,
+    x = -39.5,
+    y = -12,
+    family = "Lato",
+    label = "All mammals"
+  ) +
+  coord_sf(clip = "off") +
+  theme(legend.position = "none", axis.title = element_blank())
+
+# Reorder maps
+m_inv_comp_plot <- m_inv_comp_plot[order(names(m_inv_comp_plot))]
+
+# Plot
+orders_completeness_plot <-
+  wrap_plots(
+    m_inv_comp_plot,
+    nrow = 2,
+    ncol = 4,
+    widths = unit(3, 'cm')
+  ) / legend +
+  plot_layout(heights = c(1, .1))
+
+ap_elev <- 
+  df %>%
+  mutate(c = c * 100) %>%
+  ggplot() +
+  geom_point(aes(x = elevation, y = Annual.Precipitation, color = c)) +
+  scale_color_viridis(
+    limits = c(0.5, 100),
+    breaks = c(0.5, 20, 40, 60, 80, 100),
+    labels = c(0.5, 20, 40, 60, 80, 100)
+  ) +
+  theme(
+    panel.grid = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    panel.border = element_rect(fill = NA),
+    legend.position = "none"
+  ) +
+  labs(color = element_blank()) +
+  xlab("Elevation") +
+  ylab("Annual Precipitation")
+
+amt_elev <-
+  df %>%
+  mutate(c = c * 100) %>%
+  ggplot() +
+  geom_point(aes(x = elevation, y = Annual.Mean.Temperature, color = c)) +
+  scale_color_viridis(
+    limits = c(0.5, 100),
+    breaks = c(0.5, 20, 40, 60, 80, 100),
+    labels = c(0.5, 20, 40, 60, 80, 100)
+  ) +
+  theme(
+    panel.grid = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    panel.border = element_rect(fill = NA),
+    legend.position = "none"
+  ) +
+  labs(color = element_blank()) +
+  xlab("Elevation") +
+  ylab("Annual Mean Temperature")
+
+environmental_plot <-
+  (ap_elev + amt_elev) / legend  +
+  plot_layout(heights = c(1, .1), nrow = 2)
+
+
+plot.nrec <- function(sf_obj) {
+  nmax <-
+    sf_obj  %>%
+    st_drop_geometry() %>%
+    select(nrec) %>%
+    max(na.rm = T)
+  
+  sf_obj %>%
     filter(completeness != "Not surveyed") %>%
     ggplot() +
-    geom_sf(size = 0, aes(fill = completeness)) +
+    geom_sf(size = 0, aes(fill = nrec)) +
     geom_sf(data = ccaf, fill = NA) +
-    scale_fill_manual(values = c("grey", "yellow")) +
-    theme_nothing()
+    scale_fill_viridis(
+      limits = c(1, nmax),
+      breaks = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      ),
+      labels = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      )
+    ) +
+    theme(
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    )
 }
-all_m_inv_comp_plot <- plot.inventory.completeness(bdcomplete_grid)
 
-order_m_inv_comp_plot <- lapply(order_bdcomplete_grid, plot.inventory.completeness)
-names(order_m_inv_comp_plot) <- names(order_bdcomplete_grid)
-order_m_inv_comp_plot$Artiodactyla
+plot.Sobs <- function(sf_obj) {
+  nmax <-
+    sf_obj  %>%
+    st_drop_geometry() %>%
+    select(Sobs) %>%
+    max(na.rm = T)
+  
+  sf_obj %>%
+    filter(completeness != "Not surveyed") %>%
+    ggplot() +
+    geom_sf(size = 0, aes(fill = Sobs)) +
+    geom_sf(data = ccaf, fill = NA) +
+    scale_fill_viridis(
+      limits = c(1, nmax),
+      breaks = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      ),
+      labels = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      )
+    ) +
+    theme(
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    )
+}
 
-final_plot_together <-
-  plot_grid(
-    all_m_inv_comp_plot,
-    order_m_inv_comp_plot[[1]],
-    order_m_inv_comp_plot[[2]],
-    order_m_inv_comp_plot[[3]],
-    order_m_inv_comp_plot[[4]],
-    order_m_inv_comp_plot[[5]],
-    order_m_inv_comp_plot[[6]],
-    order_m_inv_comp_plot[[7]],
-    order_m_inv_comp_plot[[8]],
-    order_m_inv_comp_plot[[9]],
-    nrow = 2
-  )
+plot.Sest <- function(sf_obj) {
+  nmax <-
+    sf_obj %>%
+    st_drop_geometry() %>%
+    select(Sest) %>%
+    max(na.rm = T)
+  
+  sf_obj %>%
+    filter(completeness != "Not surveyed") %>%
+    ggplot() +
+    geom_sf(size = 0, aes(fill = Sest)) +
+    geom_sf(data = ccaf, fill = NA) +
+    scale_fill_viridis(
+      limits = c(1, nmax),
+      breaks = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      ),
+      labels = c(
+        1,
+        round(nmax / 6, 0),
+        round(nmax * 2 / 6, 0),
+        round(nmax * 3 / 6, 0),
+        round(nmax * 4 / 6, 0),
+        round(nmax * 5 / 6, 0),
+        nmax
+      )
+    ) +
+    theme(
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    )
+}
 
-year_bdcomplete_grid[[41]] %>%
+year_plots <-
+  lapply(year_bdcomplete_grid, plot.inventory.completeness)
+nrec_year_plots <- lapply(year_bdcomplete_grid, plot.nrec)
+Sobs_year_plots <- lapply(year_bdcomplete_grid, plot.Sobs)
+Sest_year_plots <- lapply(year_bdcomplete_grid, plot.Sest)
+Sest_year_plots[[40]]
+
+year_bdcomplete_grid[[40]] %>% st_drop_geometry() %>% filter(Sest > 700) %>% select(order.y) %>% unique()
+
+
+year_plot_list <- list()
+for (i in 1:length(year_plots)) {
+  year_plot_list[[i]] <-
+    wrap_plots(nrec_year_plots[[i]],
+               year_plots[[i]],
+               nrow = 1)
+}
+year_plot_list[[40]]
+animation::saveGIF(
+  print(year_plots),
+  movie.name = "animation-nsp.gif",
+  img.name = "Rplot",
+  convert = "magick"
+)
+animation::saveGIF(
+  print(year_plot_list),
+  movie.name = "animation-nsp.gif",
+  img.name = "Rplot",
+  convert = "magick"
+)
+year_plot_list[[41]]
+
+bdcomplete_grid %>%
   filter(completeness != "Not surveyed") %>%
   ggplot() +
-  geom_sf(size = 0, aes(fill = completeness)) +
+  geom_sf(size = 0, aes(fill = c)) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_manual(values = c("grey", "yellow")) +
+  scale_fill_viridis() +
   theme(
+    panel.background = element_blank(),
+    panel.border = element_blank(),
     panel.grid = element_blank(),
-    panel.background = element_rect(fill = "white"),
-    panel.border = element_rect(fill = NA)
+    axis.line = element_blank(),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
   )
+bdcomplete_grid %>% st_drop_geometry() %>% filter(Sest > 300) %>% select(stateProvince.x, order.y, species) %>% unique
 
-
-ggplot(df) +
-  geom_point(aes(x = Annual.Mean.Temperature, y = Annual.Precipitation, color = completeness)) +
-  scale_color_manual(values = c("black", "grey", "yellow")) +
-  theme(
-    panel.grid = element_blank(),
-    panel.background = element_rect(fill = "white"),
-    panel.border = element_rect(fill = NA)
-  )
-
-ggplot(df) +
-  geom_point(aes(x = Annual.Mean.Temperature, y = elevation, color = completeness)) +
-  scale_color_manual(values = c("black", "grey", "yellow")) +
-  theme(
-    panel.grid = element_blank(),
-    panel.background = element_rect(fill = "white"),
-    panel.border = element_rect(fill = NA)
-  )
-
-order_df$Primates %>%
-  ggplot() +
-  geom_point(aes(x = Annual.Mean.Temperature, y = Annual.Precipitation, color = completeness)) +
-  scale_color_manual(values = c("black", "grey", "yellow")) +
-  theme(
-    panel.grid = element_blank(),
-    panel.background = element_rect(fill = "white"),
-    panel.border = element_rect(fill = NA)
-  )
+bdcomplete_grid %>% nrow
