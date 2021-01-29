@@ -17,9 +17,13 @@ drive_auth(
   token = NULL
 )
 
-# Prepare folder and files -----------------------------------
+# Prepare folder -----------------------------------
 
 # Check if folders already exist and create them
+if (nrow(drive_get(path = "~/ccma-tcc/results/completeness")) == 0) {
+  drive_mkdir("~/ccma-tcc/results/completeness")
+}
+
 if (nrow(drive_get(path = "~/ccma-tcc/results/ccma-knowledge-hotspots")) == 0) {
   drive_mkdir("~/ccma-tcc/results/ccma-knowledge-hotspots")
 }
@@ -32,7 +36,41 @@ if (nrow(drive_get(path = "~/ccma-tcc/results/species-knowledge-gaps")) == 0) {
   drive_mkdir("~/ccma-tcc/results/species-knowledge-gaps")
 }
 
-# Get files path to upload
+# Get files path to upload ------------------------------------
+completeness_animation_path <- "./spatial_temporal_completeness_map_animation.gif"
+
+completeness_paths <-
+  list.files(
+    "../data/results",
+    pattern = "completeness",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+
+nrec_paths <-
+  list.files(
+    "../data/results",
+    pattern = "nrec_",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+
+environmental_path <-
+  list.files(
+    "../data/results",
+    pattern = "environmental_",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+
+ks_stat_path <-
+  list.files(
+    "../data/results",
+    pattern = "ks_stat",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+
 maps_paths <-
   list.files(
     "../data/results",
@@ -64,7 +102,25 @@ species_table_path <- "../data/results/species-table.xlsx"
 
 cus_path <- "../data/results/CUs-list.xlsx"
 
+scatter_path <- "../data/results/scatter-graph.pdf"
+
 # Get file names by removing the path
+completeness_animation_name <-
+  str_replace(completeness_animation_path, "./", "")
+
+completeness_names <-
+  str_replace(completeness_paths, "../data/results/", "")
+
+nrec_names <-
+  str_replace(nrec_paths, "../data/results/", "")
+
+environmental_name <-
+  str_replace(environmental_path, "../data/results/", "")
+
+ks_stat_name <-
+  str_replace(ks_stat_path, "../data/results/", "")
+
+
 maps_names <-
   str_replace(maps_paths, "../data/results/", "")
 
@@ -83,9 +139,56 @@ species_table_name <-
 cus_name <-
   str_replace(cus_path, "../data/results/", "")
 
+scatter_name <-
+  str_replace(cus_path, "../data/results/", "")
+
 # Upload files -----------------------------------------------
 
 # Upload all files to its respective folders
+drive_upload(
+  completeness_animation_path,
+  name = completeness_animation_name,
+  path = "~/ccma-tcc/results/completeness",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+for (i in 1:length(completeness_names)) {
+  drive_upload(
+    completeness_paths[i],
+    name = completeness_names[i],
+    path = "~/ccma-tcc/results/completeness",
+    overwrite = TRUE,
+    verbose = TRUE
+  )
+}
+
+for (i in 1:length(nrec_names)) {
+  drive_upload(
+    nrec_paths[i],
+    name = nrec_names[i],
+    path = "~/ccma-tcc/results/completeness",
+    overwrite = TRUE,
+    verbose = TRUE
+  )
+}
+
+drive_upload(
+  environmental_path,
+  name = environmental_name,
+  path = "~/ccma-tcc/results/completeness",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+drive_upload(
+  ks_stat_path,
+  name = ks_stat_name,
+  path = "~/ccma-tcc/results/completeness",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
 for (i in 1:length(maps_paths)) {
   drive_upload(
     maps_paths[i],
@@ -145,6 +248,14 @@ drive_upload(
   cus_path,
   name = cus_name,
   path = "~/ccma-tcc/results",
+  overwrite = TRUE,
+  verbose = TRUE
+)
+
+drive_upload(
+  scatter_path,
+  name = scatter_name,
+  path = "~/ccma-tcc/results/species-knowledge-gaps",
   overwrite = TRUE,
   verbose = TRUE
 )
