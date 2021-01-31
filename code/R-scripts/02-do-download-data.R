@@ -12,9 +12,6 @@ xfun::pkg_attach(c(
 conflicted::conflict_prefer("mutate", "dplyr")
 conflicted::conflict_prefer("filter", "dplyr")
 
-# Source functions
-source("./R-scripts/functions/02-funs-download-data.R")
-
 # GBIF data ---------------------------------------------------
 
 # Set GBIF profile
@@ -48,9 +45,6 @@ gbif_mamm_occ_get <-
 gbif_mamm_occ_imported <-
   occ_download_import(gbif_mamm_occ_get, path = "../data/processed-data/")
 
-# Remove fossil record and iNaturalist registers
-gbif_mamm_filtered <- remove.fossil.iNaturalist(gbif_mamm_occ_imported)
-
 # speciesLink data --------------------------------------------
 
 # Get occurrence data from speciesLink
@@ -74,10 +68,10 @@ spLink_mamm_filtered <-
   filter(class == "Mammalia")
 
 # Save data ---------------------------------------------------
-gbif_mamm_filtered <-
-  gbif_mamm_filtered %>%
+gbif_mamm_occ_imported <-
+  gbif_mamm_occ_imported %>%
   mutate(scientificName = species)
 
-mamm_binded <- rbind.fill(spLink_mamm_filtered, gbif_mamm_filtered)
+mamm_binded <- rbind.fill(spLink_mamm_filtered, gbif_mamm_occ_imported)
 
 write.csv(mamm_binded, "../data/processed-data/downloaded-data.csv")

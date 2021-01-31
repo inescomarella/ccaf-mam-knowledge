@@ -2,7 +2,7 @@
 # Date: 16/11/2020
 
 # Load in libraries
-xfun::pkg_attach(c("tidyverse", "lubridate"))
+xfun::pkg_attach(c("tidyverse", "lubridate", "pdftools", "stringi"))
 
 # Source functions
 source("./R-scripts/functions/01-funs-clean-papers-data.R")
@@ -721,6 +721,7 @@ colnames(bat_table_df) <- "scientificName"
 bat_table_df$PublicationYear <- 2006
 bat_table_df$typeOfPublication <- "Article"
 bat_table_df$eventYear <- 2000
+bat_table_df$eventDate <- as.Date("2000-01-01")
 bat_table_df$country <- "Brazil"
 bat_table_df$stateProvince <- "Bahia"
 bat_table_df$county <- "Una"

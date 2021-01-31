@@ -7,7 +7,8 @@ xfun::pkg_attach(c(
   "CoordinateCleaner",
   "stringr",
   "biogeo",
-  "lubridate"
+  "lubridate",
+  "reshape2"
 ))
 
 conflicted::conflict_prefer("filter", "dplyr")
@@ -96,9 +97,215 @@ correct.eventYear <- function(df) {
           as.Date(eventYear, format = "%d/%m/%y"),
           "%Y"
         ),
-        false = eventYear
+        false = ifelse(
+          test = eventYear > PublicationYear,
+          yes = PublicationYear,
+          no = eventYear
+        )
       )
     ))
+}
+
+correct.eventDate <- function(df) {
+  # Correct event year in diff formats, and assume the last year
+  #
+  # Args:
+  #   df: dataframe containing "eventYear" and "eventDate" columns
+
+  # Handling full dates
+  df <-
+    df %>%
+    mutate(eventDate = if_else(
+      condition = !is.na(format(
+        as.Date(eventDate, format = "%m/%d/%y"),
+        "%Y-%m-%d"
+      )),
+      true = format(
+        as.Date(eventDate, format = "%m/%d/%y"),
+        "%Y-%m-%d"
+      ),
+      false = if_else(
+        condition = !is.na(format(
+          as.Date(eventDate, format = "%d/%m/%y"),
+          "%Y-%m-%d"
+        )),
+        true = format(
+          as.Date(eventDate, format = "%d/%m/%y"),
+          "%Y-%m-%d"
+        ),
+        false = if_else(
+          condition = !is.na(format(
+            as.Date(eventYear, format = "%m/%d/%y"),
+            "%Y-%m-%d"
+          )),
+          true = format(
+            as.Date(eventYear, format = "%m/%d/%y"),
+            "%Y-%m-%d"
+          ),
+          false = if_else(
+            condition = !is.na(format(
+              as.Date(eventYear, format = "%d/%m/%y"),
+              "%Y-%m-%d"
+            )),
+            true = format(
+              as.Date(eventYear, format = "%d/%m/%y"),
+              "%Y-%m-%d"
+            ),
+            false = eventDate
+          )
+        )
+      )
+    ))
+
+  df$eventDate <-
+    colsplit(df$eventDate, "/", c("eventDate", "later")) %>%
+    mutate(eventDate = ifelse(later != "",
+      later,
+      eventDate
+    )) %>%
+    select(-later)
+
+  a <-
+    df %>%
+    filter(nchar(eventDate[, ]) == 4) %>%
+    mutate(eventDate = ymd(eventDate[, ], truncated = 2))
+
+  b <-
+    df %>%
+    filter(nchar(eventDate[, ]) == 7 &
+      nchar(word(eventDate[, ], sep = "[-]", 2)) == 2) %>%
+    mutate(eventDate = ymd(eventDate[, ], truncated = 2))
+
+  c <-
+    df %>%
+    filter(nchar(eventDate[, ]) == 7 &
+      nchar(word(eventDate[, ], sep = "[-]", 2)) == 4) %>%
+    mutate(eventDate = ymd(paste0(
+      word(eventDate[, ], sep = "[-]", 2),
+      "-",
+      word(eventDate[, ], sep = "[-]", 1)
+    ), truncated = 2))
+
+  d <-
+    df %>%
+    filter(eventDate[, ] == "" |
+      is.na(eventDate) | nchar(eventDate[, ]) == 1) %>%
+    mutate(eventDate = ymd(eventYear, truncated = 2))
+
+  e <-
+    df %>%
+    filter(nchar(eventDate[, ]) == 10) %>%
+    filter(nchar(word(eventDate[, ], sep = "[-]", 1)) == 4) %>%
+    mutate(eventDate = ymd(eventDate[, ], truncated = 3))
+
+  f <-
+    df %>%
+    filter(nchar(eventDate[, ]) == 10) %>%
+    filter(nchar(word(eventDate[, ], sep = "[-]", 3)) == 4) %>%
+    mutate(eventDate = paste0(
+      word(eventDate[, ], sep = "[-]", 3),
+      "-",
+      word(eventDate[, ], sep = "[-]", 2),
+      "-",
+      word(eventDate[, ], sep = "[-]", 1)
+    ))
+
+  df_p1 <-
+    rbind(a, b, c, d, e, f)
+
+  df_p2 <-
+    anti_join(
+      df,
+      df_p1,
+      by = c(
+        "basisOfRecord",
+        "datasetName",
+        "language",
+        "institutionCode",
+        "collectionCode",
+        "reference",
+        "PublicationYear",
+        "typeOfPublication",
+        "occurrenceID",
+        "catalogNumber",
+        "recordedBy",
+        "fieldNumber",
+        "preparations",
+        "associatedReferences",
+        "eventYear",
+        "country",
+        "stateProvince",
+        "county",
+        "locality",
+        "locationRemarks",
+        "UC",
+        "verbatimLatitude",
+        "verbatimLongitude",
+        "decimalLatitude",
+        "decimalLongitude",
+        "geodeticDatum",
+        "georeferencedBy",
+        "georeferencePrecision",
+        "order",
+        "family",
+        "genus",
+        "acceptedNameUsage",
+        "scientificName"
+      )
+    ) %>%
+    mutate(eventDate = ymd(paste0(
+      word(eventDate[, ], sep = "[/]", 2),
+      "-0",
+      word(eventDate[, ], sep = "[/]", 1)
+    )))
+
+  df <- bind_rows(df_p1, df_p2)
+  
+  
+  corrected <- 
+    df %>%
+    filter(format(as.Date(eventDate, format = "%Y-%m-%d"),
+                  "%Y") > eventYear) %>%
+    mutate(eventDate = ymd(eventYear, truncated = 2))
+  
+  to_bind <-
+    anti_join(df, corrected, by = c(
+      "basisOfRecord",
+      "datasetName",
+      "language",
+      "institutionCode",
+      "collectionCode",
+      "reference",
+      "PublicationYear",
+      "typeOfPublication",
+      "occurrenceID",
+      "catalogNumber",
+      "recordedBy",
+      "fieldNumber",
+      "preparations",
+      "associatedReferences",
+      "eventYear",
+      "country",
+      "stateProvince",
+      "county",
+      "locality",
+      "locationRemarks",
+      "UC",
+      "verbatimLatitude",
+      "verbatimLongitude",
+      "decimalLatitude",
+      "decimalLongitude",
+      "geodeticDatum",
+      "georeferencedBy",
+      "georeferencePrecision",
+      "order",
+      "family",
+      "genus",
+      "acceptedNameUsage",
+      "scientificName"
+    ))
+  
+  bind_rows(corrected, to_bind)
 }
 
 correct.coordinates.in.geodeticDatum <- function(df) {

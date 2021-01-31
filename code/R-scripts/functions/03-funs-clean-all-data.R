@@ -8,9 +8,21 @@ xfun::pkg_attach(c(
   "dplyr",
   "sf",
   "sp",
-  "brazilmaps"
+  "brazilmaps",
+  "stringr"
 ))
+
 conflicted::conflict_prefer("summarise", "dplyr")
+conflicted::conflict_prefer("filter", "dplyr")
+
+remove.fossil.iNaturalist <- function(dataset) {
+  to_remove <-
+    dataset %>%
+    filter(basisOfRecord == "FOSSIL_SPECIMEN" |
+             str_detect(institutionCode, "iNaturalist"))
+  
+  anti_join(dataset, to_remove)
+}
 
 rl.synonyms <- function(x) {
   # Manipulate rl_synonyms() S4 object to get "results" and "name" as a
@@ -33,7 +45,6 @@ rl.synonyms <- function(x) {
   results
 }
 
-
 name.backbone <- function(x) {
   # Add a scientificName column containing the species name as written in the
   # input
@@ -45,7 +56,6 @@ name.backbone <- function(x) {
 
   bckbn
 }
-
 
 clip.ccaf <- function(pts) {
   # Use st_intersection() to remove points outside ccaf layer (sf obj)
@@ -97,7 +107,6 @@ clip.ccaf <- function(pts) {
   pts
 }
 
-
 only.indentified.species <- function(df) {
   # Remove hybrids, not identified species, correct some writing, get species
   # in acceptedNameUsage
@@ -110,26 +119,30 @@ only.indentified.species <- function(df) {
     df %>%
     mutate(scientificName = as.character(scientificName)) %>%
     filter(
+      scientificName == "" |
+      scientificName == " " |
       is.na(scientificName) |
         str_detect(scientificName, " ") == FALSE |
-        str_detect(scientificName, " sp"),
-      !str_detect(scientificName, "spinosus")
+        (str_detect(scientificName, " sp") &
+      !str_detect(scientificName, "spinosus"))
     )
 
   to_remove_acceptedNameUsage <-
     df %>%
     mutate(acceptedNameUsage = as.character(acceptedNameUsage)) %>%
     filter(
-      is.na(acceptedNameUsage) |
+      acceptedNameUsage == "" |
+        acceptedNameUsage == " " |
+        is.na(acceptedNameUsage) |
         str_detect(acceptedNameUsage, " ") == FALSE |
-        str_detect(acceptedNameUsage, " sp"),
-      !str_detect(acceptedNameUsage, "spinosus")
+        (str_detect(acceptedNameUsage, " sp") &
+           !str_detect(acceptedNameUsage, "spinosus"))
     )
   to_remove <-
     intersect(to_remove_acceptedNameUsage, to_remove_scientificName)
 
   df <- anti_join(df, to_remove)
-
+  
   # Correct species name in acceptedNameUsage instead of scientificName
   sp_in_acceptedNameUsage <-
     anti_join(to_remove_scientificName, to_remove_acceptedNameUsage)
@@ -137,8 +150,8 @@ only.indentified.species <- function(df) {
 
   sp_in_acceptedNameUsage$scientificName <- sp_in_acceptedNameUsage$acceptedNameUsage
 
-  df <- bind_rows(df, sp_in_acceptedNameUsage)
-
+  df <- bind_rows(df, sp_in_acceptedNameUsage) 
+  
   df <-
     df %>%
     mutate(scientificName = str_replace(scientificName,
@@ -173,4 +186,5 @@ only.indentified.species <- function(df) {
       str_detect(scientificName, "brido"))
 
   anti_join(df, to_remove)
+  
 }

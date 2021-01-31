@@ -1,7 +1,6 @@
 # File purpose: Clean and standardize mammal data from paper, GBIF and
 # speciesLink
 # Pay attention: The rredlist::rl_synonyms() function always gets some error
-# and takes hours to run
 #
 # Date: 16/11/2020
 
@@ -50,8 +49,15 @@ data_all_raw <- rbind.fill(data_paper, data_downl)
 # Keep data_paper columns, remove others
 data_all <- select(data_all_raw, colnames(data_paper))
 
+# Remove fossil record and iNaturalist registers
+data_all_first_clean <- remove.fossil.iNaturalist(data_all)
+
+# Data after first clean = 35955
+nrow(data_all_first_clean)
+
 # Keep only identified species and remove hybrids
-data_all_only_indetified_species <- only.indentified.species(data_all)
+data_all_only_indetified_species <- 
+  only.indentified.species(data_all_first_clean)
 
 # Remove records outside CCMA limits
 # Takes 3min to run
@@ -61,7 +67,7 @@ data_all_clipped <- clip.ccaf(data_all_only_indetified_species)
 sp_list_all <- sort(unique(data_all_clipped$scientificName))
 
 # Get rl.synonyms ----------------------------------------
-# Takes a few hours to run and it's normal to get "Error: Bad Gateway (HTTP
+# It takes a few minutes to run and it's normal to get "Error: Bad Gateway (HTTP
 # 502)", although the inputs were subdivided to prevent this problem, but just
 # try again until it runs
 apply_synonyms_1 <- lapply(sp_list_all[1:55], rl.synonyms)
@@ -157,13 +163,12 @@ to_remove <-
 synonyms_df_corrected <- anti_join(synonyms_df_corrected, to_remove)
 
 # Separate the reviewed and not-reviewed synonymd by rl.synonyms()
-iucn_synonyms_df <-
-  synonyms_df_corrected %>%
-  filter(!is.na(accepted_name))
-
 no_iucn_synonyms_df <-
   synonyms_df_corrected %>%
   filter(is.na(accepted_name))
+
+iucn_synonyms_df <-
+  anti_join(synonyms_df_corrected, no_iucn_synonyms_df)
 
 # Get name.backbone ------------------------------------------
 apply_backbone_iucn <-
@@ -342,17 +347,17 @@ data_all_without_sapajus <-
   data_all_without_sapajus %>%
   select(-c(order, family))
 
-# Little fix
 backbone_sp_gbif_iucn_df <-
   backbone_sp_gbif_iucn_df %>%
-  mutate(scientificName = sub(
-    "Brucepattersonius griserufescens", 
-    "Brucepattersonius iserufescens", 
-    scientificName))
+  mutate(species = ifelse(is.na(species), scientificName, species))
 
 # Merge backbones with the main dataframe
 data_all_backbone_iucn_gbif_merged <-
   merge(data_all_without_sapajus, backbone_sp_gbif_iucn_df, by = "scientificName", all = TRUE)
+
+data_all_backbone_iucn_gbif_merged <-
+  data_all_backbone_iucn_gbif_merged %>%
+  mutate(species = ifelse(is.na(species), scientificName, species))
 
 # Removing extra rows created during merge
 data_all_backbone_iucn_gbif_merged <-
@@ -371,11 +376,12 @@ S_nigritus <-
     str_detect(scientificName, "Cebus"),
     decimalLatitude <= -19.5
   )
+
 S_robustus <-
   data_all_clipped %>%
   filter(
     str_detect(scientificName, "Cebus"),
-    decimalLatitude > -19.5 && decimalLatitude < -15.8
+    (decimalLatitude > -19.5 & decimalLatitude < -15.8)
   )
 
 S_xanthosternos <-
@@ -534,7 +540,8 @@ data_all_sp_clean <-
     "Brucepattersonius griserufescens", 
     species
     )) %>%
-  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e   #de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
+  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e   
+  # de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
   #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
   # com exceção das Antilhas (que podem representar uma outra espécie), 
   # estariam incluídas em L. blossevillii (REID, 1997)."
@@ -544,10 +551,20 @@ data_all_sp_clean <-
     species
   )) %>%
   mutate(species = ifelse(
-    str_detect(species, "Felis"),
+    str_detect(species, " pardalis"),
     "Leopardus pardalis",
     species
     )) %>%
+  mutate(species = ifelse(
+    str_detect(species, " onca"),
+    "Panthera onca",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, " concolor"),
+    "Puma concolor",
+    species
+  )) %>%
   mutate(species = sub(
     "myosurus", 
     "myosuros", 
@@ -620,16 +637,50 @@ species_backbone_df <-
   bind_rows(apply(X = species_df, MARGIN = 1, FUN = name_backbone))
 
 species_df$scientificName <- species_backbone_df$scientificName
+species_df$order <- species_backbone_df$order
+species_df$family <- species_backbone_df$family
 
 data_all_sp_clean <-
   data_all_sp_clean %>%
   select(-scientificName)
 
-clean_data <- merge(data_all_sp_clean, species_df, by = "species", all = TRUE)
+clean_data <-
+  merge(data_all_sp_clean,
+        select(species_df, c(species, scientificName)),
+        by = "species",
+        all = TRUE)
+
+# Fill species backbones missing
+to_complete <-
+  clean_data %>% filter(is.na(order))
+
+clean_data_complete <-
+  anti_join(clean_data, to_complete)
+
+to_complete <-
+  to_complete %>%
+  select(-c(family, order))
+
+completed <-
+  merge(to_complete, species_df, by = "species")
+
+clean_data_completed <- bind_rows(clean_data_complete, completed)
+
+# Fix species ID
+clean_data_completed <-
+  clean_data_completed %>%
+  mutate(
+    family = ifelse(species == "Platyrrhinus reciﬁnus",
+                    "Phyllostomidae",
+                    family),
+    order = ifelse(species == "Platyrrhinus reciﬁnus",
+                   "Chiroptera",
+                   order)
+  )
 
 # Select columns of interest
 clean_data_slct <-
-  clean_data %>%
+  clean_data_completed %>%
   select(
     reference,
     citation,
@@ -653,10 +704,6 @@ clean_data_slct <-
     scientificName
   )
 
-clean_data_slct <-
-  clean_data_slct %>%
-  filter(!is.na(species))
-
 # Remove duplicated records
 clean_data_distincted <-
   clean_data_slct %>%
@@ -672,13 +719,32 @@ clean_data_distincted <-
     species,
     catalogNumber,
     institutionCode,
+    collectionCode,
     decimalLatitude,
     decimalLongitude,
+    eventDate,
+    year,
     .keep_all = TRUE
   )
 
+# Tracking number of records -------------------------------------------------
 
-# Save data.frame --------------------------------------------
+# Total records downloaded = 41258
+nrow(data_all)
+
+# Records after removing no-identified species = 33158
+nrow(data_all_only_indetified_species)
+
+# Records after geographic clean = 15030
+nrow(data_all_clipped)
+
+# Records after taxonomic clean (and removing marine species) = 14701
+nrow(data_all_sp_clean)
+
+# Final number of unique records = 13588
+nrow(clean_data_distincted)
+
+# Save data.frame ------------------------------------------------------------
 write.csv(
   clean_data_distincted,
   "../data/processed-data/clean-mammal-data.csv"
