@@ -1,6 +1,6 @@
 plot.inventory.completeness <- function(sf_obj) {
   sf_obj %>%
-    filter(completeness != "Not surveyed") %>%
+    filter(!is.na(c)) %>%
     mutate(c = c * 100) %>%
     ggplot() +
     geom_sf(size = 0, aes(fill = c)) +
@@ -9,9 +9,9 @@ plot.inventory.completeness <- function(sf_obj) {
             fill = NA,
             size = 0.2) +
     scale_fill_viridis(
-      limits = c(0.5, 100),
-      breaks = c(0.5, 20, 40, 60, 80, 100),
-      labels = c(0.5, 20, 40, 60, 80, 100)
+      limits = c(0, 100),
+      breaks = c(0, 20, 40, 60, 80, 100),
+      labels = c(0, 20, 40, 60, 80, 100)
     ) +
     theme(
       panel.background = element_blank(),

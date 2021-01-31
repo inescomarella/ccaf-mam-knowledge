@@ -186,6 +186,21 @@ for (i in 1:length(year_records_cell_id)) {
     merge(year_records_cell_id[[i]], year_bdcompleted[[i]], all = TRUE)
 }
 
+records_bdcomplete_longlat <-
+  merge(records_longlat, records_bdcomplete)
+
+order_records_bdcomplete_longlat <- list()
+for (i in 1:length(order_records_bdcomplete)) {
+  order_records_bdcomplete_longlat[[i]] <-
+    merge(order_records_longlat[[i]], order_records_bdcomplete[[i]])
+}
+
+year_records_bdcomplete_longlat <- list()
+for (i in 1:length(year_records_bdcomplete)) {
+  year_records_bdcomplete_longlat[[i]] <-
+    merge(year_records_longlat[[i]], year_records_bdcomplete[[i]])
+}
+
 # Make grid -------------------------------------------------------------------
 grid <-
   ccaf %>%
@@ -195,22 +210,12 @@ grid <-
 grid$grid_id <- seq(1, nrow(grid), 1)
 
 bdcomplete_grid <-
-  st_join(grid, records_bdcomplete_longlat) %>%
-  mutate(completeness = ifelse(
-    test = is.na(completeness),
-    yes = "Not surveyed",
-    no = completeness
-  ))
+  st_join(grid, records_bdcomplete_longlat)
 
 order_bdcomplete_grid <- list()
 for (i in 1:length(order_records_bdcomplete_longlat)) {
   order_bdcomplete_grid[[i]] <-
-    st_join(grid, order_records_bdcomplete_longlat[[i]]) %>%
-    mutate(completeness = ifelse(
-      test = is.na(completeness),
-      yes = "Not surveyed",
-      no = completeness
-    ))
+    st_join(grid, order_records_bdcomplete_longlat[[i]])
 }
 names(order_bdcomplete_grid) <-
   names(order_records_bdcomplete)
@@ -218,12 +223,7 @@ names(order_bdcomplete_grid) <-
 year_bdcomplete_grid <- list()
 for (i in 1:length(year_records_bdcomplete_longlat)) {
   year_bdcomplete_grid[[i]] <-
-    st_join(grid, year_records_bdcomplete_longlat[[i]]) %>%
-    mutate(completeness = ifelse(
-      test = is.na(completeness),
-      yes = "Not surveyed",
-      no = completeness
-    ))
+    st_join(grid, year_records_bdcomplete_longlat[[i]])
 }
 
 # Environment data ------------------------------------------------------------
@@ -678,7 +678,7 @@ mean_completeness_cum_rec_graph <-
 nrec_max <-
   year_bdcomplete_grid[[length(year_bdcomplete_grid)]] %>%
   st_drop_geometry() %>%
-  filter(completeness != "Not surveyed") %>%
+  filter(!is.na(c)) %>%
   group_by(grid_id) %>%
   summarise(nrec_count = n()) %>%
   select(nrec_count) %>%
@@ -688,7 +688,7 @@ spatial_temporal_completeness_map_animation <- list()
 for (i in 1:length(year_bdcomplete_grid)) {
   comp_plot <-
     year_bdcomplete_grid[[i]] %>%
-    filter(completeness != "Not surveyed") %>%
+    filter(!is.na(c)) %>%
     mutate(c = c * 100) %>%
     ggplot() +
     geom_sf(size = 0, aes(fill = c)) +
