@@ -4,7 +4,7 @@
 
 ########################################
 # To do:
-# - Model 
+# - Model
 # - Research institutes in maps (if model work)
 ########################################
 
@@ -85,7 +85,11 @@ institutes_utm <-
       "Y_POSSIBLE_NAMES=latitude"
     )
   ) %>%
-  st_transform(utm)
+  st_transform(utm) %>%
+  filter(
+    !str_detect(institution_name, "Alegre"),
+    !str_detect(institution_name, "Mateus")
+  )
 
 # Pre-process data ------------------------------------------------------------
 
@@ -156,19 +160,23 @@ year_records_cell_id <- lapply(year_records_bdvis, getcellid)
 
 # Estimate completeness based on Chao2 index of species richness
 bdcompleted <-
-  bdcomplete(indf = records_cell_id,
-             recs = 10,
-             gridscale = 0.1)
+  bdcomplete(
+    indf = records_cell_id,
+    recs = 10,
+    gridscale = 0.1
+  )
 order_bdcompleted <-
   lapply(order_records_cell_id,
-         bdcomplete,
-         recs = 10,
-         gridscale = 0.1)
+    bdcomplete,
+    recs = 10,
+    gridscale = 0.1
+  )
 year_bdcompleted <-
   lapply(year_records_cell_id,
-         bdcomplete,
-         recs = 10,
-         gridscale = 0.1)
+    bdcomplete,
+    recs = 10,
+    gridscale = 0.1
+  )
 
 # Merge completeness estimate and cell id
 records_bdcomplete <- merge(records_cell_id, bdcompleted, all = T)
@@ -314,8 +322,10 @@ amt_ks <-
     as.numeric(amt_y$AMT)
   )
 ap_ks <-
-  ks.test(as.numeric(ap_x$AP),
-          as.numeric(ap_y$AP))
+  ks.test(
+    as.numeric(ap_x$AP),
+    as.numeric(ap_y$AP)
+  )
 
 ks_statistics <-
   data.frame(
@@ -336,43 +346,36 @@ ks_statistics <-
 
 bdcomplete_grid_clipped <- st_intersection(bdcomplete_grid, ccaf)
 
-institutes_utm <- 
-  institutes_utm %>%
-  filter(!str_detect(institution_name, "Alegre"),
-         !str_detect(institution_name, "Mateus"))
-
 bdcomplete_grid_clipped <-
   get.nearest.dist(institutes_utm, st_transform(bdcomplete_grid_clipped, utm))
 
-#colnames(bdcomplete_grid_clipped)[(ncol(bdcomplete_grid_clipped)-1)] <- "geometry"
-
 st_geometry(bdcomplete_grid_clipped) <- st_geometry(st_intersection(bdcomplete_grid, ccaf))
 
-bdcomplete_grid_clipped$CU <- 
+bdcomplete_grid_clipped$CU <-
   st_as_sf(bdcomplete_grid_clipped) %>%
   st_intersects(cus_longlat) %>%
   lengths()
 
-df_model <- 
+df_model <-
   bdcomplete_grid_clipped %>%
   group_by(grid_id) %>%
   select(dist_inst) %>%
   st_drop_geometry()
 
-df_model[,2] <- 
+df_model[, 2] <-
   bdcomplete_grid_clipped %>%
   group_by(grid_id) %>%
   select(CU) %>%
   st_drop_geometry()
 
-df_model[,3] <-
+df_model[, 3] <-
   bdcomplete_grid_clipped %>%
   group_by(grid_id) %>%
   mutate(nrec = n()) %>%
   select(nrec) %>%
   st_drop_geometry()
 
-df_model[,4] <-
+df_model[, 4] <-
   bdcomplete_grid_clipped %>%
   group_by(grid_id) %>%
   select(c) %>%
@@ -436,7 +439,7 @@ testZeroInflation(glm_simulation_nrec, alternative = "greater")
 # Plot ------------------------------------------------------------------------
 
 # Plot orders completeness
-all_m_inv_comp_plot <-  plot.inventory.completeness(bdcomplete_grid)
+all_m_inv_comp_plot <- plot.inventory.completeness(bdcomplete_grid)
 
 m_inv_comp_plot <-
   lapply(order_bdcomplete_grid, plot.inventory.completeness)
@@ -485,12 +488,12 @@ orders_completeness_maps <-
     m_inv_comp_plot,
     nrow = 2,
     ncol = 4,
-    widths = unit(3, 'cm')
+    widths = unit(3, "cm")
   ) / legend +
   plot_layout(heights = c(1, .1))
 
 # Environmental graphs
-ap_elev <- 
+ap_elev <-
   df %>%
   mutate(c = c * 100) %>%
   ggplot() +
@@ -531,7 +534,7 @@ amt_elev <-
   ylab("Annual Mean Temperature")
 
 environmental_plot <-
-  (ap_elev + amt_elev) / legend  +
+  (ap_elev + amt_elev) / legend +
   plot_layout(heights = c(1, .1), nrow = 2)
 
 # Temporal completeness
@@ -548,7 +551,7 @@ minimal_completeness_years_graph <-
   scale_x_date(date_labels = "%Y") +
   geom_line(aes(x = year, y = completeness_y)) +
   ylab("Number of grid cells") +
-  xlab("Years") + 
+  xlab("Years") +
   theme_light()
 
 nrec_y_graph <-
@@ -562,7 +565,7 @@ nrec_y_graph <-
   scale_x_date(date_labels = "%Y") +
   geom_line(aes(x = year, y = nrec_y)) +
   ylab("Number of records cells") +
-  xlab("Years") + 
+  xlab("Years") +
   theme_light()
 
 minimal_completeness_cum_graph <-
@@ -587,7 +590,7 @@ minimal_completeness_cum_graph <-
   theme_light()
 
 
-nrec_cum_graph <- 
+nrec_cum_graph <-
   df %>%
   filter(year != "NA", !is.na(year)) %>%
   arrange(year) %>%
@@ -612,8 +615,10 @@ mean_completeness_cum_graph <-
   df %>%
   filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
   arrange(year) %>%
-  mutate(year = as.Date(year, "%Y"),
-         fk_group = "a") %>%
+  mutate(
+    year = as.Date(year, "%Y"),
+    fk_group = "a"
+  ) %>%
   group_by(year) %>%
   mutate(mean_c = mean(c)) %>%
   select(year, mean_c, fk_group) %>%
@@ -624,11 +629,11 @@ mean_completeness_cum_graph <-
   scale_x_date(date_labels = "%Y") +
   geom_line(aes(x = year, y = mean_c_cum)) +
   ylab("Mean completeness") +
-  xlab("Years") + 
+  xlab("Years") +
   theme_light()
 
 
-nrec_cum_df <- 
+nrec_cum_df <-
   df %>%
   filter(year != "NA", !is.na(year)) %>%
   arrange(year) %>%
@@ -643,12 +648,14 @@ nrec_cum_df <-
   group_by(fk_group) %>%
   mutate(nrec_cum = cumsum(nrec_y))
 
-mean_c_cum_df <- 
+mean_c_cum_df <-
   df %>%
   filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
   arrange(year) %>%
-  mutate(year = as.Date(year, "%Y"),
-         fk_group = "a") %>%
+  mutate(
+    year = as.Date(year, "%Y"),
+    fk_group = "a"
+  ) %>%
   group_by(year) %>%
   mutate(mean_c = mean(c)) %>%
   select(year, mean_c, fk_group) %>%
@@ -660,17 +667,18 @@ mean_c_cum_df_slct <- mean_c_cum_df %>% select(year, mean_c_cum)
 nrec_cum_df_slct <- nrec_cum_df %>% select(year, nrec_cum)
 
 cum_df_mrg <- merge(mean_c_cum_df_slct, nrec_cum_df_slct)
-  
+
 mean_completeness_cum_rec_graph <-
   ggplot(cum_df_mrg) +
   scale_x_date(date_labels = "%Y") +
   geom_line(aes(x = year, y = mean_c_cum * 10000), color = "red") +
   geom_line(aes(x = year, y = nrec_cum)) +
-  scale_y_continuous(# Features of the first axis
+  scale_y_continuous( # Features of the first axis
     name = "Cumulative number of records",
-    
+
     # Add a second axis and specify its features
-    sec.axis = sec_axis(trans =  ~ . / 10000, name = "Mean completeness")) +
+    sec.axis = sec_axis(trans = ~ . / 10000, name = "Mean completeness")
+  ) +
   theme_light()
 
 # Animation -------------------------------------------------------------------
@@ -712,8 +720,8 @@ for (i in 1:length(year_bdcomplete_grid)) {
       axis.ticks = element_blank()
     ) +
     labs(fill = "Completeness")
- 
-  nrec_plot <- 
+
+  nrec_plot <-
     year_bdcomplete_grid[[i]] %>%
     group_by(grid_id) %>%
     summarise(nrec_count = n()) %>%
@@ -756,9 +764,9 @@ for (i in 1:length(year_bdcomplete_grid)) {
     labs(fill = "Number of records")
 
   plot_row <- plot_grid(comp_plot, nrec_plot)
-  
+
   y <- as.numeric(min(year_bdcomplete_grid[[i]]$year, na.rm = T)) + (i * 5)
-  
+
   title <- ggdraw() +
     draw_label(
       paste0(
@@ -793,59 +801,81 @@ saveGIF(
 # Map
 spatial_temporal_completeness_map_animation[[length(spatial_temporal_completeness_map_animation)]]
 
-ggsave(filename = "../data/results/spatial_temporal_completeness_map.pdf",
-       width = 8,
-       height = 6)
-ggsave(filename = "../data/results/spatial_temporal_completeness_map.png",
-       width = 8,
-       height = 6)
+ggsave(
+  filename = "../data/results/spatial_temporal_completeness_map.pdf",
+  width = 8,
+  height = 6
+)
+ggsave(
+  filename = "../data/results/spatial_temporal_completeness_map.png",
+  width = 8,
+  height = 6
+)
 
 # Order map
 orders_completeness_maps
 
-ggsave(filename = "../data/results/orders_completeness_maps.pdf",
-       width = 8,
-       height = 6)
-ggsave(filename = "../data/results/orders_completeness_maps.png",
-       width = 8,
-       height = 6)
+ggsave(
+  filename = "../data/results/orders_completeness_maps.pdf",
+  width = 8,
+  height = 6
+)
+ggsave(
+  filename = "../data/results/orders_completeness_maps.png",
+  width = 8,
+  height = 6
+)
 
 # Temporal completeness graph
 mean_completeness_cum_rec_graph
-ggsave(filename = "../data/results/mean_completeness_cum_rec_graph.pdf",
-       width = 8,
-       height = 6)
+ggsave(
+  filename = "../data/results/mean_completeness_cum_rec_graph.pdf",
+  width = 8,
+  height = 6
+)
 
-minimal_completeness_years_graph 
-ggsave(filename = "../data/results/minimal_completeness_years_graph.pdf",
-       width = 8,
-       height = 6)
+minimal_completeness_years_graph
+ggsave(
+  filename = "../data/results/minimal_completeness_years_graph.pdf",
+  width = 8,
+  height = 6
+)
 
-nrec_y_graph 
-ggsave(filename = "../data/results/nrec_y_graph.pdf",
-       width = 8,
-       height = 6)
+nrec_y_graph
+ggsave(
+  filename = "../data/results/nrec_y_graph.pdf",
+  width = 8,
+  height = 6
+)
 
 nrec_cum_graph
-ggsave(filename = "../data/results/nrec_cum_graph.pdf",
-       width = 8,
-       height = 6)
+ggsave(
+  filename = "../data/results/nrec_cum_graph.pdf",
+  width = 8,
+  height = 6
+)
 
-minimal_completeness_cum_graph 
-ggsave(filename = "../data/results/minimal_completeness_cum_graph.pdf",
-       width = 8,
-       height = 6)
+minimal_completeness_cum_graph
+ggsave(
+  filename = "../data/results/minimal_completeness_cum_graph.pdf",
+  width = 8,
+  height = 6
+)
 
-mean_completeness_cum_graph 
-ggsave(filename = "../data/results/mean_completeness_cum_graph.pdf",
-       width = 8,
-       height = 6)
+mean_completeness_cum_graph
+ggsave(
+  filename = "../data/results/mean_completeness_cum_graph.pdf",
+  width = 8,
+  height = 6
+)
 
 # Environmental graphs
 environmental_plot
-ggsave(filename = "../data/results/environmental_plot.pdf",
-       width = 8,
-       height = 6)
+ggsave(
+  filename = "../data/results/environmental_plot.pdf",
+  width = 8,
+  height = 6
+)
 
 # Completeness statistics
 OUT <- createWorkbook()
