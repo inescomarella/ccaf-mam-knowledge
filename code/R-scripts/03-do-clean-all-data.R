@@ -263,7 +263,7 @@ backbone_gbif_df_selected <-
   )) %>%
   mutate(species = ifelse(
     scientificName == "Guerlinguetus ingrami",
-    "Guerlinguetus ingrami",
+    "Guerlinguetus brasiliensis",
     species
   )) %>%
   mutate(species = ifelse(
@@ -492,7 +492,9 @@ exotic_sp_list <- data.frame(
     "Dasyprocta azarae",
     "Myocastor coypus",
     "Lycalopex gymnocercus",
-    "Speothos venaticus"
+    "Speothos venaticus",
+    "Lichonycteris obscura",
+    "Oryzomys iliurus"
   )
 )
 
@@ -531,19 +533,19 @@ data_all_sp_clean <-
     species
   )) %>%
   mutate(species = sub(
-    "Oxymycterus caparoae", 
-    "Oxymycterus caparaoe", 
+    "Oxymycterus caparoae",
+    "Oxymycterus caparaoe",
     species
-    )) %>%
+  )) %>%
   mutate(species = sub(
-    "Brucepattersonius iserufescens", 
-    "Brucepattersonius griserufescens", 
+    "Brucepattersonius iserufescens",
+    "Brucepattersonius griserufescens",
     species
-    )) %>%
-  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e   
+  )) %>%
+  # (retirado de Reis et al. 2017) "Estudos genéticos de Baker et al. (1998) e
   # de Morales e Bickham (1995) indicam que L. borealis limita-se ao centro
   #-oeste dos EUA e Canadá, e nordeste do México. Todas as outras populações, 
-  # com exceção das Antilhas (que podem representar uma outra espécie), 
+  # com exceção das Antilhas (que podem representar uma outra espécie),
   # estariam incluídas em L. blossevillii (REID, 1997)."
   mutate(species = ifelse(
     species == "Lasiurus borealis",
@@ -554,7 +556,7 @@ data_all_sp_clean <-
     str_detect(species, " pardalis"),
     "Leopardus pardalis",
     species
-    )) %>%
+  )) %>%
   mutate(species = ifelse(
     str_detect(species, " onca"),
     "Panthera onca",
@@ -566,66 +568,111 @@ data_all_sp_clean <-
     species
   )) %>%
   mutate(species = sub(
-    "myosurus", 
-    "myosuros", 
+    "myosurus",
+    "myosuros",
     species
-    )) %>%
+  )) %>%
   mutate(species = sub(
-    "Blarynomis", 
-    "Blarinomys", 
+    "Blarynomis",
+    "Blarinomys",
     species
-    )) %>%
+  )) %>%
   mutate(species = sub(
-    "arviculoides", 
-    "cursor", 
+    "arviculoides",
+    "cursor",
     species
-    )) %>%
+  )) %>%
   mutate(species = sub(
-    "Oligoryzomys eliurus", 
-    "Oligoryzomys nigripes", 
+    "Oligoryzomys eliurus",
+    "Oligoryzomys nigripes",
     species
-    )) %>%
+  )) %>%
   mutate(species = ifelse(
     str_detect(species, "Hylaeamys"),
     "Hylaeamys laticeps",
     species
-    )) %>%
+  )) %>%
   mutate(species = sub(
-    "Dasyprocta aguti", 
-    "Dasyprocta leporina", 
-    species)) %>%
+    "Dasyprocta aguti",
+    "Dasyprocta leporina",
+    species
+  )) %>%
   mutate(species = sub(
-    "Metachirus nudicaudatus", 
-    "Metachirus myosuros", 
-    species)) %>%
+    "Metachirus nudicaudatus",
+    "Metachirus myosuros",
+    species
+  )) %>%
   mutate(species = sub(
-    "Philander frenatus", 
-    "Philander quica", 
-    species)) %>%
+    "Philander frenatus",
+    "Philander quica",
+    species
+  )) %>%
   mutate(species = sub(
-    "Philander opossum", 
-    "Philander quica", 
-    species)) %>%
+    "Philander opossum",
+    "Philander quica",
+    species
+  )) %>%
   mutate(species = sub(
-    "Akodon serrensis", 
-    "Castoria angustidens", 
-    species)) %>%
+    "Akodon serrensis",
+    "Castoria angustidens",
+    species
+  )) %>%
   mutate(species = sub(
-    "Calomys cerqueirai", 
-    "Calomys expulsus", 
-    species)) %>%
+    "Calomys cerqueirai",
+    "Calomys expulsus",
+    species
+  )) %>%
   mutate(species = sub(
-    "Trinomys paratus", 
-    "Trinomys gratiosus", 
-    species)) %>%
+    "Trinomys paratus",
+    "Trinomys gratiosus",
+    species
+  )) %>%
   mutate(species = sub(
-    "Guerlinguetus ingrami", 
-    "Guerlinguetus brasiliensis", 
-    species)) %>%
+    "Guerlinguetus ingrami",
+    "Guerlinguetus brasiliensis",
+    species
+  )) %>%
   mutate(species = sub(
-    "Sciurus aestuans", 
-    "Guerlinguetus brasiliensis", 
-    species))
+    "Sciurus aestuans",
+    "Guerlinguetus brasiliensis",
+    species
+  )) %>%
+  mutate(
+    family = ifelse(
+      species == "Platyrrhinus reciﬁnus",
+      "Phyllostomidae",
+      family
+    ),
+    order = ifelse(
+      species == "Platyrrhinus reciﬁnus",
+      "Chiroptera",
+      order
+    )
+  ) %>%
+  mutate(species = ifelse(
+    str_detect(species, " paca"),
+    "Cuniculus paca",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, " fusca"),
+    "Alouatta guariba", species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, " caudifera"),
+    "Anoura caudifer",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "mys lasiurus"),
+    "Necromys lasiurus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "Molossus ater"),
+    "Molossus rufus",
+    species
+  ))
 
 
 # scientificName as the scientific name containing the species author, not as
@@ -669,14 +716,126 @@ clean_data_completed <- bind_rows(clean_data_complete, completed)
 # Fix species ID
 clean_data_completed <-
   clean_data_completed %>%
+  mutate(species = str_trim(species, "both")) %>%
   mutate(
-    family = ifelse(species == "Platyrrhinus reciﬁnus",
-                    "Phyllostomidae",
-                    family),
-    order = ifelse(species == "Platyrrhinus reciﬁnus",
-                   "Chiroptera",
-                   order)
-  )
+    species = ifelse(
+      str_detect(species, "Agouti paca"),
+      "Cuniculus paca",
+      species
+    )
+  ) %>%
+  mutate(
+    species =
+      ifelse(
+        str_detect(species, " fusca"),
+        "Alouatta guariba", species
+      )
+  ) %>%
+  mutate(
+    species =
+      ifelse(
+        str_detect(species, " caudifera"),
+        "Anoura caudifer",
+        species
+      )
+  ) %>%
+  mutate(species = ifelse(
+    str_detect(species, "ﬁmbriatus"),
+    "Artibeus fimbriatus",
+    species
+  )) %>%
+  # Following Quintela et al. 2020
+  mutate(species = ifelse(
+    str_detect(species, "patus semistriatus"),
+    "Conepatus amazonicus",
+    species
+  )) %>%
+  # Following Reis et al., 2017
+  mutate(species = ifelse(
+    str_detect(species, " cinereus"),
+    "Dermanura cinerea",
+    species
+  )) %>%
+  # Following Reis et al., 2017
+  mutate(species = ifelse(
+    str_detect(species, " gnomus"),
+    "Dermanura gnoma",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "Dicotyles labiatus"),
+    "Tayassu pecari",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "Guerlinguetus "),
+    "Guerlinguetus brasiliensis",
+    species
+  )) %>%
+  # Following Quintela et al., 2020
+  mutate(species = sub(
+    "Micoureus ",
+    "Marmosa ",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    str_detect(species, "mosa paraguayanus"),
+    "Marmosa paraguayana",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Mimon crenulatum",
+    "Gardnerycteris crenulatum",
+    species
+  )) %>%
+  mutate(species = sub(
+    "reciﬁnus",
+    "recifinus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Oryzomys intermedius",
+    "Euryoryzomys russatus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Oryzomys laticeps",
+    "Hylaeamys laticeps",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Oryzomys megacephalus",
+    "Hylaeamys megacephalus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Oryzomys russatus",
+    "Euryoryzomys russatus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Oryzomys subflavus",
+    "Cerradomys subflavus",
+    species
+  )) %>%
+  mutate(species = ifelse(
+    species == "Proechimys iheringi",
+    "Trinomys iheringi",
+    species
+  )) %>%
+  # According to revision of Coendou genera. Voss et al., 2011
+  mutate(species = ifelse(
+    species == "Sphiggurus insidiosus",
+    "Coendou insidiosus",
+    species
+  )) %>%
+  # According to revision of Coendou genera. Voss et al., 2011
+  mutate(species = ifelse(
+    species == "Sphiggurus villosus",
+    "Coendou spinosus",
+    species
+  ))
+
 
 # Select columns of interest
 clean_data_slct <-
@@ -727,7 +886,7 @@ clean_data_distincted <-
     .keep_all = TRUE
   )
 
-# Tracking number of records -------------------------------------------------
+# Track number of records -------------------------------------------------
 
 # Total records downloaded = 41258
 nrow(data_all)
@@ -749,3 +908,4 @@ write.csv(
   clean_data_distincted,
   "../data/processed-data/clean-mammal-data.csv"
 )
+
