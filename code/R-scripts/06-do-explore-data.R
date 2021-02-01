@@ -193,7 +193,7 @@ frst_lst_rcrd_graph <-
 frst_lst_rcrd_graph
 ggsave("../data/results/first-last-record-plot.pdf",
   width = 8,
-  height = 46
+  height = 6
 )
 
 # Tables
