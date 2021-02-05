@@ -22,10 +22,12 @@ xfun::pkg_attach2(
     "cowplot",
     "dgof",
     "openxlsx",
-    "animation"
+    "animation",
+    "recipes",
+    "tidymodels",
+    "dotwhisker"
   )
 )
-
 conflicted::conflict_scout()
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
@@ -74,7 +76,27 @@ records_longlat <-
     )
   ) %>%
   arrange(order, species) %>%
-  mutate(id = seq(1, nrow(.)))
+  mutate(id = seq(1, nrow(.))) %>%
+  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
+    str_detect(collectionCode, "LABEQ"),
+  "UFES",
+  ifelse(str_detect(collectionCode, "UESC"),
+    "UESC",
+    ifelse(str_detect(collectionCode, "USP"),
+      "USP",
+      ifelse(str_detect(collectionCode, "UFRRJ"),
+        "UFRRJ",
+        ifelse(collectionCode == "MVZ",
+          "BNHM",
+          ifelse(collectionCode == "MEL",
+            "MEL",
+            institutionCode
+          )
+        )
+      )
+    )
+  )
+  ))
 
 institutes_utm <-
   st_read(
@@ -89,7 +111,9 @@ institutes_utm <-
   filter(
     !str_detect(institution_name, "Alegre"),
     !str_detect(institution_name, "Mateus")
-  )
+  ) %>%
+  mutate(institution_name = ifelse(institution_name == "INMA", "MBML", institution_name)) %>%
+  mutate(institution_name = ifelse(str_detect(institution_name, "UFES"), "UFES", institution_name))
 
 # Pre-process data ------------------------------------------------------------
 
@@ -161,7 +185,7 @@ year_records_cell_id <- lapply(year_records_bdvis, getcellid)
 # Estimate completeness based on Chao2 index of species richness
 bdcompleted <-
   bdcomplete(
-    indf = records_cell_id,
+   records_cell_id,
     recs = 10,
     gridscale = 0.1
   )
@@ -263,49 +287,49 @@ sample <-
 pts_amt_ap <- extract(worldclim_amt_ap, sample)
 
 # Convert grid to data.frame
-df <-
+envi_df <-
   cbind.data.frame(pts_amt_ap, elevation_bdcomplete_grid_clipped)
 
 # Completeness statistics -----------------------------------
 
 # Spatial: long, lat
-long_x <- df %>%
+long_x <- envi_df %>%
   filter(c >= 0.6) %>%
   select(Longitude)
-long_y <- df %>%
+long_y <- envi_df %>%
   select(Longitude)
 
-lat_x <- df %>%
+lat_x <- envi_df %>%
   filter(c >= 0.6) %>%
   select(Latitude)
-lat_y <- df %>%
+lat_y <- envi_df %>%
   select(Latitude)
 
 # Temporal: year
-year_x <- df %>%
+year_x <- envi_df %>%
   filter(c >= 0.6, !is.na(year), year != "NA") %>%
   select(year)
-year_y <- df %>%
+year_y <- envi_df %>%
   filter(!is.na(year), year != "NA") %>%
   select(year)
 
 # Environmental: elevation, AMT, AP
-ele_x <- df %>%
+ele_x <- envi_df %>%
   filter(c >= 0.6) %>%
   select(elevation)
-ele_y <- df %>%
+ele_y <- envi_df %>%
   select(elevation)
 
-amt_x <- df %>%
+amt_x <- envi_df %>%
   filter(c >= 0.6) %>%
   select(AMT)
-amt_y <- df %>%
+amt_y <- envi_df %>%
   select(AMT)
 
-ap_x <- df %>%
+ap_x <- envi_df %>%
   filter(c >= 0.6) %>%
   select(AP)
-ap_y <- df %>%
+ap_y <- envi_df %>%
   select(AP)
 
 long_ks <-
@@ -340,103 +364,214 @@ ks_statistics <-
     )
   )
 
-# Model -----------------------------------------------------------------------
-# c ~ UC + nrec + dist + area
-# nrec ~ UC + dist + area
+# Predictor variables -------------------------------------------
 
-bdcomplete_grid_clipped <- st_intersection(bdcomplete_grid, ccaf)
+research.institute.impact <- function(grid, institutes_points) {
+  utm <-
+    CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+  
+  # Set crs
+  institutes_points <- st_transform(institutes_points, utm)
+  grid <- st_transform(grid, utm)
+  
+  grid_ids <- unique(grid$grid_id)
+  
+  # Get research institutes names
+  institutes <- institutes_points$institution_name
+  
+  pri_df <- data.frame()
+  for (i in 1:length(institutes)) {
+    for (j in 1:length(grid_ids)) {
+      
+      # Total number of records per grid cell
+      nrec_j <- grid %>%
+        group_by(grid_id) %>%
+        filter(
+          grid_id == grid_ids[j]
+        ) %>%
+        nrow()
+      
+      # Number of records from a certain research institute per grid cell
+      nrec_ij <-
+        grid %>%
+        group_by(grid_id) %>%
+        filter(
+          grid_id == grid_ids[j] &
+            institutionCode == institutes[i]
+        ) %>%
+        nrow()
+      
+      # Proximity to research institute data.frame
+      dist_ij <-
+        st_distance(
+          x = st_geometry(filter(grid, grid_id == grid_ids[j]))[1],
+          y = st_geometry(institutes_points)[i]
+        )
+      
+      # Relative contribution of a certain research institute
+      rel_contrib_j <- nrec_ij / nrec_j
+      
+      if(is.na(as.numeric(dist_ij)) | as.numeric(dist_ij) == 0){
+        dist_ij <- 1
+      }
+      
+      pri_df[j, i] <- rel_contrib_j / as.numeric(dist_ij)
+    }
+  }
+  
+  pri_impact <- pri_df %>%
+    # Remove columns with sum = 0
+    select(which(!colSums(pri_df, na.rm = TRUE) %in% 0)) %>%
+    mutate(grid_id = grid_ids) %>%
+    rowwise() %>%
+    
+    # Sum relative contribution * proximity of each institute per grid cell
+    mutate(impact = sum(c_across(-c(grid_id)), na.rm = TRUE)) %>%
+    select(grid_id, impact)
+  
+  
+  merge(grid, pri_impact, by = "grid_id")
+}
 
-bdcomplete_grid_clipped <-
-  get.nearest.dist(institutes_utm, st_transform(bdcomplete_grid_clipped, utm))
+bdcomplete_grid_data <-
+  research.institute.impact(bdcomplete_grid_clipped, institutes_utm)
 
-st_geometry(bdcomplete_grid_clipped) <- st_geometry(st_intersection(bdcomplete_grid, ccaf))
-
-bdcomplete_grid_clipped$CU <-
-  st_as_sf(bdcomplete_grid_clipped) %>%
+bdcomplete_grid_data$CU <-
+  st_as_sf(bdcomplete_grid_data) %>%
+  st_transform(longlat) %>%
   st_intersects(cus_longlat) %>%
   lengths()
 
-df_model <-
-  bdcomplete_grid_clipped %>%
-  group_by(grid_id) %>%
-  select(dist_inst) %>%
-  st_drop_geometry()
+# Model data ----------------------------------------------------------------
 
-df_model[, 2] <-
-  bdcomplete_grid_clipped %>%
-  group_by(grid_id) %>%
-  select(CU) %>%
-  st_drop_geometry()
-
-df_model[, 3] <-
-  bdcomplete_grid_clipped %>%
-  group_by(grid_id) %>%
-  mutate(nrec = n()) %>%
-  select(nrec) %>%
-  st_drop_geometry()
-
-df_model[, 4] <-
-  bdcomplete_grid_clipped %>%
-  group_by(grid_id) %>%
-  select(c) %>%
+model_df <- bdcomplete_grid_data %>%
   st_drop_geometry() %>%
-  mutate(c = ifelse(is.na(c), 0, c))
+  group_by(grid_id) %>%
+  summarise(
+    nrec = n(),
+    CU = unique(CU),
+    impact = mean(impact, na.rm = TRUE),
+    c = mean(c, na.rm = TRUE)
+  ) %>%
+  filter(nrec > 1)
 
-df_model <-
-  df_model %>% filter(nrec > 1)
+to_remove <- model_df %>%
+  mutate(impact = as.numeric(impact)) %>%
+  filter(is.na(impact) | is.infinite(impact))
+model_df <- anti_join(model_df, to_remove) %>%
+  select(-c(grid_id, c))
 
-summary(
-  glm_fitted_c <-
-    MASS::glm.nb(
-      c ~ dist_inst + CU + nrec,
-      data = df_model,
-    )
+# Fit model -----------------------------------------------------------------
+
+# Pre-process
+df_recipe <- model_df %>%
+  recipe(nrec ~ .) %>%
+  step_corr(all_predictors()) %>%
+  step_center(all_predictors(), -all_outcomes()) %>%
+  step_scale(all_predictors(), -all_outcomes()) %>%
+  prep()
+
+df_juice <- juice(df_recipe)
+
+lm_mod <-
+  linear_reg() %>%
+  set_engine("lm")
+
+lm_fit <-
+  lm_mod %>%
+  fit(nrec ~ impact * CU, data = df_juice)
+
+tidy(lm_fit)
+
+# Predict -----------------------------------------------------------
+
+# New data
+new_points_CUp <- expand.grid(
+  CU = 1,
+  impact = seq(0, 5, 0.25)
+)
+new_points_CUa <- expand.grid(
+  CU = 0,
+  impact = seq(0, 5, 0.25)
 )
 
-summary(
-  glm_fitted_nrec <-
-    MASS::glm.nb(
-      nrec ~ dist_inst + CU,
-      data = df_model,
-    )
+# Predict mean
+mean_pred_CUp <- predict(lm_fit, new_data = new_points_CUp)
+mean_pred_CUa <- predict(lm_fit, new_data = new_points_CUa)
+
+# Predict confidence interval
+conf_int_pred_CUp <- predict(lm_fit,
+                             new_data = new_points_CUp,
+                             type = "conf_int"
+)
+conf_int_pred_CUa <- predict(lm_fit,
+                             new_data = new_points_CUa,
+                             type = "conf_int"
 )
 
-summary(
-  glm_fitted_c <-
-    glm(
-      c ~ dist_inst + CU + nrec,
-      data = df_model,
-    )
-)
-
-summary(
-  glm_fitted_nrec <-
-    glm(
-      nrec ~ dist_inst + CU,
-      data = df_model,
-    )
-)
+plot_data_CUp <-
+  new_points_CUp %>%
+  bind_cols(mean_pred_CUp) %>%
+  bind_cols(conf_int_pred_CUp) %>%
+  mutate(ID = "CU present")
+plot_data_CUa <-
+  new_points_CUa %>%
+  bind_cols(mean_pred_CUa) %>%
+  bind_cols(conf_int_pred_CUa) %>%
+  mutate(ID = "CU absent")
 
 
-library(DHARMa)
-par(mar = c(1, 1, 1, 1))
+plot_data <- bind_rows(plot_data_CUp, plot_data_CUa)
 
-# Conventional Residuals (fittedModel)
-glm_simulation_c <- simulateResiduals(glm_fitted_c, plot = T)
-glm_simulation_nrec <- simulateResiduals(glm_fitted_nrec, plot = T)
+# Plot ------------------------------------------------------------------
+# Plot data
+nrec_impact_plot <- ggplot(
+  model_df,
+  aes(impact, nrec)
+) +
+  geom_jitter() +
+  geom_smooth(method = lm, se = TRUE) +
+  labs(
+    y = "Number of records",
+    x = "Research Institute impact"
+  ) +
+  theme_light()
 
-# Detect possible misspecifications
-plotResiduals(glm_simulation_c, df_model$dist_inst)
-plotResiduals(glm_simulation_c, df_model$CU)
-plotResiduals(glm_simulation_c, df_model$nrec)
+nrec_CU_plot <- ggplot(
+  model_df,
+  aes(CU, nrec)
+) +
+  geom_jitter() +
+  geom_smooth(method = lm, se = TRUE) +
+  labs(
+    y = "Number of records",
+    x = "Conservation Unit"
+  ) +
+  theme_light()
 
-# Test overdispersion
-testDispersion(glm_simulation_nrec, alternative = "greater")
+# Model coefficients
+model_coef_graph <- tidy(lm_fit) %>%
+  dwplot(
+    dot_args = list(size = 2, color = "black"),
+    whisker_args = list(color = "black"),
+    vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
+  ) + theme_light()
 
-# Test if there are more zeros than expected
-testZeroInflation(glm_simulation_nrec, alternative = "greater")
-
-# Plot ------------------------------------------------------------------------
+# Model predictions
+model_pred_graph <- ggplot(plot_data, aes(x = impact, color = ID)) +
+  geom_point(aes(y = .pred)) +
+  geom_errorbar(aes(
+    ymin = .pred_lower,
+    ymax = .pred_upper
+  ),
+  width = .2
+  ) +
+  labs(
+    y = "Number of records",
+    x = "Research Institute impact"
+  ) +
+  scale_color_discrete(name = element_blank()) +
+  theme_light()
 
 # Plot orders completeness
 all_m_inv_comp_plot <- plot.inventory.completeness(bdcomplete_grid)
@@ -494,7 +629,7 @@ orders_completeness_maps <-
 
 # Environmental graphs
 ap_elev <-
-  df %>%
+  envi_df %>%
   mutate(c = c * 100) %>%
   ggplot() +
   geom_point(aes(x = elevation, y = AP, color = c)) +
@@ -514,7 +649,7 @@ ap_elev <-
   ylab("Annual Precipitation")
 
 amt_elev <-
-  df %>%
+  envi_df %>%
   mutate(c = c * 100) %>%
   ggplot() +
   geom_point(aes(x = elevation, y = AMT, color = c)) +
@@ -541,7 +676,7 @@ environmental_plot <-
 
 # Number of cell with at least 10 records and c >= 0.6
 minimal_completeness_years_graph <-
-  df %>%
+  envi_df %>%
   filter(year != "NA", !is.na(year), c >= 0.6, c != "", !is.na(c)) %>%
   arrange(year) %>%
   mutate(year = as.Date(year, "%Y")) %>%
@@ -555,7 +690,7 @@ minimal_completeness_years_graph <-
   theme_light()
 
 nrec_y_graph <-
-  df %>%
+  envi_df %>%
   filter(year != "NA", !is.na(year)) %>%
   arrange(year) %>%
   mutate(year = as.Date(year, "%Y")) %>%
@@ -569,7 +704,7 @@ nrec_y_graph <-
   theme_light()
 
 minimal_completeness_cum_graph <-
-  df %>%
+  envi_df %>%
   filter(year != "NA", !is.na(year), c >= 0.6, c != "", !is.na(c)) %>%
   arrange(year) %>%
   mutate(
@@ -591,7 +726,7 @@ minimal_completeness_cum_graph <-
 
 
 nrec_cum_graph <-
-  df %>%
+  envi_df %>%
   filter(year != "NA", !is.na(year)) %>%
   arrange(year) %>%
   mutate(
@@ -612,7 +747,7 @@ nrec_cum_graph <-
   theme_light()
 
 mean_completeness_cum_graph <-
-  df %>%
+  envi_df %>%
   filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
   arrange(year) %>%
   mutate(
@@ -633,8 +768,8 @@ mean_completeness_cum_graph <-
   theme_light()
 
 
-nrec_cum_df <-
-  df %>%
+nrec_cum_envi_df <-
+  envi_df %>%
   filter(year != "NA", !is.na(year)) %>%
   arrange(year) %>%
   mutate(
@@ -648,8 +783,8 @@ nrec_cum_df <-
   group_by(fk_group) %>%
   mutate(nrec_cum = cumsum(nrec_y))
 
-mean_c_cum_df <-
-  df %>%
+mean_c_cum_envi_df <-
+  envi_df %>%
   filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
   arrange(year) %>%
   mutate(
@@ -663,8 +798,8 @@ mean_c_cum_df <-
   group_by(fk_group) %>%
   mutate(mean_c_cum = cummean(mean_c))
 
-mean_c_cum_df_slct <- mean_c_cum_df %>% select(year, mean_c_cum)
-nrec_cum_df_slct <- nrec_cum_df %>% select(year, nrec_cum)
+mean_c_cum_df_slct <- mean_c_cum_envi_df %>% select(year, mean_c_cum)
+nrec_cum_df_slct <- nrec_cum_envi_df %>% select(year, nrec_cum)
 
 cum_df_mrg <- merge(mean_c_cum_df_slct, nrec_cum_df_slct)
 
@@ -881,4 +1016,6 @@ ggsave(
 OUT <- createWorkbook()
 addWorksheet(OUT, "Sheet1")
 writeData(OUT, sheet = "Sheet1", x = ks_statistics)
+
+
 saveWorkbook(OUT, "../data/results/ks_statistics.xlsx", overwrite = TRUE)
