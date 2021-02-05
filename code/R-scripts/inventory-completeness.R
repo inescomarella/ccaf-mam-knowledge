@@ -2,12 +2,6 @@
 # Date: 15/01/2021
 # Inês M. Comarella
 
-########################################
-# To do:
-# - Model
-# - Research institutes in maps (if model work)
-########################################
-
 # Load libraries
 xfun::pkg_attach2(
   c(
@@ -40,7 +34,7 @@ longlat <- CRS("+proj=longlat +datum=WGS84")
 utm <-
   CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
-# Load in data ----------------------------------------------------------------
+# Load in data --------------------------------------------------------------
 br_longlat <-
   read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
   filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
@@ -115,7 +109,7 @@ institutes_utm <-
   mutate(institution_name = ifelse(institution_name == "INMA", "MBML", institution_name)) %>%
   mutate(institution_name = ifelse(str_detect(institution_name, "UFES"), "UFES", institution_name))
 
-# Pre-process data ------------------------------------------------------------
+# Pre-process data ----------------------------------------------------------
 
 # Get dataframe
 records_df <-
@@ -159,7 +153,7 @@ order_records_df <-
 year_records_df <-
   lapply(year_records_longlat, st_drop_geometry)
 
-# Estimate completeness -------------------------------------------------------
+# Estimate completeness -----------------------------------------------------
 
 # bdvis dataframe standards
 conf <-
@@ -233,7 +227,7 @@ for (i in 1:length(year_records_bdcomplete)) {
     merge(year_records_longlat[[i]], year_records_bdcomplete[[i]])
 }
 
-# Make grid -------------------------------------------------------------------
+# Make grid -----------------------------------------------------------------
 grid <-
   ccaf %>%
   st_make_grid(cellsize = 0.1) %>%
@@ -258,7 +252,7 @@ for (i in 1:length(year_records_bdcomplete_longlat)) {
     st_join(grid, year_records_bdcomplete_longlat[[i]])
 }
 
-# Environment data ------------------------------------------------------------
+# Environment data ----------------------------------------------------------
 
 # Get environment data
 worldclim_data <- getData("worldclim", var = "bio", res = 10)
@@ -290,7 +284,7 @@ pts_amt_ap <- extract(worldclim_amt_ap, sample)
 envi_df <-
   cbind.data.frame(pts_amt_ap, elevation_bdcomplete_grid_clipped)
 
-# Completeness statistics -----------------------------------
+# Completeness statistics ---------------------------------------------------
 
 # Spatial: long, lat
 long_x <- envi_df %>%
@@ -353,7 +347,7 @@ ap_ks <-
 
 ks_statistics <-
   data.frame(
-    "Variable" = c("Year", "Longitude", "Latitude", "elevation", "AMT", "AP"),
+    "Variable" = c("Year", "Longitude", "Latitude", "Elevation", "AMT", "AP"),
     "D-statistics" = rbind(
       year_ks$statistic,
       long_ks$statistic,
@@ -364,74 +358,7 @@ ks_statistics <-
     )
   )
 
-# Predictor variables -------------------------------------------
-
-research.institute.impact <- function(grid, institutes_points) {
-  utm <-
-    CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
-  
-  # Set crs
-  institutes_points <- st_transform(institutes_points, utm)
-  grid <- st_transform(grid, utm)
-  
-  grid_ids <- unique(grid$grid_id)
-  
-  # Get research institutes names
-  institutes <- institutes_points$institution_name
-  
-  pri_df <- data.frame()
-  for (i in 1:length(institutes)) {
-    for (j in 1:length(grid_ids)) {
-      
-      # Total number of records per grid cell
-      nrec_j <- grid %>%
-        group_by(grid_id) %>%
-        filter(
-          grid_id == grid_ids[j]
-        ) %>%
-        nrow()
-      
-      # Number of records from a certain research institute per grid cell
-      nrec_ij <-
-        grid %>%
-        group_by(grid_id) %>%
-        filter(
-          grid_id == grid_ids[j] &
-            institutionCode == institutes[i]
-        ) %>%
-        nrow()
-      
-      # Proximity to research institute data.frame
-      dist_ij <-
-        st_distance(
-          x = st_geometry(filter(grid, grid_id == grid_ids[j]))[1],
-          y = st_geometry(institutes_points)[i]
-        )
-      
-      # Relative contribution of a certain research institute
-      rel_contrib_j <- nrec_ij / nrec_j
-      
-      if(is.na(as.numeric(dist_ij)) | as.numeric(dist_ij) == 0){
-        dist_ij <- 1
-      }
-      
-      pri_df[j, i] <- rel_contrib_j / as.numeric(dist_ij)
-    }
-  }
-  
-  pri_impact <- pri_df %>%
-    # Remove columns with sum = 0
-    select(which(!colSums(pri_df, na.rm = TRUE) %in% 0)) %>%
-    mutate(grid_id = grid_ids) %>%
-    rowwise() %>%
-    
-    # Sum relative contribution * proximity of each institute per grid cell
-    mutate(impact = sum(c_across(-c(grid_id)), na.rm = TRUE)) %>%
-    select(grid_id, impact)
-  
-  
-  merge(grid, pri_impact, by = "grid_id")
-}
+# Predictor variables --------------------------------------------------------
 
 bdcomplete_grid_data <-
   research.institute.impact(bdcomplete_grid_clipped, institutes_utm)
@@ -448,20 +375,19 @@ model_df <- bdcomplete_grid_data %>%
   st_drop_geometry() %>%
   group_by(grid_id) %>%
   summarise(
-    nrec = n(),
+    nrec = unique(nrec),
     CU = unique(CU),
-    impact = mean(impact, na.rm = TRUE),
+    impact = unique(impact),
     c = mean(c, na.rm = TRUE)
   ) %>%
-  filter(nrec > 1)
+  mutate(nrec = ifelse(is.na(nrec), 0, nrec))
 
 to_remove <- model_df %>%
   mutate(impact = as.numeric(impact)) %>%
   filter(is.na(impact) | is.infinite(impact))
+
 model_df <- anti_join(model_df, to_remove) %>%
   select(-c(grid_id, c))
-
-# Fit model -----------------------------------------------------------------
 
 # Pre-process
 df_recipe <- model_df %>%
@@ -473,13 +399,15 @@ df_recipe <- model_df %>%
 
 df_juice <- juice(df_recipe)
 
+# Fit model -----------------------------------------------------------------
+
 lm_mod <-
   linear_reg() %>%
   set_engine("lm")
 
 lm_fit <-
   lm_mod %>%
-  fit(nrec ~ impact * CU, data = df_juice)
+  fit(nrec ~ impact + CU, data = df_juice)
 
 tidy(lm_fit)
 
@@ -1012,10 +940,42 @@ ggsave(
   height = 6
 )
 
+# Model graphs
+nrec_impact_plot 
+ggsave(
+  filename = "../data/results/nrec_impact_plot.pdf",
+  width = 8,
+  height = 6
+)
+
+nrec_CU_plot 
+ggsave(
+  filename = "../data/results/nrec_CU_plot.pdf",
+  width = 8,
+  height = 6
+)
+
+model_coef_graph 
+ggsave(
+  filename = "../data/results/model_coef_graph.pdf",
+  width = 8,
+  height = 6
+)
+
+model_pred_graph 
+ggsave(
+  filename = "../data/results/model_pred_graph.pdf",
+  width = 8,
+  height = 6
+)
+
 # Completeness statistics
 OUT <- createWorkbook()
-addWorksheet(OUT, "Sheet1")
-writeData(OUT, sheet = "Sheet1", x = ks_statistics)
+addWorksheet(OUT, "ks_statistics")
+addWorksheet(OUT, "lm_fit")
+writeData(OUT, sheet = "ks_statistics", x = ks_statistics)
+writeData(OUT, sheet = "lm_fit", x = tidy(lm_fit))
+saveWorkbook(OUT, "../data/results/model_statistics.xlsx", overwrite = TRUE)
 
-
-saveWorkbook(OUT, "../data/results/ks_statistics.xlsx", overwrite = TRUE)
+#-------------------------------------------------------------------------
+save.image("~/tcc-ccma/code/invetory-completeness.RData")

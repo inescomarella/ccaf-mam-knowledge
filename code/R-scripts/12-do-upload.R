@@ -42,31 +42,7 @@ completeness_animation_path <- "./spatial_temporal_completeness_map_animation.gi
 completeness_paths <-
   list.files(
     "../data/results",
-    pattern = "completeness",
-    full.names = TRUE,
-    recursive = TRUE
-  )
-
-nrec_paths <-
-  list.files(
-    "../data/results",
-    pattern = "nrec_",
-    full.names = TRUE,
-    recursive = TRUE
-  )
-
-environmental_path <-
-  list.files(
-    "../data/results",
-    pattern = "environmental_",
-    full.names = TRUE,
-    recursive = TRUE
-  )
-
-ks_stat_path <-
-  list.files(
-    "../data/results",
-    pattern = "ks_stat",
+    pattern = "_",
     full.names = TRUE,
     recursive = TRUE
   )
@@ -163,31 +139,6 @@ for (i in 1:length(completeness_names)) {
   )
 }
 
-for (i in 1:length(nrec_names)) {
-  drive_upload(
-    nrec_paths[i],
-    name = nrec_names[i],
-    path = "~/ccma-tcc/results/completeness",
-    overwrite = TRUE,
-    verbose = TRUE
-  )
-}
-
-drive_upload(
-  environmental_path,
-  name = environmental_name,
-  path = "~/ccma-tcc/results/completeness",
-  overwrite = TRUE,
-  verbose = TRUE
-)
-
-drive_upload(
-  ks_stat_path,
-  name = ks_stat_name,
-  path = "~/ccma-tcc/results/completeness",
-  overwrite = TRUE,
-  verbose = TRUE
-)
 
 for (i in 1:length(maps_paths)) {
   drive_upload(
