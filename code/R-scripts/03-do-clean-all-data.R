@@ -56,7 +56,7 @@ data_all_first_clean <- remove.fossil.iNaturalist(data_all)
 nrow(data_all_first_clean)
 
 # Keep only identified species and remove hybrids
-data_all_only_indetified_species <- 
+data_all_only_indetified_species <-
   only.indentified.species(data_all_first_clean)
 
 # Remove records outside CCMA limits
@@ -494,7 +494,10 @@ exotic_sp_list <- data.frame(
     "Lycalopex gymnocercus",
     "Speothos venaticus",
     "Lichonycteris obscura",
-    "Oryzomys iliurus"
+    "Oryzomys iliurus",
+    "Leontopithecus chrysopygus",
+    "Callithrix jacchus",
+    "Oxymycterus hispidus"
   )
 )
 
@@ -693,9 +696,10 @@ data_all_sp_clean <-
 
 clean_data <-
   merge(data_all_sp_clean,
-        select(species_df, c(species, scientificName)),
-        by = "species",
-        all = TRUE)
+    select(species_df, c(species, scientificName)),
+    by = "species",
+    all = TRUE
+  )
 
 # Fill species backbones missing
 to_complete <-
@@ -866,7 +870,7 @@ clean_data_slct <-
 # Remove duplicated records
 clean_data_distincted <-
   clean_data_slct %>%
-  
+
   # Keep the first option with year, and remove the others
   arrange(year) %>%
   mutate(catalogNumber = str_remove_all(catalogNumber, ".0")) %>%
@@ -886,6 +890,29 @@ clean_data_distincted <-
     .keep_all = TRUE
   )
 
+# Fix institutionCode
+clean_data_distincted <- clean_data_distincted %>%
+  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
+    str_detect(collectionCode, "LABEQ"),
+  "UFES",
+  ifelse(str_detect(collectionCode, "UESC"),
+    "UESC",
+    ifelse(str_detect(collectionCode, "USP"),
+      "USP",
+      ifelse(str_detect(collectionCode, "UFRRJ"),
+        "UFRRJ",
+        ifelse(collectionCode == "MVZ",
+          "BNHM",
+          ifelse(collectionCode == "MEL",
+            "MEL",
+            institutionCode
+          )
+        )
+      )
+    )
+  )
+  ))
+
 # Track number of records -------------------------------------------------
 
 # Total records downloaded = 41258
@@ -897,10 +924,10 @@ nrow(data_all_only_indetified_species)
 # Records after geographic clean = 15030
 nrow(data_all_clipped)
 
-# Records after taxonomic clean (and removing marine species) = 14701
+# Records after taxonomic clean (and removing marine species) = 14685
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 13588
+# Final number of unique records = 13572
 nrow(clean_data_distincted)
 
 # Save data.frame ------------------------------------------------------------
@@ -909,3 +936,4 @@ write.csv(
   "../data/processed-data/clean-mammal-data.csv"
 )
 
+save.image("~/tcc-ccma/code/03-do-clean-all-data.RData")
