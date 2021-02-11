@@ -31,8 +31,6 @@ source("./R-scripts/functions/funs-inventory-completeness.R")
 
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
-utm <-
-  CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
 # Load in data --------------------------------------------------------------
 br_longlat <-
@@ -69,31 +67,7 @@ records_longlat <-
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
   ) %>%
-  arrange(order, species) %>%
-  mutate(id = seq(1, nrow(.))) %>%
-  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
-    str_detect(collectionCode, "LABEQ"),
-  "UFES",
-  ifelse(str_detect(collectionCode, "UESC"),
-    "UESC",
-    ifelse(str_detect(collectionCode, "USP"),
-      "USP",
-      ifelse(str_detect(collectionCode, "UFRRJ"),
-        "UFRRJ",
-        ifelse(collectionCode == "MVZ",
-          "BNHM",
-          ifelse(collectionCode == "MEL",
-            "MEL",
-            ifelse(str_detect(institutionCode, "UFRJ"),
-                   "MNRJ",
-                   institutionCode
-            )
-          )
-        )
-      )
-    )
-  )
-  ))
+  mutate(id = seq(1, nrow(.)))
 
 institutes_utm <-
   st_read(
@@ -103,14 +77,7 @@ institutes_utm <-
       "X_POSSIBLE_NAMES=longitude",
       "Y_POSSIBLE_NAMES=latitude"
     )
-  ) %>%
-  st_transform(utm) %>%
-  filter(
-    !str_detect(institution_name, "Alegre"),
-    !str_detect(institution_name, "Mateus")
-  ) %>%
-  mutate(institution_name = ifelse(institution_name == "INMA", "MBML", institution_name)) %>%
-  mutate(institution_name = ifelse(str_detect(institution_name, "UFES"), "UFES", institution_name))
+  )
 
 # Pre-process data ----------------------------------------------------------
 
@@ -127,7 +94,9 @@ orders <-
     order != "Sirenia",
     order != "Perissodactyla",
     order != "Artiodactyla",
-    order != "Lagomorpha"
+    order != "Lagomorpha",
+    order != "Cingulata",
+    order != "Pilosa"
   )
 
 # Separate orders
@@ -139,13 +108,13 @@ for (i in 1:nrow(orders)) {
 }
 names(order_records_longlat) <- as.character(orders$order)
 
-# Separate by 5 years
+# Separate by 10 years
 j <- 1
 year_records_longlat <- list()
-for (i in seq(as.numeric(min(records_df$year, na.rm = FALSE)), 2015, 5)) {
+for (i in seq(1950, 2010, 10)) {
   year_records_longlat[[j]] <-
     records_longlat %>%
-    filter(year <= (i + 5))
+    filter(year <= (i + 10))
   j <- j + 1
 }
 
@@ -183,19 +152,20 @@ year_records_cell_id <- lapply(year_records_bdvis, getcellid)
 bdcompleted <-
   bdcomplete(
    records_cell_id,
-    recs = 10,
+    recs = 25,
     gridscale = 0.1
   )
+
 order_bdcompleted <-
   lapply(order_records_cell_id,
     bdcomplete,
-    recs = 10,
+    recs = 25,
     gridscale = 0.1
   )
 year_bdcompleted <-
   lapply(year_records_cell_id,
     bdcomplete,
-    recs = 10,
+    recs = 25,
     gridscale = 0.1
   )
 
@@ -362,30 +332,6 @@ ks_statistics <-
   )
 
 # Plot ------------------------------------------------------------------
-# Plot data
-nrec_impact_plot <- ggplot(
-  model_df,
-  aes(impact, nrec)
-) +
-  geom_jitter() +
-  geom_smooth(method = lm, se = TRUE) +
-  labs(
-    y = "Number of records",
-    x = "Research Institute impact"
-  ) +
-  theme_light()
-
-nrec_CU_plot <- ggplot(
-  model_df,
-  aes(CU, nrec)
-) +
-  geom_jitter() +
-  geom_smooth(method = lm, se = TRUE) +
-  labs(
-    y = "Number of records",
-    x = "Conservation Unit"
-  ) +
-  theme_light()
 
 # Plot orders completeness
 all_m_inv_comp_plot <- plot.inventory.completeness(bdcomplete_grid)
@@ -436,7 +382,7 @@ orders_completeness_maps <-
   wrap_plots(
     m_inv_comp_plot,
     nrow = 2,
-    ncol = 4,
+    ncol = 3,
     widths = unit(3, "cm")
   ) / legend +
   plot_layout(heights = c(1, .1))
@@ -487,22 +433,6 @@ environmental_plot <-
   plot_layout(heights = c(1, .1), nrow = 2)
 
 # Temporal completeness
-
-# Number of cell with at least 10 records and c >= 0.6
-minimal_completeness_years_graph <-
-  envi_df %>%
-  filter(year != "NA", !is.na(year), c >= 0.6, c != "", !is.na(c)) %>%
-  arrange(year) %>%
-  mutate(year = as.Date(year, "%Y")) %>%
-  group_by(year) %>%
-  summarise(completeness_y = n_distinct(grid_id)) %>%
-  ggplot() +
-  scale_x_date(date_labels = "%Y") +
-  geom_line(aes(x = year, y = completeness_y)) +
-  ylab("Number of grid cells") +
-  xlab("Years") +
-  theme_light()
-
 nrec_y_graph <-
   envi_df %>%
   filter(year != "NA", !is.na(year)) %>%
@@ -516,28 +446,6 @@ nrec_y_graph <-
   ylab("Number of records cells") +
   xlab("Years") +
   theme_light()
-
-minimal_completeness_cum_graph <-
-  envi_df %>%
-  filter(year != "NA", !is.na(year), c >= 0.6, c != "", !is.na(c)) %>%
-  arrange(year) %>%
-  mutate(
-    year = as.Date(year, "%Y"),
-    fk_group = "a"
-  ) %>%
-  group_by(year) %>%
-  mutate(completeness_y = n_distinct(grid_id)) %>%
-  select(year, completeness_y, fk_group) %>%
-  unique() %>%
-  group_by(fk_group) %>%
-  mutate(completeness_cum = cumsum(completeness_y)) %>%
-  ggplot() +
-  scale_x_date(date_labels = "%Y") +
-  geom_line(aes(x = year, y = completeness_cum)) +
-  ylab("Number of grid cells") +
-  xlab("Years") +
-  theme_light()
-
 
 nrec_cum_graph <-
   envi_df %>%
@@ -560,74 +468,36 @@ nrec_cum_graph <-
   xlab("Years") +
   theme_light()
 
-mean_completeness_cum_graph <-
-  envi_df %>%
-  filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
-  arrange(year) %>%
-  mutate(
-    year = as.Date(year, "%Y"),
-    fk_group = "a"
-  ) %>%
-  group_by(year) %>%
-  mutate(mean_c = mean(c)) %>%
-  select(year, mean_c, fk_group) %>%
-  unique() %>%
-  group_by(fk_group) %>%
-  mutate(mean_c_cum = cummean(mean_c)) %>%
+time_graph_list <- list()
+for(i in 1:length(year_bdcomplete_grid)){
+  time_graph_list[[i]] <- mean_cl_boot(year_bdcomplete_grid[[i]]$c)
+  time_graph_list[[i]]$nrec <- nrow(year_bdcomplete_grid[[i]])
+  time_graph_list[[i]]$year <- max(year_bdcomplete_grid[[i]]$year, na.rm = T)
+}
+time_graph_df <- bind_rows(time_graph_list)
+
+time_graph <- rename(time_graph_df, completeness = y) %>%
+  mutate(year = as.Date(year, "%Y"),
+         completeness = completeness * 100) %>%
   ggplot() +
   scale_x_date(date_labels = "%Y") +
-  geom_line(aes(x = year, y = mean_c_cum)) +
-  ylab("Mean completeness") +
-  xlab("Years") +
-  theme_light()
-
-
-nrec_cum_envi_df <-
-  envi_df %>%
-  filter(year != "NA", !is.na(year)) %>%
-  arrange(year) %>%
-  mutate(
-    year = as.Date(year, "%Y"),
-    fk_group = "a"
-  ) %>%
-  group_by(year) %>%
-  mutate(nrec_y = n_distinct(id)) %>%
-  select(year, nrec_y, fk_group) %>%
-  unique() %>%
-  group_by(fk_group) %>%
-  mutate(nrec_cum = cumsum(nrec_y))
-
-mean_c_cum_envi_df <-
-  envi_df %>%
-  filter(year != "NA", !is.na(year), c != "", !is.na(c)) %>%
-  arrange(year) %>%
-  mutate(
-    year = as.Date(year, "%Y"),
-    fk_group = "a"
-  ) %>%
-  group_by(year) %>%
-  mutate(mean_c = mean(c)) %>%
-  select(year, mean_c, fk_group) %>%
-  unique() %>%
-  group_by(fk_group) %>%
-  mutate(mean_c_cum = cummean(mean_c))
-
-mean_c_cum_df_slct <- mean_c_cum_envi_df %>% select(year, mean_c_cum)
-nrec_cum_df_slct <- nrec_cum_envi_df %>% select(year, nrec_cum)
-
-cum_df_mrg <- merge(mean_c_cum_df_slct, nrec_cum_df_slct)
-
-mean_completeness_cum_rec_graph <-
-  ggplot(cum_df_mrg) +
-  scale_x_date(date_labels = "%Y") +
-  geom_line(aes(x = year, y = mean_c_cum * 10000), color = "red") +
-  geom_line(aes(x = year, y = nrec_cum)) +
-  scale_y_continuous( # Features of the first axis
-    name = "Cumulative number of records",
-
-    # Add a second axis and specify its features
-    sec.axis = sec_axis(trans = ~ . / 10000, name = "Mean completeness")
+  geom_line(aes(x = year, y = completeness * 100), color = "red") +
+  geom_errorbar(
+    aes(
+      x = year,
+      y = completeness * 100,
+      ymin = ymin * 100,
+      ymax = ymax * 100
+    ),
+    width = .1,
+    color = "red"
   ) +
+  geom_line(aes(x = year, y = nrec)) +
+  scale_y_continuous(# Features of the first axis
+    name = "Cumulative number of records",
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(trans = ~ . / 100, name = "Mean completeness")) +
   theme_light()
 
 # Animation -------------------------------------------------------------------
@@ -684,9 +554,9 @@ for (i in 1:length(year_bdcomplete_grid)) {
       size = 0.2
     ) +
     scale_fill_viridis(
-      limits = c(10, nrec_max),
+      limits = c(25, nrec_max),
       breaks = c(
-        10,
+        25,
         round((nrec_max - 10) / 5, 0),
         round((nrec_max - 10) * 2 / 5, 0),
         round((nrec_max - 10) * 3 / 5, 0),
@@ -694,7 +564,7 @@ for (i in 1:length(year_bdcomplete_grid)) {
         nrec_max
       ),
       labels = c(
-        10,
+        25,
         round((nrec_max - 10) / 5, 0),
         round((nrec_max - 10) * 2 / 5, 0),
         round((nrec_max - 10) * 3 / 5, 0),
@@ -714,8 +584,8 @@ for (i in 1:length(year_bdcomplete_grid)) {
 
   plot_row <- plot_grid(comp_plot, nrec_plot)
 
-  y <- as.numeric(min(year_bdcomplete_grid[[i]]$year, na.rm = T)) + (i * 5)
-
+  y <- 1950 + (i * 10)
+  
   title <- ggdraw() +
     draw_label(
       paste0(
@@ -776,19 +646,6 @@ ggsave(
 )
 
 # Temporal completeness graph
-mean_completeness_cum_rec_graph
-ggsave(
-  filename = "../data/results/mean_completeness_cum_rec_graph.pdf",
-  width = 8,
-  height = 6
-)
-
-minimal_completeness_years_graph
-ggsave(
-  filename = "../data/results/minimal_completeness_years_graph.pdf",
-  width = 8,
-  height = 6
-)
 
 nrec_y_graph
 ggsave(
@@ -804,53 +661,10 @@ ggsave(
   height = 6
 )
 
-minimal_completeness_cum_graph
-ggsave(
-  filename = "../data/results/minimal_completeness_cum_graph.pdf",
-  width = 8,
-  height = 6
-)
-
-mean_completeness_cum_graph
-ggsave(
-  filename = "../data/results/mean_completeness_cum_graph.pdf",
-  width = 8,
-  height = 6
-)
-
 # Environmental graphs
 environmental_plot
 ggsave(
   filename = "../data/results/environmental_plot.pdf",
-  width = 8,
-  height = 6
-)
-
-# Model graphs
-nrec_impact_plot 
-ggsave(
-  filename = "../data/results/nrec_impact_plot.pdf",
-  width = 8,
-  height = 6
-)
-
-nrec_CU_plot 
-ggsave(
-  filename = "../data/results/nrec_CU_plot.pdf",
-  width = 8,
-  height = 6
-)
-
-model_coef_graph 
-ggsave(
-  filename = "../data/results/model_coef_graph.pdf",
-  width = 8,
-  height = 6
-)
-
-model_pred_graph 
-ggsave(
-  filename = "../data/results/model_pred_graph.pdf",
   width = 8,
   height = 6
 )
@@ -860,7 +674,6 @@ OUT <- createWorkbook()
 addWorksheet(OUT, "ks_statistics")
 addWorksheet(OUT, "lm_fit")
 writeData(OUT, sheet = "ks_statistics", x = ks_statistics)
-writeData(OUT, sheet = "lm_fit", x = tidy(lm_fit))
 saveWorkbook(OUT, "../data/results/model_statistics.xlsx", overwrite = TRUE)
 
 #-------------------------------------------------------------------------
