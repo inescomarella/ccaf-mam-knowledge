@@ -892,6 +892,7 @@ clean_data_distincted <-
 
 # Fix institutionCode
 clean_data_distincted <- clean_data_distincted %>%
+  arrange(order, species) %>%
   mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
     str_detect(collectionCode, "LABEQ"),
   "UFES",
@@ -905,13 +906,17 @@ clean_data_distincted <- clean_data_distincted %>%
           "BNHM",
           ifelse(collectionCode == "MEL",
             "MEL",
-            institutionCode
+            ifelse(str_detect(institutionCode, "UFRJ"),
+              "MNRJ",
+              institutionCode
+            )
           )
         )
       )
     )
   )
-  ))
+  )) %>%
+  filter(collectionCode != "LABEQ")
 
 # Track number of records -------------------------------------------------
 
@@ -927,7 +932,7 @@ nrow(data_all_clipped)
 # Records after taxonomic clean (and removing marine species) = 14685
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 13572
+# Final number of unique records = 12789
 nrow(clean_data_distincted)
 
 # Save data.frame ------------------------------------------------------------
