@@ -15,6 +15,77 @@ xfun::pkg_attach(c(
 
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
+research.institute.distance <- function(grid, institutes_points) {
+  
+  # Set crs
+  institutes_points <- st_transform(institutes_points, longlat)
+  grid <- st_transform(grid, longlat)
+  
+  grid_ids <- unique(grid$grid_id)
+  
+  # Get research institutes names
+  institutes <- institutes_points$institution_name
+  
+  pri_df <- data.frame()
+  
+  for (i in 1:length(institutes)) {
+    for (j in 1:length(grid_ids)) {
+      
+      # Total number of records per grid cell
+      nrec_j <- grid %>%
+        group_by(grid_id) %>%
+        filter(
+          grid_id == grid_ids[j]
+        ) %>%
+        nrow()
+      
+      # Number of records from a certain research institute per grid cell
+      nrec_ij <-
+        grid %>%
+        group_by(grid_id) %>%
+        filter(
+          grid_id == grid_ids[j] &
+            institutionCode == institutes[i]
+        ) %>%
+        nrow()
+      
+      grid_centroid <- grid %>%
+        filter(grid_id == grid_ids[j]) %>%
+        st_centroid() %>% head(1)
+      
+      # Proximity to research institute data.frame
+      dist_ij <-
+        st_distance(
+          x = grid_centroid,
+          y = institutes_points[i, ],
+          which = "Great Circle"
+        )
+      
+      # Relative contribution of a certain research institute
+      rel_contrib_j <- nrec_ij / nrec_j
+      
+      # if(is.na(as.numeric(dist_ij)) | as.numeric(dist_ij) == 0){
+      #  dist_ij <- 0.05
+      # }
+      
+      pri_df[j, i] <- rel_contrib_j / as.numeric(dist_ij)
+    }
+  }
+  
+  pri_impact <- pri_df %>%
+    # Remove columns with sum = 0
+    select(which(!colSums(pri_df, na.rm = TRUE) %in% 0)) %>%
+    mutate(grid_id = grid_ids) %>%
+    rowwise() %>%
+    
+    # Sum relative contribution * proximity of each institute per grid cell
+    mutate(distance = sum(c_across(-c(grid_id)), na.rm = TRUE)) %>%
+    select(grid_id, distance)
+  
+  
+  merge(grid, pri_impact, by = "grid_id")
+}
+
 # Load in data ----------------------------------------------------------------
 br_longlat <-
   read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
@@ -50,32 +121,7 @@ records_longlat <-
       "Y_POSSIBLE_NAMES=decimalLatitude"
     )
   ) %>%
-  arrange(order, species) %>%
-  mutate(rcrd_id = seq(1, nrow(.))) %>%
-  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
-    str_detect(collectionCode, "LABEQ"),
-  "UFES",
-  ifelse(str_detect(collectionCode, "UESC"),
-    "UESC",
-    ifelse(str_detect(collectionCode, "USP"),
-      "USP",
-      ifelse(str_detect(collectionCode, "UFRRJ"),
-        "UFRRJ",
-        ifelse(collectionCode == "MVZ",
-          "BNHM",
-          ifelse(collectionCode == "MEL",
-            "MEL",
-            ifelse(str_detect(institutionCode, "UFRJ"),
-                   "MNRJ",
-                   institutionCode
-            )
-          )
-        )
-      )
-    )
-  )
-  )) %>%
-  filter(collectionCode != "LABEQ")
+  mutate(rcrd_id = seq(1, nrow(.)))
 
 institutes_longlat <-
   st_read(
@@ -105,77 +151,6 @@ records_grid_clipped <- st_intersection(records_grid, ccaf)
 
 # Predictor variables -------------------------------------------
 
-research.institute.distance <- function(grid, institutes_points) {
-
-  # Set crs
-  institutes_points <- st_transform(institutes_points, longlat)
-  grid <- st_transform(grid, longlat)
-
-  grid_ids <- unique(grid$grid_id)
-
-  # Get research institutes names
-  institutes <- institutes_points$institution_name
-
-  pri_df <- data.frame()
-
-  for (i in 1:length(institutes)) {
-    for (j in 1:length(grid_ids)) {
-
-      # Total number of records per grid cell
-      nrec_j <- grid %>%
-        group_by(grid_id) %>%
-        filter(
-          grid_id == grid_ids[j]
-        ) %>%
-        nrow()
-
-      # Number of records from a certain research institute per grid cell
-      nrec_ij <-
-        grid %>%
-        group_by(grid_id) %>%
-        filter(
-          grid_id == grid_ids[j] &
-            institutionCode == institutes[i]
-        ) %>%
-        nrow()
-
-      grid_centroid <- grid %>%
-        filter(grid_id == grid_ids[j]) %>%
-        st_centroid() %>% head(1)
-
-      # Proximity to research institute data.frame
-      dist_ij <-
-        st_distance(
-          x = grid_centroid,
-          y = institutes_points[i, ],
-          which = "Great Circle"
-        )
-
-      # Relative contribution of a certain research institute
-      rel_contrib_j <- nrec_ij / nrec_j
-
-      # if(is.na(as.numeric(dist_ij)) | as.numeric(dist_ij) == 0){
-      #  dist_ij <- 0.05
-      # }
-
-      pri_df[j, i] <- rel_contrib_j / as.numeric(dist_ij)
-    }
-  }
-
-  pri_impact <- pri_df %>%
-    # Remove columns with sum = 0
-    select(which(!colSums(pri_df, na.rm = TRUE) %in% 0)) %>%
-    mutate(grid_id = grid_ids) %>%
-    rowwise() %>%
-
-    # Sum relative contribution * proximity of each institute per grid cell
-    mutate(distance = sum(c_across(-c(grid_id)), na.rm = TRUE)) %>%
-    select(grid_id, distance)
-
-
-  merge(grid, pri_impact, by = "grid_id")
-}
-
 data_grid <-
   research.institute.distance(records_grid_clipped, institutes_longlat)
 
@@ -189,15 +164,13 @@ data_grid$CU <-
   st_intersects(cus_longlat) %>%
   lengths()
 
-# Model data ----------------------------------------------------------------
-
 df <- data_grid %>%
   st_drop_geometry() %>%
   group_by(grid_id) %>%
   summarise(
     nrec = n(),
     CU = unique(CU),
-    distance = mean(impact, na.rm = TRUE),
+    distance = mean(distance, na.rm = TRUE),
     area = unique(area)
   )
 
@@ -217,10 +190,12 @@ df_recipe <- df %>%
 
 df_juice <- juice(df_recipe)
 
+# Linear regression model
 lm_mod <-
   linear_reg() %>%
   set_engine("lm")
 
+# Fit model
 lm_fit <-
   lm_mod %>%
   fit(nrec ~ area + distance + CU, data = df_juice)
@@ -268,21 +243,25 @@ plot_data_CUa <-
 
 plot_data <- bind_rows(plot_data_CUp, plot_data_CUa)
 
-# Plot ------------------------------------------------------------------
-# Plot data
-nrec_impact_plot <- ggplot(
-  df,
-  aes(distance, nrec)
-) +
+# Save ------------------------------------------------------------------
+df %>%
+  mutate(distance = 10 ^ 5 * distance) %>%
+  ggplot(aes(distance, nrec)) +
   geom_jitter() +
   geom_smooth(method = lm, se = TRUE) +
   labs(
     y = "Number of records",
-    x = "Research Institute impact"
+    x = "Proximity to collection"
   ) +
   theme_light()
 
-nrec_CU_plot <- ggplot(
+ggsave(
+  filename = "../data/results/nrec_impact_plot.pdf",
+  width = 8,
+  height = 6
+)
+
+ggplot(
   df,
   aes(CU, nrec)
 ) +
@@ -290,21 +269,18 @@ nrec_CU_plot <- ggplot(
   geom_smooth(method = lm, se = TRUE) +
   labs(
     y = "Number of records",
-    x = "Conservation Unit"
+    x = "Presence of Conservation Unit"
   ) +
   theme_light()
 
-
-# Model coefficients
-model_coef_graph <- tidy(lm_fit) %>%
-  dwplot(
-    dot_args = list(size = 2, color = "black"),
-    whisker_args = list(color = "black"),
-    vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
-  ) + theme_light()
+ggsave(
+  filename = "../data/results/nrec_CU_plot.pdf",
+  width = 8,
+  height = 6
+)
 
 # Model predictions
-model_pred_graph <- ggplot(plot_data, aes(x = distance, color = ID)) +
+ggplot(plot_data, aes(x = distance, color = ID)) +
   geom_point(aes(y = .pred)) +
   geom_errorbar(aes(
     ymin = .pred_lower,
@@ -314,7 +290,32 @@ model_pred_graph <- ggplot(plot_data, aes(x = distance, color = ID)) +
   ) +
   labs(
     y = "Number of records",
-    x = "Research Institute distance"
+    x = "Proximity to collection"
   ) +
   scale_color_discrete(name = element_blank()) +
   theme_light()
+
+ggsave(
+  filename = "../data/results/model_pred_graph.pdf",
+  width = 8,
+  height = 6
+)
+
+# Model coefficients
+tidy(lm_fit) %>%
+  dwplot(
+    dot_args = list(size = 2, color = "black"),
+    whisker_args = list(color = "black"),
+    vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
+  ) + theme_light()
+
+ggsave(
+  filename = "../data/results/model_coef_graph.pdf",
+  width = 8,
+  height = 6
+)
+
+#-------------------------------------------------------------------------
+save.image("~/tcc-ccma/code/model.RData")
+
+
