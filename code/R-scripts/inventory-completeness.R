@@ -84,7 +84,10 @@ records_longlat <-
           "BNHM",
           ifelse(collectionCode == "MEL",
             "MEL",
-            institutionCode
+            ifelse(str_detect(institutionCode, "UFRJ"),
+                   "MNRJ",
+                   institutionCode
+            )
           )
         )
       )
@@ -358,99 +361,6 @@ ks_statistics <-
     )
   )
 
-# Predictor variables --------------------------------------------------------
-
-bdcomplete_grid_data <-
-  research.institute.impact(bdcomplete_grid_clipped, institutes_utm)
-
-bdcomplete_grid_data$CU <-
-  st_as_sf(bdcomplete_grid_data) %>%
-  st_transform(longlat) %>%
-  st_intersects(cus_longlat) %>%
-  lengths()
-
-# Model data ----------------------------------------------------------------
-
-model_df <- bdcomplete_grid_data %>%
-  st_drop_geometry() %>%
-  group_by(grid_id) %>%
-  summarise(
-    nrec = unique(nrec),
-    CU = unique(CU),
-    impact = unique(impact),
-    c = mean(c, na.rm = TRUE)
-  ) %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec))
-
-to_remove <- model_df %>%
-  mutate(impact = as.numeric(impact)) %>%
-  filter(is.na(impact) | is.infinite(impact))
-
-model_df <- anti_join(model_df, to_remove) %>%
-  select(-c(grid_id, c))
-
-# Pre-process
-df_recipe <- model_df %>%
-  recipe(nrec ~ .) %>%
-  step_corr(all_predictors()) %>%
-  step_center(all_predictors(), -all_outcomes()) %>%
-  step_scale(all_predictors(), -all_outcomes()) %>%
-  prep()
-
-df_juice <- juice(df_recipe)
-
-# Fit model -----------------------------------------------------------------
-
-lm_mod <-
-  linear_reg() %>%
-  set_engine("lm")
-
-lm_fit <-
-  lm_mod %>%
-  fit(nrec ~ impact + CU, data = df_juice)
-
-tidy(lm_fit)
-
-# Predict -----------------------------------------------------------
-
-# New data
-new_points_CUp <- expand.grid(
-  CU = 1,
-  impact = seq(0, 5, 0.25)
-)
-new_points_CUa <- expand.grid(
-  CU = 0,
-  impact = seq(0, 5, 0.25)
-)
-
-# Predict mean
-mean_pred_CUp <- predict(lm_fit, new_data = new_points_CUp)
-mean_pred_CUa <- predict(lm_fit, new_data = new_points_CUa)
-
-# Predict confidence interval
-conf_int_pred_CUp <- predict(lm_fit,
-                             new_data = new_points_CUp,
-                             type = "conf_int"
-)
-conf_int_pred_CUa <- predict(lm_fit,
-                             new_data = new_points_CUa,
-                             type = "conf_int"
-)
-
-plot_data_CUp <-
-  new_points_CUp %>%
-  bind_cols(mean_pred_CUp) %>%
-  bind_cols(conf_int_pred_CUp) %>%
-  mutate(ID = "CU present")
-plot_data_CUa <-
-  new_points_CUa %>%
-  bind_cols(mean_pred_CUa) %>%
-  bind_cols(conf_int_pred_CUa) %>%
-  mutate(ID = "CU absent")
-
-
-plot_data <- bind_rows(plot_data_CUp, plot_data_CUa)
-
 # Plot ------------------------------------------------------------------
 # Plot data
 nrec_impact_plot <- ggplot(
@@ -475,30 +385,6 @@ nrec_CU_plot <- ggplot(
     y = "Number of records",
     x = "Conservation Unit"
   ) +
-  theme_light()
-
-# Model coefficients
-model_coef_graph <- tidy(lm_fit) %>%
-  dwplot(
-    dot_args = list(size = 2, color = "black"),
-    whisker_args = list(color = "black"),
-    vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
-  ) + theme_light()
-
-# Model predictions
-model_pred_graph <- ggplot(plot_data, aes(x = impact, color = ID)) +
-  geom_point(aes(y = .pred)) +
-  geom_errorbar(aes(
-    ymin = .pred_lower,
-    ymax = .pred_upper
-  ),
-  width = .2
-  ) +
-  labs(
-    y = "Number of records",
-    x = "Research Institute impact"
-  ) +
-  scale_color_discrete(name = element_blank()) +
   theme_light()
 
 # Plot orders completeness
