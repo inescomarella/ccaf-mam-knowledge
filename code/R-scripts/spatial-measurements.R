@@ -20,7 +20,7 @@ xfun::pkg_attach2(
     "stars"
   )
 )
-conflicted::conflict_scout()
+
 conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflict_prefer("extract", "raster")
@@ -154,7 +154,7 @@ forest <-
   read_sf("../data/processed-data/forest-area.shp") %>%
   st_transform(longlat)
 
-# Measure forest coverage --------------------------------------------
+# Make grid ----
 grid <-
   ccaf %>%
   st_make_grid(cellsize = 0.1) %>%
@@ -162,6 +162,7 @@ grid <-
 
 grid$grid_id <- seq(1, nrow(grid), 1)
 
+# Measure forest coverage ----
 int <- as_tibble(st_intersection(forest, grid))
 int$forest_area <- st_area(int$geometry)
 
@@ -171,7 +172,7 @@ int_grouped <- int %>%
 
 grid_forest <- merge(grid, int_grouped, by = "grid_id")
 
-# Get environment data --------
+# Get environment data ----
 # Get elevation data
 ccaf_elevation <-
   get_elev_raster(ccaf, z = 10, clip = "locations")
@@ -223,10 +224,10 @@ records_bdcomplete <- merge(records_cell_id, bdcompleted, all = T)
 records_bdcomplete_longlat <-
   merge(records_longlat, records_bdcomplete)
 
-# Measure variables ----
+# Measurements ----
 
-grid_envi <-
-  grid_forest %>% mutate(
+grid_envi <- grid_forest %>% 
+  mutate(
     AMT = raster_extract(
       x = st_as_stars(ccaf_environmet$AMT),
       y = grid_forest,
@@ -247,21 +248,18 @@ grid_envi <-
     )
   )
 
-grid_envi_rec <-
-  st_join(grid_envi, records_bdcomplete_longlat) %>%
+grid_envi_rec <-  st_join(grid_envi, records_bdcomplete_longlat) %>%
   group_by(grid_id) %>%
   mutate(nrec = n())
 
 grid_envi_rec_ri <-
   research.institute.distance(grid_envi_rec, institutes_utm)
 
-grid_envi_rec_ri$CU <-
-  grid_envi_rec_ri %>%
+grid_envi_rec_ri$CU <-  grid_envi_rec_ri %>%
   st_intersects(cus_longlat) %>%
   lengths()
 
-clean_data <-
-  grid_envi_rec_ri %>%
+clean_data <-  grid_envi_rec_ri %>%
   group_by(grid_id) %>%
   mutate(
     distance = mean(distance, na.rm = TRUE),
@@ -293,10 +291,10 @@ processed_data <- processed_data %>%
     AMT_weight = AMT_weight / max(test_data$AMT_weight, na.rm = TRUE),
     AP_weight = AP_weight / max(test_data$AP_weight, na.rm = TRUE)
   ) %>%
-  mutate(KG = forest_perc * mean(c(elev_weight, AMT_weight, AP_weight, (1 - KM)))) 
+  mutate(KG = forest_perc * mean(c(elev_weight, AMT_weight, AP_weight, (1 - KM))))
 
 
-# Variable maps ---------------
+# Variable maps ----
 
 KG_map <- processed_data %>%
   ggplot() +
@@ -307,7 +305,7 @@ KG_map <- processed_data %>%
   theme_light() +
   labs(fill = "Gap in knowledge level")
 
-KM_map <- processed_data %>% 
+KM_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = KM)) +
   scale_fill_viridis() +
@@ -316,7 +314,7 @@ KM_map <- processed_data %>%
   theme_light() +
   labs(fill = "Knowledge level")
 
-nrec_map <- processed_data %>% 
+nrec_map <- processed_data %>%
   filter(nrec > 1) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = nrec)) +
@@ -326,7 +324,7 @@ nrec_map <- processed_data %>%
   theme_light() +
   labs(fill = "Number of records")
 
-c_map <- processed_data %>% 
+c_map <- processed_data %>%
   filter(!is.na(c)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = c)) +
@@ -344,8 +342,8 @@ CU_map <- processed_data %>%
   scale_fill_viridis() +
   theme_light() +
   labs(fill = "Conservation Unit presence")
-  
-forest_map <- processed_data %>% 
+
+forest_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = forest_area)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -354,7 +352,7 @@ forest_map <- processed_data %>%
   theme_light() +
   labs(fill = "Forest coverage")
 
-Sest_map <- processed_data %>% 
+Sest_map <- processed_data %>%
   filter(!is.na(Sest)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = Sest)) +
@@ -364,7 +362,7 @@ Sest_map <- processed_data %>%
   theme_light()
 
 
-elev_map <- processed_data %>% 
+elev_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = elev)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -373,7 +371,7 @@ elev_map <- processed_data %>%
   theme_light() +
   labs(fill = "Elevation")
 
-AMT_map <- processed_data %>% 
+AMT_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AMT)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -382,7 +380,7 @@ AMT_map <- processed_data %>%
   theme_light() +
   labs(fill = "Annual Mean Temperature")
 
-AP_map <- processed_data %>% 
+AP_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AP)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -391,7 +389,7 @@ AP_map <- processed_data %>%
   theme_light() +
   labs(fill = "Annual Precipitation")
 
-distance_map <- processed_data %>% 
+distance_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = distance)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -400,68 +398,245 @@ distance_map <- processed_data %>%
   theme_light() +
   labs(fill = "Proximity to collection")
 
-# Variables graphs ----------------------
+# Variables graphs ----
 
-KG_graph <- processed_data %>% 
+KG_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = KG, y = KM)) +
   geom_point() +
   geom_smooth()
 
-nrec_graph <- processed_data %>% 
+nrec_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = nrec, y = KM)) +
   geom_point() +
   geom_smooth()
 
-c_graph <- processed_data %>% 
+c_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = c, y = KM)) +
   geom_point() +
   geom_smooth()
 
-CU_graph <- processed_data %>% 
+CU_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = CU, y = KM)) +
   geom_point() +
   geom_smooth()
 
-forest_graph <- processed_data %>% 
+forest_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = forest_area, y = KM)) +
   geom_point() +
   geom_smooth()
 
-Sest_graph <- processed_data %>% 
+Sest_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = Sest, y = KM)) +
   geom_point() +
   geom_smooth()
 
-elev_graph <- processed_data %>% 
+elev_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = elev, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  geom_point()
 
-AMT_graph <- processed_data %>% 
+AMT_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = AMT, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  geom_point()
 
-AP_graph <- processed_data %>% 
+AP_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = AP, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  geom_point()
 
-distance_graph <- processed_data %>% 
+distance_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
   ggplot(aes(x = distance, y = KM)) +
   geom_point() +
   geom_smooth() +
   labs(x = "Proximity to Collection")
+
+# Fit model ----
+
+# Pre-process
+df_recipe <- processed_data %>%
+  st_drop_geometry() %>%
+  select(-forest_perc) %>%
+  recipe(nrec ~ .) %>%
+  step_corr(all_predictors()) %>%
+  step_center(all_predictors(), -all_outcomes()) %>%
+  step_scale(all_predictors(), -all_outcomes()) %>%
+  prep()
+
+df_juice <- juice(df_recipe)
+
+# Linear regression model
+lm_mod <-
+  linear_reg() %>%
+  set_engine("lm")
+
+# Fit model
+lm_fit <-
+  lm_mod %>%
+  fit(nrec ~ distance + CU + forest_area + Sest, data = df_juice)
+
+tidy(lm_fit)
+
+# Predict ----
+
+# New data
+new_points_CUp_dist <- expand.grid(
+  CU = 1,
+  distance = seq(-5, 5, 0.2),
+  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  Sest = max(df_juice$Sest, na.rm = TRUE)
+)
+new_points_CUp_Sest <- expand.grid(
+  CU = 1,
+  distance = mean(df_juice$distance, na.rm = TRUE),
+  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  Sest = seq(-5, 5, 0.2)
+)
+new_points_CUa_dist <- expand.grid(
+  CU = 0,
+  distance = seq(-5, 5, 0.2),
+  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  Sest = mean(df_juice$Sest, na.rm = TRUE)
+)
+new_points_CUa_Sest <- expand.grid(
+  CU = 0,
+  distance = mean(df_juice$distance, na.rm = TRUE),
+  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  Sest = seq(-5, 5, 0.2)
+)
+# Predict mean
+mean_pred_CUp_dist <- predict(lm_fit, new_data = new_points_CUp_dist)
+mean_pred_CUp_Sest <- predict(lm_fit, new_data = new_points_CUp_Sest)
+mean_pred_CUa_dist <- predict(lm_fit, new_data = new_points_CUa_dist)
+mean_pred_CUa_Sest <- predict(lm_fit, new_data = new_points_CUa_Sest)
+
+# Predict confidence interval
+conf_int_pred_CUp_dist <- predict(lm_fit,
+  new_data = new_points_CUp_dist,
+  type = "conf_int"
+)
+conf_int_pred_CUp_Sest <- predict(lm_fit,
+  new_data = new_points_CUp_Sest,
+  type = "conf_int"
+)
+conf_int_pred_CUa_dist <- predict(lm_fit,
+  new_data = new_points_CUa_dist,
+  type = "conf_int"
+)
+conf_int_pred_CUa_Sest <- predict(lm_fit,
+  new_data = new_points_CUa_Sest,
+  type = "conf_int"
+)
+
+plot_data_CUp_dist <-
+  new_points_CUp_dist %>%
+  bind_cols(mean_pred_CUp_dist) %>%
+  bind_cols(conf_int_pred_CUp_dist) %>%
+  mutate(ID = "CU present")
+plot_data_CUp_Sest <-
+  new_points_CUp_Sest %>%
+  bind_cols(mean_pred_CUp_Sest) %>%
+  bind_cols(conf_int_pred_CUp_Sest) %>%
+  mutate(ID = "CU present")
+plot_data_CUa_dist <-
+  new_points_CUa_dist %>%
+  bind_cols(mean_pred_CUa_dist) %>%
+  bind_cols(conf_int_pred_CUa_dist) %>%
+  mutate(ID = "CU absent")
+plot_data_CUa_Sest <-
+  new_points_CUa_Sest %>%
+  bind_cols(mean_pred_CUa_Sest) %>%
+  bind_cols(conf_int_pred_CUa_Sest) %>%
+  mutate(ID = "CU absent")
+
+plot_data_dist <- bind_rows(plot_data_CUp_dist, plot_data_CUa_dist)
+plot_data_Sest <- bind_rows(plot_data_CUp_Sest, plot_data_CUa_Sest)
+
+# Plot prediction ----
+
+# Model predictions
+ggplot(plot_data_dist, aes(x = distance, color = ID)) +
+  geom_point(aes(y = .pred)) +
+  geom_errorbar(aes(
+    ymin = .pred_lower,
+    ymax = .pred_upper
+  ),
+  width = .2
+  ) +
+  labs(
+    y = "Number of records",
+    x = "Proximity to collection"
+  ) +
+  scale_color_discrete(name = element_blank()) +
+  theme_light()
+
+ggplot(plot_data_Sest, aes(x = Sest, color = ID)) +
+  geom_point(aes(y = .pred)) +
+  geom_errorbar(aes(
+    ymin = .pred_lower,
+    ymax = .pred_upper
+  ),
+  width = .2
+  ) +
+  labs(
+    y = "Number of records",
+    x = "Species Richness Estimated"
+  ) +
+  scale_color_discrete(name = element_blank()) +
+  theme_light()
+
+# Model coefficients
+tidy(lm_fit) %>%
+  dwplot(
+    dot_args = list(size = 2, color = "black"),
+    whisker_args = list(color = "black"),
+    vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
+  ) + theme_light()
+
+
+
+level_order <- records_longlat %>%
+  st_drop_geometry() %>%
+  mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
+    "Local",
+    ifelse(institutionCode == "",
+      "Published data",
+      ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
+        "International",
+        "Brazilian"
+      )
+    )
+  )) %>%
+  group_by(Collection) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  select(Collection)
+
+records_longlat %>%
+  st_drop_geometry() %>%
+  mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
+    "Local",
+    ifelse(institutionCode == "",
+      "Published data",
+      ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
+        "International",
+        "Brazilian"
+      )
+    )
+  )) %>%
+  group_by(Collection) %>%
+  summarise(n = n()) %>%
+  ggplot() +
+  geom_bar(aes(x = factor(Collection, levels = level_order$Collection), y = n), stat = "identity") +
+  labs(x = "Collections", y = "Number of records") +
+  theme_light()
 
 # Save workspace ----
 save.image("~/tcc-ccma/code/spatial-measurements.RData")
