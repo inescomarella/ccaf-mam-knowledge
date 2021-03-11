@@ -2,7 +2,7 @@
 # Date: 16/11/2020
 
 # Load in libraries
-xfun::pkg_attach(c("tidyverse", "lubridate", "pdftools", "stringi"))
+xfun::pkg_attach(c("tidyverse", "lubridate", "pdftools", "stringi", "rgdal"))
 
 # Source functions
 source("./R-scripts/functions/01-funs-clean-papers-data.R")
@@ -389,75 +389,33 @@ utm <-
 
 utm_data_modif$decimalLatitude <- NA
 
-df <- data.frame()
+coords_to_correct <- data.frame()
 for (i in 1:length(unique(utm$verbatimLatitude))) {
   x <-
     utm_data_modif %>%
     filter(verbatimLatitude == sort(unique(utm$verbatimLatitude))[i]) %>%
     select(
       verbatimLatitude,
-      verbatimLongitude,
-      decimalLatitude,
-      decimalLongitude
+      verbatimLongitude
     )
-  df <- bind_rows(x[1, ], df)
+  coords_to_correct <- bind_rows(x[1, ], coords_to_correct)
 }
 
-df <- arrange(df, by = verbatimLatitude)
-
-# Convert UTM to decimal degree http://splink.cria.org.br/conversor
-df$decimalLatitude <-
-  c(
-    "-16.599388",
-    "-17.169331",
-    "-13.578941",
-    "-13.864987",
-    "-17.292106",
-    "-15.927010",
-    "-15.155310",
-    "-13.952912",
-    "-16.286450",
-    "-15.197319",
-    "-15.973720",
-    "-17.106801",
-    "-16.512313",
-    "-13.701098",
-    "-15.619982",
-    "-14.018092",
-    "-16.324448",
-    "-14.343671",
-    "-15.172064",
-    "-14.424250",
-    "-15.166549",
-    "-13.525323"
+coords_to_correct <- arrange(coords_to_correct, by = verbatimLatitude) %>%
+  mutate(
+    verbatimLatitude = as.numeric(verbatimLatitude),
+    verbatimLongitude = as.numeric(verbatimLongitude)
   )
-df$decimalLongitude <-
-  c(
-    "-39.913983",
-    "-39.841776",
-    "-39.706685",
-    "-39.672635",
-    "-39.673031",
-    "-39.635847",
-    "-39.526954",
-    "-39.451138",
-    "-39.424079",
-    "-39.391085",
-    "-39.373680",
-    "-39.339753",
-    "-39.303612",
-    "-39.232629",
-    "-39.161263",
-    "-39.143283",
-    "-39.121001",
-    "-39.086907",
-    "-39.061124",
-    "-39.060414",
-    "-39.059754",
-    "-39.035311"
-  )
+utms <-
+  SpatialPoints(coords_to_correct[, c("verbatimLatitude", "verbatimLongitude")], proj4string = CRS("+proj=utm +zone=24 +south +units=m +EPSG=4225 +nadgrids=ca7072_003.gsb +towgs84=-67.35,3.88,-38.22")) # create UTM matrix
 
-utm_data_modif <- merge(utm_data_modif, df, by = "verbatimLatitude")
+longlats <- spTransform(utms, CRS("+proj=longlat")) # transform
+
+coords_corrected <- as.data.frame(longlats) %>%
+  rename("decimalLatitude" = verbatimLatitude, "decimalLongitude" = verbatimLongitude) %>%
+  bind_cols(coords_to_correct)
+
+utm_data_modif <- merge(utm_data_modif, coords_corrected, by = "verbatimLatitude")
 
 # Return to main dataframe
 data_modif$decimalLatitude[data_modif$verbatimLatitude %in% utm_data_modif$verbatimLatitude] <-
