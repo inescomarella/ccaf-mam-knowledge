@@ -49,10 +49,14 @@ data_all_raw <- rbind.fill(data_paper, data_downl)
 # Keep data_paper columns, remove others
 data_all <- select(data_all_raw, colnames(data_paper))
 
-# Remove fossil record and iNaturalist registers
-data_all_first_clean <- remove.fossil.iNaturalist(data_all)
+# Remove fossil records
+to_remove <-
+  data_all %>%
+  filter(basisOfRecord == "FOSSIL_SPECIMEN")
 
-# Data after first clean = 35955
+data_all_first_clean <- anti_join(data_all, to_remove)
+
+# Data after first clean = 41173
 nrow(data_all_first_clean)
 
 # Keep only identified species and remove hybrids
@@ -496,8 +500,13 @@ exotic_sp_list <- data.frame(
     "Lichonycteris obscura",
     "Oryzomys iliurus",
     "Leontopithecus chrysopygus",
+    "Leontopithecus rosalia",
     "Callithrix jacchus",
-    "Oxymycterus hispidus"
+    "Oxymycterus hispidus",
+    "Capra hircus",
+    "Equus caballus",
+    "Mirounga leonina",
+    "Didelphis albiventris"
   )
 )
 
@@ -923,16 +932,16 @@ clean_data_distincted <- clean_data_distincted %>%
 # Total records downloaded = 41258
 nrow(data_all)
 
-# Records after removing no-identified species = 33158
+# Records after removing no-identified species = 38280
 nrow(data_all_only_indetified_species)
 
-# Records after geographic clean = 15030
+# Records after geographic clean = 14487
 nrow(data_all_clipped)
 
-# Records after taxonomic clean (and removing marine species) = 14685
+# Records after taxonomic clean (and removing marine species) = 14134
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 12789
+# Final number of unique records = 12453
 nrow(clean_data_distincted)
 
 # Save data.frame ------------------------------------------------------------
