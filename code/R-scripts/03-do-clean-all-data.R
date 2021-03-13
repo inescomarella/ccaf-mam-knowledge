@@ -506,7 +506,10 @@ exotic_sp_list <- data.frame(
     "Capra hircus",
     "Equus caballus",
     "Mirounga leonina",
-    "Didelphis albiventris"
+    "Didelphis albiventris",
+    "Tonatia saurophila",
+    "Marmosa travassosi",
+    "Micoureus travassosi"
   )
 )
 
@@ -927,7 +930,7 @@ clean_data_distincted <- clean_data_distincted %>%
   )) %>%
   filter(collectionCode != "LABEQ")
 
-# Track number of records -------------------------------------------------
+# Track number of records -------------------------------------------
 
 # Total records downloaded = 41258
 nrow(data_all)
@@ -941,10 +944,10 @@ nrow(data_all_clipped)
 # Records after taxonomic clean (and removing marine species) = 14134
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 12453
+# Final number of unique records = 12437
 nrow(clean_data_distincted)
 
-# Save data.frame ------------------------------------------------------------
+# Save data.frame ----------------------------------------------------
 write.csv(
   clean_data_distincted,
   "../data/processed-data/clean-mammal-data.csv"

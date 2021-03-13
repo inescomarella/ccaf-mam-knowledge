@@ -10,9 +10,7 @@ xfun::pkg_attach2(
     "patchwork",
     "viridis",
     "cowplot",
-    "dgof",
     "openxlsx",
-    "animation",
     "recipes",
     "tidymodels",
     "dotwhisker",
@@ -103,7 +101,7 @@ research.institute.distance <- function(grid, institutes_points) {
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
-# Load in data --------------------------------------------------------------
+# Load in data -----------
 br_longlat <-
   read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
   filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
@@ -463,7 +461,7 @@ distance_graph <- processed_data %>%
 # Pre-process
 df_recipe <- processed_data %>%
   st_drop_geometry() %>%
-  select(-forest_perc) %>%
+  select(forest_perc) %>%
   recipe(nrec ~ .) %>%
   step_corr(all_predictors()) %>%
   step_center(all_predictors(), -all_outcomes()) %>%
@@ -480,7 +478,7 @@ lm_mod <-
 # Fit model
 lm_fit <-
   lm_mod %>%
-  fit(nrec ~ distance + CU + forest_area + Sest, data = df_juice)
+  fit(nrec ~ distance + CU + forest_perc + Sest, data = df_juice)
 
 tidy(lm_fit)
 
@@ -490,25 +488,25 @@ tidy(lm_fit)
 new_points_CUp_dist <- expand.grid(
   CU = 1,
   distance = seq(-5, 5, 0.2),
-  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
   Sest = max(df_juice$Sest, na.rm = TRUE)
 )
 new_points_CUp_Sest <- expand.grid(
   CU = 1,
   distance = mean(df_juice$distance, na.rm = TRUE),
-  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
   Sest = seq(-5, 5, 0.2)
 )
 new_points_CUa_dist <- expand.grid(
   CU = 0,
   distance = seq(-5, 5, 0.2),
-  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
   Sest = mean(df_juice$Sest, na.rm = TRUE)
 )
 new_points_CUa_Sest <- expand.grid(
   CU = 0,
   distance = mean(df_juice$distance, na.rm = TRUE),
-  forest_area = mean(df_juice$forest_area, na.rm = TRUE),
+  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
   Sest = seq(-5, 5, 0.2)
 )
 # Predict mean
@@ -601,42 +599,50 @@ tidy(lm_fit) %>%
   ) + theme_light()
 
 
-
-level_order <- records_longlat %>%
+records_df <- records_longlat %>%
   st_drop_geometry() %>%
   mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
-    "Local",
+    "Local collections",
     ifelse(institutionCode == "",
-      "Published data",
+      "Scientific literature",
       ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
-        "International",
-        "Brazilian"
+        "International collections",
+        ifelse(str_detect(institutionCode, "iNat"),
+          "iNaturalist",
+          "National collections"
+        )
       )
     )
-  )) %>%
+  ))
+
+level_order <- records_df %>%
   group_by(Collection) %>%
   summarise(n = n()) %>%
   arrange(desc(n)) %>%
   select(Collection)
 
-records_longlat %>%
-  st_drop_geometry() %>%
-  mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
-    "Local",
-    ifelse(institutionCode == "",
-      "Published data",
-      ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
-        "International",
-        "Brazilian"
-      )
-    )
-  )) %>%
+records_df %>%
   group_by(Collection) %>%
   summarise(n = n()) %>%
   ggplot() +
   geom_bar(aes(x = factor(Collection, levels = level_order$Collection), y = n), stat = "identity") +
   labs(x = "Collections", y = "Number of records") +
   theme_light()
+
+records_df %>%
+  filter(year != "NA") %>%
+  mutate(fk_group = "a") %>%
+  mutate(year = as.Date(year, "%Y")) %>%
+  group_by(fk_group, Collection, year) %>%
+  summarise(n = n()) %>%
+  mutate(ncum = cumsum(n)) %>%
+  ggplot() +
+  scale_x_date(date_labels = "%Y") +
+  geom_line(aes(x = year, y = ncum, color = factor(Collection, levels = level_order$Collection))) +
+  theme_light() +
+  labs(color = element_blank(),
+       x = element_blank(),
+       y = "Cumulative number of records")
 
 # Save workspace ----
 save.image("~/tcc-ccma/code/spatial-measurements.RData")
