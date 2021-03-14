@@ -273,21 +273,21 @@ clean_data <-  grid_envi_rec_ri %>%
 processed_data <- clean_data %>%
   mutate(
     elev_weight = abs(elev - filter(
-      test_data, KM == max(test_data$KM, na.rm = TRUE)
+      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
     )$elev),
     AMT_weight = abs(AMT - filter(
-      test_data, KM == max(test_data$KM, na.rm = TRUE)
+      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
     )$AMT),
     AP_weight = abs(AP - filter(
-      test_data, KM == max(test_data$KM, na.rm = TRUE)
+      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
     )$AP)
   )
 
 processed_data <- processed_data %>%
   mutate(
-    elev_weight = elev_weight / max(test_data$elev_weight, na.rm = TRUE),
-    AMT_weight = AMT_weight / max(test_data$AMT_weight, na.rm = TRUE),
-    AP_weight = AP_weight / max(test_data$AP_weight, na.rm = TRUE)
+    elev_weight = elev_weight / max(processed_data$elev_weight, na.rm = TRUE),
+    AMT_weight = AMT_weight / max(processed_data$AMT_weight, na.rm = TRUE),
+    AP_weight = AP_weight / max(processed_data$AP_weight, na.rm = TRUE)
   ) %>%
   mutate(KG = forest_perc * mean(c(elev_weight, AMT_weight, AP_weight, (1 - KM))))
 
@@ -358,7 +358,6 @@ Sest_map <- processed_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_viridis() +
   theme_light()
-
 
 elev_map <- processed_data %>%
   ggplot() +
@@ -461,7 +460,6 @@ distance_graph <- processed_data %>%
 # Pre-process
 df_recipe <- processed_data %>%
   st_drop_geometry() %>%
-  select(forest_perc) %>%
   recipe(nrec ~ .) %>%
   step_corr(all_predictors()) %>%
   step_center(all_predictors(), -all_outcomes()) %>%
@@ -621,13 +619,35 @@ level_order <- records_df %>%
   arrange(desc(n)) %>%
   select(Collection)
 
-records_df %>%
+data <- records_df %>%
   group_by(Collection) %>%
   summarise(n = n()) %>%
+  mutate(per = n / sum(n))
+
+data$label <- scales::percent(data$per)
+data %>%
+  filter(per < 0.2) %>%
+  select(per) %>% sum()
+
+data %>% 
   ggplot() +
-  geom_bar(aes(x = factor(Collection, levels = level_order$Collection), y = n), stat = "identity") +
-  labs(x = "Collections", y = "Number of records") +
-  theme_light()
+  geom_bar(aes(
+    x = "",
+    y = n,
+    fill = factor(Collection, levels = level_order$Collection)
+  ),
+  stat = "identity",
+  width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(fill = element_blank()) +
+  geom_text(aes(
+    x = 1,
+    y = cumsum(per) - per / 2,
+    label = label
+  ),
+  color = "white",
+  size = 3)
 
 records_df %>%
   filter(year != "NA") %>%
