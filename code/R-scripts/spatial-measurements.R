@@ -8,14 +8,15 @@ xfun::pkg_attach2(
     "raster",
     "elevatr",
     "patchwork",
-    "viridis",
     "cowplot",
     "openxlsx",
     "recipes",
     "tidymodels",
     "dotwhisker",
     "geobgu",
-    "stars"
+    "stars",
+    "fishualize",
+    "ggpubr"
   )
 )
 
@@ -294,29 +295,57 @@ processed_data <- processed_data %>%
 
 # Variable maps ----
 
+processed_data <- processed_data %>%
+  mutate(KL = ifelse(
+    KM > 0.8,
+    "Very high",
+    ifelse(
+      KM > 0.6 & KM < 0.8,
+      "High",
+      ifelse(
+        KM > 0.4 & KM < 0.6,
+        "Medium",
+        ifelse(
+          KM > 0.2 & KM < 0.4,
+          "Low",
+          ifelse(KM < 0.2,
+                 "Very low",
+                 ""
+          )
+        )
+      )
+    )
+  ))
+
+processed_data$KL <-
+  factor(processed_data$KL,
+         levels = c("Very high", "High", "Medium", "Low", "Very low"))
+
+KM_map <- processed_data %>%
+  ggplot() +
+  geom_sf(aes(fill = KL), color = NA) +
+  geom_sf(data = cus_longlat, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus",
+                  discrete = TRUE,
+                  direction = -1) +
+  theme_light() +
+  labs(fill = "Knowledge level")
+
 KG_map <- processed_data %>%
   ggplot() +
   geom_sf(aes(fill = KG), size = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
   labs(fill = "Gap in knowledge level")
 
-KM_map <- processed_data %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = KM)) +
-  scale_fill_viridis() +
-  geom_sf(data = cus_longlat, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  theme_light() +
-  labs(fill = "Knowledge level")
-
 nrec_map <- processed_data %>%
   filter(nrec > 1) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = nrec)) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
@@ -328,25 +357,26 @@ c_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = c)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "c-value")
 
 CU_map <- processed_data %>%
+  mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = CU)) +
+  geom_sf(color = NA, aes(fill = CU)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus", discrete = TRUE) +
   theme_light() +
-  labs(fill = "Conservation Unit presence")
+  labs(fill = "Conservation Unit")
 
 forest_map <- processed_data %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = forest_area)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Forest coverage")
 
@@ -356,7 +386,7 @@ Sest_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = Sest)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light()
 
 elev_map <- processed_data %>%
@@ -364,7 +394,7 @@ elev_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = elev)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Elevation")
 
@@ -373,7 +403,7 @@ AMT_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = AMT)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Annual Mean Temperature")
 
@@ -382,7 +412,7 @@ AP_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = AP)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Annual Precipitation")
 
@@ -391,69 +421,124 @@ distance_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = distance)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_viridis() +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Proximity to collection")
 
 # Variables graphs ----
 
+nrec_c_graph <- processed_data %>%
+  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
+  ggscatter(
+    x = "nrec", y = "c",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) + 
+  stat_cor(method = "pearson") +
+  theme_light()
+
 KG_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = KG, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "KG", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 nrec_graph <- processed_data %>%
   mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = nrec, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "nrec", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 c_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = c, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "c", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 CU_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = CU, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "CU", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 forest_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = forest_area, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "forest_area", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 Sest_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = Sest, y = KM)) +
-  geom_point() +
-  geom_smooth()
+  ggscatter(
+    x = "Sest", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 elev_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = elev, y = KM)) +
-  geom_point()
+  ggscatter(
+    x = "elev", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 AMT_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = AMT, y = KM)) +
-  geom_point()
+  ggscatter(
+    x = "AMT", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 AP_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = AP, y = KM)) +
-  geom_point()
+  ggscatter(
+    x = "AP", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 distance_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
-  ggplot(aes(x = distance, y = KM)) +
-  geom_point() +
-  geom_smooth() +
-  labs(x = "Proximity to Collection")
+  ggscatter(
+    x = "distance", y = "KM",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) +
+  stat_cor(method = "pearson") +
+  theme_light()
 
 # Fit model ----
 
