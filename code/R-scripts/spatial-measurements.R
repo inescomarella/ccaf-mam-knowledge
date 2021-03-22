@@ -308,20 +308,39 @@ processed_data <- processed_data %>%
         ifelse(
           KM > 0.2 & KM < 0.4,
           "Low",
-          ifelse(KM < 0.2,
-                 "Very low",
-                 ""
-          )
+          "Very low"
+        )
+      )
+    )
+  )) %>%
+  mutate(GKL = ifelse(
+    KG > 0.8,
+    "Very high",
+    ifelse(
+      KG > 0.6 & KG < 0.8,
+      "High",
+      ifelse(
+        KG > 0.4 & KG < 0.6,
+        "Medium",
+        ifelse(
+          KG > 0.2 & KG < 0.4,
+          "Low",
+          "Very low"
         )
       )
     )
   ))
 
+levels <- c("Very high", "High", "Medium", "Low", "Very low")
+
 processed_data$KL <-
   factor(processed_data$KL,
-         levels = c("Very high", "High", "Medium", "Low", "Very low"))
+         levels = levels)
+processed_data$GKL <-
+  factor(processed_data$GKL,
+         levels = levels)
 
-KM_map <- processed_data %>%
+KL_map <- processed_data %>%
   ggplot() +
   geom_sf(aes(fill = KL), color = NA) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -332,10 +351,13 @@ KM_map <- processed_data %>%
   theme_light() +
   labs(fill = "Knowledge level")
 
-KG_map <- processed_data %>%
+GKL_map <- processed_data %>%
+  filter(!is.na(GKL)) %>%
   ggplot() +
-  geom_sf(aes(fill = KG), size = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  geom_sf(aes(fill = GKL), color = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus",
+                  discrete = TRUE,
+                  direction = -1) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
@@ -345,9 +367,9 @@ nrec_map <- processed_data %>%
   filter(nrec > 1) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = nrec)) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Number of records")
 
@@ -405,7 +427,7 @@ AMT_map <- processed_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
-  labs(fill = "Annual Mean Temperature")
+  labs(fill = "Annual Mean \nTemperature")
 
 AP_map <- processed_data %>%
   ggplot() +
@@ -643,7 +665,7 @@ plot_data_Sest <- bind_rows(plot_data_CUp_Sest, plot_data_CUa_Sest)
 # Plot prediction ----
 
 # Model predictions
-ggplot(plot_data_dist, aes(x = distance, color = ID)) +
+predict_collection <- ggplot(plot_data_dist, aes(x = distance, color = ID)) +
   geom_point(aes(y = .pred)) +
   geom_errorbar(aes(
     ymin = .pred_lower,
@@ -658,7 +680,7 @@ ggplot(plot_data_dist, aes(x = distance, color = ID)) +
   scale_color_discrete(name = element_blank()) +
   theme_light()
 
-ggplot(plot_data_Sest, aes(x = Sest, color = ID)) +
+predict_SR <- ggplot(plot_data_Sest, aes(x = Sest, color = ID)) +
   geom_point(aes(y = .pred)) +
   geom_errorbar(aes(
     ymin = .pred_lower,
@@ -714,7 +736,7 @@ data %>%
   filter(per < 0.2) %>%
   select(per) %>% sum()
 
-data %>% 
+pie_chart <- data %>% 
   ggplot() +
   geom_bar(aes(
     x = "",
@@ -725,16 +747,9 @@ data %>%
   width = 1) +
   coord_polar("y", start = 0) +
   theme_void() +
-  labs(fill = element_blank()) +
-  geom_text(aes(
-    x = 1,
-    y = cumsum(per) - per / 2,
-    label = label
-  ),
-  color = "white",
-  size = 3)
+  labs(fill = element_blank())
 
-records_df %>%
+line_graph_collections <- records_df %>%
   filter(year != "NA") %>%
   mutate(fk_group = "a") %>%
   mutate(year = as.Date(year, "%Y")) %>%
@@ -748,6 +763,48 @@ records_df %>%
   labs(color = element_blank(),
        x = element_blank(),
        y = "Cumulative number of records")
+
+# Save results -------------
+pie_chart
+ggsave("../data/results/spa-mea-pie-chart.pdf",
+       width = 8,
+       height = 6
+)
+line_graph_collections
+ggsave("../data/results/spa-mea-line-graph-collections.pdf",
+       width = 8,
+       height = 6
+)
+
+KL_map  + theme_void() + (nrec_map  + theme_void() / c_map  + theme_void())
+ggsave("../data/results/spa-mea-KL-nrec-c-map.pdf",
+       width = 11.69,
+       height = 8.27
+)
+
+GKL_map + theme_void() + (forest_map + theme_void() + elev_map + theme_void()) / (AMT_map + theme_void() + AP_map + theme_void())
+ggsave("../data/results/spa-mea-environment-map.pdf",
+       width = 11.69,
+       height = 8.27
+)
+conflicted::conflict_prefer("get_legend", "cowplot")
+
+legend <- get_legend(predict_collection)
+predict_collection_nl <- predict_collection + theme(legend.position = "none")
+predict_SR_nl <- predict_SR + theme(legend.position = "none")
+
+predict_collection_nl + predict_SR_nl + legend
+ggsave("../data/results/spa-mea-predict.pdf",
+       width = 8,
+       height = 4
+)
+
+
+# Tables
+OUT <- createWorkbook()
+addWorksheet(OUT, "Sheet1")
+writeData(OUT, sheet = "Sheet1", x = tidy(lm_fit))
+saveWorkbook(OUT, "../data/results/spa-mea-model.xlsx", overwrite = TRUE)
 
 # Save workspace ----
 save.image("~/tcc-ccma/code/spatial-measurements.RData")

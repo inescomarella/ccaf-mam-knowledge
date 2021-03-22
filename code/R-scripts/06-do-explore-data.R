@@ -12,13 +12,13 @@ conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 # Source functions
 source("./R-scripts/functions/06-funs-explore-data.R")
 
-# Load data -------------------------------------------------------------------
+# Load data --------------------------------------------------------
 
 data_read <-
   read.csv("../data/processed-data/clean-mammal-data.csv") %>%
   select(-X)
 
-# Get species conservation status and endemism --------------------------------
+# Get species conservation status and endemism -------------------
 # From Quintela et al. 2020
 
 # Get the source code of the page
@@ -92,7 +92,7 @@ mammal_information <-
     species
   ))
 
-# Pre-process data ------------------------------------------------------------
+# Pre-process data ------------------------------------------------
 
 # Add species conservation status
 data <- merge(data_read, mammal_information, by = "species", all = TRUE)
@@ -101,7 +101,7 @@ data <- merge(data_read, mammal_information, by = "species", all = TRUE)
 to_remove <- anti_join(select(data, colnames(data_read)), data_read)
 data <- anti_join(data, to_remove)
 
-# Tables ----------------------------------------------------------------------
+# Tables ----------------------------------------------------------
 
 # List of species
 species_list <-
@@ -116,23 +116,6 @@ collection_institution_df <- do.collection.institution.table(data)
 # Organize and clean table
 collection_institution_df <-
   collection_institution_df %>%
-  mutate(institutionCode = ifelse(str_detect(collectionCode, "UFES") |
-    str_detect(collectionCode, "LABEQ"),
-  "UFES",
-  ifelse(str_detect(collectionCode, "UESC"),
-    "UESC",
-    ifelse(str_detect(collectionCode, "USP"),
-      "USP",
-      ifelse(str_detect(collectionCode, "UFRRJ"),
-        "UFRRJ",
-        ifelse(collectionCode == "MVZ",
-          "BNHM",
-          institutionCode
-        )
-      )
-    )
-  )
-  )) %>%
   filter(collectionCode != "Observations") %>%
   unique() %>%
   arrange(institutionCode)
@@ -159,11 +142,12 @@ species_record_df <-
     first_record = min(year),
     last_record = max(year),
     IUCN = unique(IUCN),
-    ICMBio = unique(ICMBio)
+    ICMBio = unique(ICMBio),
+    Endemic = unique(endemic)
   ) %>%
   arrange(by = last_record)
 
-# Plot ------------------------------------------------------------------------
+# Plot ------------------------------------------------------------
 
 frst_lst_rcrd_graph <-
   data %>%
@@ -188,10 +172,10 @@ frst_lst_rcrd_graph <-
   xlab("Years") +
   theme(legend.title = element_blank())
 
-# Save ------------------------------------------------------------------------
+# Save ------------------------------------------------------------
 # Plot
 frst_lst_rcrd_graph
-ggsave("../data/results/first-last-record-plot.pdf",
+ggsave("../data/results/exp-dat-bar-graph-first-last-record.pdf",
   width = 8,
   height = 6
 )
@@ -213,4 +197,7 @@ writeData(OUT, sheet = "species-refs-sep-cols", x = species_references_df)
 writeData(OUT, sheet = "collections-institutions", x = collection_institution_df)
 writeData(OUT, sheet = "mammal-database", x = data)
 
-saveWorkbook(OUT, "../data/results/species-table.xlsx", overwrite = TRUE)
+saveWorkbook(OUT, "../data/results/exp-dat-species-table.xlsx", overwrite = TRUE)
+
+# Save workspace ----
+save.image("~/tcc-ccma/code/06-do-explore-data.RData")
