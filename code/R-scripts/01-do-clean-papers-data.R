@@ -5,7 +5,7 @@
 xfun::pkg_attach(c("tidyverse", "lubridate", "pdftools", "stringi", "rgdal"))
 
 # Source functions
-source("./R-scripts/functions/01-funs-clean-papers-data.R")
+source("./R-scripts/functions/funs-clean-papers-data.R")
 
 # Load in data
 raw_data <-

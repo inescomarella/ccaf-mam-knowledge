@@ -10,7 +10,7 @@ conflicted::conflict_prefer(name = "select", winner = "dplyr")
 conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/06-funs-explore-data.R")
+source("./R-scripts/functions/funs-explore-data.R")
 
 # Load data --------------------------------------------------------
 
@@ -182,22 +182,24 @@ ggsave("../data/results/exp-dat-bar-graph-first-last-record.pdf",
 
 # Tables
 OUT <- createWorkbook()
+Supp <- createWorkbook()
 
+addWorksheet(Supp, "first-last-record")
 addWorksheet(OUT, "species-list")
-addWorksheet(OUT, "first-last-record")
 addWorksheet(OUT, "species-reference-table")
 addWorksheet(OUT, "species-refs-sep-cols")
 addWorksheet(OUT, "collections-institutions")
 addWorksheet(OUT, "mammal-database")
 
+writeData(Supp, sheet = "first-last-record", x = species_record_df)
 writeData(OUT, sheet = "species-list", x = species_list)
-writeData(OUT, sheet = "first-last-record", x = species_record_df)
 writeData(OUT, sheet = "species-reference-table", x = data_reference_table)
 writeData(OUT, sheet = "species-refs-sep-cols", x = species_references_df)
 writeData(OUT, sheet = "collections-institutions", x = collection_institution_df)
 writeData(OUT, sheet = "mammal-database", x = data)
 
 saveWorkbook(OUT, "../data/results/exp-dat-species-table.xlsx", overwrite = TRUE)
+saveWorkbook(Supp, "../data/results/Supp-table.xlsx", overwrite = TRUE)
 
 # Save workspace ----
 save.image("~/tcc-ccma/code/06-do-explore-data.RData")

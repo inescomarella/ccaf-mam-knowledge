@@ -20,7 +20,7 @@ conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
 conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/03-funs-clean-all-data.R")
+source("./R-scripts/functions/funs-clean-all-data.R")
 
 # Load in data
 data_paper <-
