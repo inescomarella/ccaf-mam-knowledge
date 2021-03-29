@@ -686,15 +686,27 @@ tidy(lm_fit) %>%
 
 # Save results -------------
 
-KL_map  + theme_void() + (nrec_map  + theme_void() + c_map  + theme_void())
+p1 <- KL_map  + theme_void() 
+p2 <- nrec_map  + theme_void()
+p3 <- c_map  + theme_void()
+
+p_grid <- plot_grid(p2, p3, ncol = 1, labels = c("B", "C"), label_size = 12)
+
+plot_grid(p1, p_grid, labels = c("A", ""), label_size = 12)
 ggsave("../data/results/07-KL-nrec-c-map.pdf",
        width = 11.69,
        height = 8.27
 )
 
-GKL_map + theme_void() + 
-  (forest_map + theme_void() + elev_map + theme_void()) / 
-  (AMT_map + theme_void() + AP_map + theme_void())
+p1 <- GKL_map  + theme_void() 
+p2 <- forest_map  + theme_void()
+p3 <- elev_map  + theme_void()
+p4 <- AMT_map  + theme_void()
+p5 <- AP_map  + theme_void()
+
+p_grid <- plot_grid(p2, p3, p4, p5, ncol = 2, labels = c("B", "C", "D", "E"), label_size = 12)
+
+plot_grid(p1, p_grid, labels = c("A", ""), label_size = 12)
 ggsave("../data/results/07-environment-map.pdf",
        width = 11.69,
        height = 8.27
