@@ -106,7 +106,7 @@ data <- anti_join(data, to_remove)
 # List of species
 species_list <-
   data %>%
-  select(order, family, species) %>%
+  select(species, family, order, endemic, IUCN, ICMBio) %>%
   arrange(order, family, species) %>%
   unique()
 
@@ -172,12 +172,100 @@ frst_lst_rcrd_graph <-
   xlab("Years") +
   theme(legend.title = element_blank())
 
+
+records_df <- data %>%
+  mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
+    "Local collections",
+    ifelse(institutionCode == "",
+      "Scientific literature",
+      ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
+        "International collections",
+        ifelse(str_detect(institutionCode, "iNat"),
+          "iNaturalist",
+          "National collections"
+        )
+      )
+    )
+  ))
+
+level_order <- records_df %>%
+  group_by(Collection) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n)) %>%
+  select(Collection)
+
+colection_contri <- records_df %>%
+  group_by(Collection) %>%
+  summarise(n = n()) %>%
+  mutate(per = n / sum(n))
+
+colection_contri$label <- scales::percent(colection_contri$per)
+colection_contri %>%
+  filter(per < 0.2) %>%
+  select(per) %>%
+  sum()
+
+bar_graph <- colection_contri %>%
+  ggplot() +
+  geom_bar(aes(
+    x = factor(Collection, levels = level_order$Collection),
+    y = n
+  ),
+  stat = "identity",
+  width = 0.8
+  ) +
+  xlab(element_blank()) +
+  ylab(element_blank()) +
+  theme_light()
+
+line_graph_collections <- records_df %>%
+  filter(year != "NA") %>%
+  mutate(fk_group = "a") %>%
+  mutate(year = as.Date(as.character(year), "%Y")) %>%
+  group_by(fk_group, Collection, year) %>%
+  summarise(n = n()) %>%
+  mutate(ncum = cumsum(n)) %>%
+  ggplot() +
+  scale_x_date(date_labels = "%Y") +
+  geom_line(aes(x = year, y = ncum, color = factor(Collection, levels = level_order$Collection))) +
+  theme_light() +
+  labs(
+    color = element_blank(),
+    x = element_blank(),
+    y = "Cumulative number of records"
+  )
+
+
 # Save ------------------------------------------------------------
 # Plot
-frst_lst_rcrd_graph
-ggsave("../data/results/exp-dat-bar-graph-first-last-record.pdf",
+frst_lst_rcrd_graph +
+  geom_segment(aes(x = as.Date("1950", "%Y"), y = 37, xend = as.Date("1950", "%Y"), yend = 25),
+    arrow = arrow(length = unit(0.25, "cm"))
+  ) +
+  geom_segment(aes(x = as.Date("1988", "%Y"), y = 37, xend = as.Date("1988", "%Y"), yend = 25),
+    arrow = arrow(length = unit(0.25, "cm"))
+  )
+ggsave("../data/results/04-bar-graph-first-last-record.pdf",
   width = 8,
   height = 6
+)
+
+line_graph_collections +
+  geom_segment(aes(x = as.Date("1950", "%Y"), y = 2500, xend = as.Date("1950", "%Y"), yend = 1500),
+    arrow = arrow(length = unit(0.25, "cm"))
+  ) +
+  geom_segment(aes(x = as.Date("1988", "%Y"), y = 3500, xend = as.Date("1988", "%Y"), yend = 2500),
+    arrow = arrow(length = unit(0.25, "cm"))
+  )
+ggsave("../data/results/04-line-graph-collections.pdf",
+  width = 8,
+  height = 6
+)
+
+bar_graph
+ggsave("../data/results/04-bar-grah-collections.pdf",
+       width = 8,
+       height = 6
 )
 
 # Tables
@@ -191,15 +279,15 @@ addWorksheet(OUT, "species-refs-sep-cols")
 addWorksheet(OUT, "collections-institutions")
 addWorksheet(OUT, "mammal-database")
 
-writeData(Supp, sheet = "first-last-record", x = species_record_df)
-writeData(OUT, sheet = "species-list", x = species_list)
+writeData(Supp, sheet = "first-last-record", x = species_list)
+writeData(OUT, sheet = "species-list", x = species_record_df)
 writeData(OUT, sheet = "species-reference-table", x = data_reference_table)
 writeData(OUT, sheet = "species-refs-sep-cols", x = species_references_df)
 writeData(OUT, sheet = "collections-institutions", x = collection_institution_df)
 writeData(OUT, sheet = "mammal-database", x = data)
 
-saveWorkbook(OUT, "../data/results/exp-dat-species-table.xlsx", overwrite = TRUE)
-saveWorkbook(Supp, "../data/results/Supp-table.xlsx", overwrite = TRUE)
+saveWorkbook(OUT, "../data/results/04-species-table.xlsx", overwrite = TRUE)
+saveWorkbook(Supp, "../data/results/04-Supp-table.xlsx", overwrite = TRUE)
 
 # Save workspace ----
 save.image("~/tcc-ccma/code/06-do-explore-data.RData")
