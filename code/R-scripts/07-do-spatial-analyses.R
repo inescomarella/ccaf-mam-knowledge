@@ -24,6 +24,9 @@ conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflict_prefer("extract", "raster")
 conflicted::conflict_prefer("raster_extract", "geobgu")
+conflicted::conflict_prefer("get_legend", "cowplot")
+
+source("./R-scripts/functions/funs-spatial-analyses.R")
 
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
@@ -290,12 +293,30 @@ GKL_map <- processed_data %>%
   labs(fill = "Gap in knowledge level")
 
 nrec_map <- processed_data %>%
-  filter(nrec > 1) %>%
+  mutate(nrec = ifelse(nrec <= 1, 0, nrec)) %>%
+  filter(nrec > 0) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = nrec)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(1, max(processed_data$nrec)),
+    breaks = c(
+      1,
+      round((max(processed_data$nrec) - 1) / 4, 0),
+      round((max(processed_data$nrec) - 1) * 2 / 4, 0),
+      round((max(processed_data$nrec) - 1) * 3 / 4, 0),
+      max(processed_data$nrec)
+    ),
+    labels = c(
+      1,
+      round((max(processed_data$nrec) - 1) / 4, 0),
+      round((max(processed_data$nrec) - 1) * 2 / 4, 0),
+      round((max(processed_data$nrec) - 1) * 3 / 4, 0),
+      max(processed_data$nrec)
+    )
+  ) +
   theme_light() +
   labs(fill = "Number of records")
 
@@ -305,7 +326,24 @@ c_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = c)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(0, max(processed_data$c, na.rm = TRUE)),
+    breaks = c(
+      0,
+      round((max(processed_data$c, na.rm = TRUE)) / 4, 1),
+      round((max(processed_data$c, na.rm = TRUE)) * 2 / 4, 1),
+      round((max(processed_data$c, na.rm = TRUE)) * 3 / 4, 1),
+      max(processed_data$c, na.rm = TRUE)
+    ),
+    labels = c(
+      0,
+      round((max(processed_data$c, na.rm = TRUE)) / 4, 1),
+      round((max(processed_data$c, na.rm = TRUE)) * 2 / 4, 1),
+      round((max(processed_data$c, na.rm = TRUE)) * 3 / 4, 1),
+      max(processed_data$c, na.rm = TRUE)
+    )
+  ) +
   theme_light() +
   labs(fill = "c-value")
 
@@ -334,7 +372,24 @@ Sest_map <- processed_data %>%
   geom_sf(size = NA, aes(fill = Sest)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(0, max(processed_data$Sest, na.rm = TRUE)),
+    breaks = c(
+      0,
+      round((max(processed_data$Sest, na.rm = TRUE)) / 4, 0),
+      round((max(processed_data$Sest, na.rm = TRUE)) * 2 / 4, 0),
+      round((max(processed_data$Sest, na.rm = TRUE)) * 3 / 4, 0),
+      max(processed_data$Sest, na.rm = TRUE)
+    ),
+    labels = c(
+      0,
+      round((max(processed_data$Sest, na.rm = TRUE)) / 4, 0),
+      round((max(processed_data$Sest, na.rm = TRUE)) * 2 / 4, 0),
+      round((max(processed_data$Sest, na.rm = TRUE)) * 3 / 4, 0),
+      max(processed_data$Sest, na.rm = TRUE)
+    )
+  ) +
   theme_light()
 
 elev_map <- processed_data %>%
@@ -629,108 +684,27 @@ tidy(lm_fit) %>%
     vline = geom_vline(xintercept = 0, colour = "grey50", linetype = 2)
   ) + theme_light()
 
-
-records_df <- records_longlat %>%
-  st_drop_geometry() %>%
-  mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
-    "Local collections",
-    ifelse(institutionCode == "",
-      "Scientific literature",
-      ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
-        "International collections",
-        ifelse(str_detect(institutionCode, "iNat"),
-          "iNaturalist",
-          "National collections"
-        )
-      )
-    )
-  ))
-
-level_order <- records_df %>%
-  group_by(Collection) %>%
-  summarise(n = n()) %>%
-  arrange(desc(n)) %>%
-  select(Collection)
-
-data <- records_df %>%
-  group_by(Collection) %>%
-  summarise(n = n()) %>%
-  mutate(per = n / sum(n))
-
-data$label <- scales::percent(data$per)
-data %>%
-  filter(per < 0.2) %>%
-  select(per) %>% sum()
-
-pie_chart <- data %>% 
-  ggplot() +
-  geom_bar(aes(
-    x = "",
-    y = n,
-    fill = factor(Collection, levels = level_order$Collection)
-  ),
-  stat = "identity",
-  width = 1) +
-  coord_polar("y", start = 0) +
-  theme_void() +
-  labs(fill = element_blank())
-
-line_graph_collections <- records_df %>%
-  filter(year != "NA") %>%
-  mutate(fk_group = "a") %>%
-  mutate(year = as.Date(year, "%Y")) %>%
-  group_by(fk_group, Collection, year) %>%
-  summarise(n = n()) %>%
-  mutate(ncum = cumsum(n)) %>%
-  ggplot() +
-  scale_x_date(date_labels = "%Y") +
-  geom_line(aes(x = year, y = ncum, color = factor(Collection, levels = level_order$Collection))) +
-  theme_light() +
-  labs(color = element_blank(),
-       x = element_blank(),
-       y = "Cumulative number of records")
-
 # Save results -------------
-pie_chart
-ggsave("../data/results/spa-mea-pie-chart.pdf",
-       width = 8,
-       height = 6
-)
-line_graph_collections
-ggsave("../data/results/spa-mea-line-graph-collections.pdf",
-       width = 8,
-       height = 6
-)
 
-KL_map  + theme_void() + (nrec_map  + theme_void() / c_map  + theme_void())
-ggsave("../data/results/spa-mea-KL-nrec-c-map.pdf",
+KL_map  + theme_void() + (nrec_map  + theme_void() + c_map  + theme_void())
+ggsave("../data/results/07-KL-nrec-c-map.pdf",
        width = 11.69,
        height = 8.27
 )
 
-GKL_map + theme_void() + (forest_map + theme_void() + elev_map + theme_void()) / (AMT_map + theme_void() + AP_map + theme_void())
-ggsave("../data/results/spa-mea-environment-map.pdf",
+GKL_map + theme_void() + 
+  (forest_map + theme_void() + elev_map + theme_void()) / 
+  (AMT_map + theme_void() + AP_map + theme_void())
+ggsave("../data/results/07-environment-map.pdf",
        width = 11.69,
        height = 8.27
 )
-conflicted::conflict_prefer("get_legend", "cowplot")
-
-legend <- get_legend(predict_collection)
-predict_collection_nl <- predict_collection + theme(legend.position = "none")
-predict_SR_nl <- predict_SR + theme(legend.position = "none")
-
-predict_collection_nl + predict_SR_nl + legend
-ggsave("../data/results/spa-mea-predict.pdf",
-       width = 8,
-       height = 4
-)
-
 
 # Tables
 OUT <- createWorkbook()
 addWorksheet(OUT, "Sheet1")
 writeData(OUT, sheet = "Sheet1", x = tidy(lm_fit))
-saveWorkbook(OUT, "../data/results/spa-mea-model.xlsx", overwrite = TRUE)
+saveWorkbook(OUT, "../data/results/07-model.xlsx", overwrite = TRUE)
 
 # Save workspace ----
-save.image("~/tcc-ccma/code/spatial-measurements.RData")
+save.image("~/tcc-ccma/code/spatial-analyses.RData")
