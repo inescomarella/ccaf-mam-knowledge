@@ -38,13 +38,18 @@ data_paper <- select(data_paper, -X)
 colnames(data_paper)[15] <- "year"
 
 # Correct eventDate
-data_downl <-
-  data_downl %>%
-  mutate(eventDate = ymd_hms(eventDate)) %>%
-  mutate(eventDate = word(eventDate, 1))
+data_downl_eventDate <-
+  data_downl %>% 
+  mutate(eventDate = ymd_hms(eventDate)) %>% 
+  mutate(eventDate = word(eventDate, 1)) %>%
+  mutate(eventDate = ifelse(
+      is.na(eventDate) & !is.na(year), 
+      as.Date(as.character(year), "%Y"), 
+      eventDate)
+      ) 
 
 # Binding data.frames
-data_all_raw <- rbind.fill(data_paper, data_downl)
+data_all_raw <- rbind.fill(data_paper, data_downl_eventDate)
 
 # Keep data_paper columns, remove others
 data_all <- select(data_all_raw, colnames(data_paper))
@@ -509,7 +514,18 @@ exotic_sp_list <- data.frame(
     "Didelphis albiventris",
     "Tonatia saurophila",
     "Marmosa travassosi",
-    "Micoureus travassosi"
+    "Micoureus travassosi",
+    "Mazama bororo",
+    "Didelphis marsupialis",
+    "Metachirus nudicaudatus",
+    "Akodon aerosus",
+    "Delomys dorsalis",
+    "Euryoryzomys lamia",
+    "Oxymycterus quaestor",
+    "Dasyprocta azarae",
+    "Myocastor coypus",
+    "Trinomys dimidiatus",
+    "Calomys tener"
   )
 )
 
@@ -941,10 +957,10 @@ nrow(data_all_only_indetified_species)
 # Records after geographic clean = 14487
 nrow(data_all_clipped)
 
-# Records after taxonomic clean (and removing marine species) = 14134
+# Records after taxonomic clean (and removing marine species) = 13993
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 12437
+# Final number of unique records = 12326
 nrow(clean_data_distincted)
 
 # Save data.frame ----------------------------------------------------
