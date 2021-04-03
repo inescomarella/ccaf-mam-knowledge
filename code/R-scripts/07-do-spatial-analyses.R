@@ -1,10 +1,11 @@
+
 # Load libraries
 xfun::pkg_attach2(
   c(
     "tidyverse",
     "sf",
     "sp",
-    "bdvis",
+    "fossil",
     "raster",
     "elevatr",
     "patchwork",
@@ -51,6 +52,15 @@ ccaf <-
     ymin = -21.30178
   )
 
+rm(br_longlat)
+
+forest <-
+  raster(
+    "../data/raw-data/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-2019.tif"
+  ) %>%
+  crop(as(ccaf, "Spatial")) %>%
+  mask(as(ccaf, "Spatial")) %in% 1:10
+
 cus_longlat <-
   read_sf("../data/processed-data/CUs-map.shp") %>%
   st_transform(longlat) %>%
@@ -78,10 +88,6 @@ institutes_utm <-
     )
   )
 
-forest <-
-  read_sf("../data/processed-data/forest-area.shp") %>%
-  st_transform(longlat)
-
 # Make grid ----
 grid <-
   ccaf %>%
@@ -90,20 +96,67 @@ grid <-
 
 grid$grid_id <- seq(1, nrow(grid), 1)
 
-# Measure forest coverage ----
-int <- as_tibble(st_intersection(forest, grid))
-int$forest_area <- st_area(int$geometry)
+# Biological variables ----
+record_grid <- st_intersection(records_longlat, grid)
 
-int_grouped <- int %>%
-  group_by(grid_id) %>%
-  summarise(forest_area = as.numeric(sum(forest_area)))
+for (i in 1:nrow(grid)) {
+  
+  grid$nrec[i] <- record_grid %>%
+    filter(grid_id == i) %>%
+    nrow()
+  
+  nrec <- record_grid %>%
+    filter(grid_id == i) %>%
+    filter(!is.na(eventDate)) %>%
+    nrow()
+  
+  cell_df <- record_grid %>%
+    filter(grid_id == i) %>%
+    select(eventDate, species) %>%
+    st_drop_geometry() %>%
+    unique()
+  
+  grid$Sobs[i] <- length(unique(cell_df$species))
+  
+  if (nrec >= 25) {
+    
+    cell_df_expended <- cell_df %>%
+      expand(eventDate, species)
+    
+    cell_df_expended_absent <- anti_join(cell_df_expended, cell_df)
+    
+    cell_df$State <- 1
+    cell_df_expended_absent$State <- 0
+    
+    cell_df_State <- bind_rows(cell_df, cell_df_expended_absent)
+    
+    sp_by_saple_df <- cell_df_State %>%
+      arrange(eventDate, species) %>%
+      spread(key = eventDate, value = State)
+    
+    grid$Sest[i] <- chao2(sp_by_saple_df[, -1])
+  } else {
+    grid$Sest[i] <- NA
+  }
+  
+}
 
-grid_forest <- merge(grid, int_grouped, by = "grid_id")
+grid_bio <- grid %>%
+  mutate(c = Sobs/Sest)
+
+proximity <- 
+  research.institute.proximity(grid = st_join(records_longlat, grid), institutes_points = institutes_utm)
+
+grid_bio <- merge(grid_bio, proximity, all = TRUE)
 
 # Get environment data ----
 # Get elevation data
-ccaf_elevation <-
-  get_elev_raster(ccaf, z = 10, clip = "locations")
+elevation_data <- 
+  getData("alt",
+  country = "BRA",
+  mask = TRUE,
+  res = 2.5
+)
 
 # Get environment data
 worldclim_data <- getData("worldclim", var = "bio", res = 2.5)
@@ -116,133 +169,80 @@ names(worldclim_amt_ap) <-
 
 # Extract environment data from sample points
 ccaf_environmet <- mask(crop(worldclim_amt_ap, ccaf), ccaf)
+ccaf_elevation <- mask(crop(elevation_data, ccaf), ccaf)
 
-# Estimate completeness ----
+# Re-scale
+ccaf_environmet_rescaled <- disaggregate(ccaf_environmet, fact = 6/2.5, fun = "bilinear")
+ccaf_elevation_rescaled <- disaggregate(ccaf_elevation, fact = 6/2.5, fun = "bilinear")
 
-# Get dataframe
-records_df <-
-  st_drop_geometry(records_longlat)
+# Calculate variables ----
 
-# bdvis dataframe standards
-conf <-
-  list(
-    Latitude = "decimalLatitude",
-    Longitude = "decimalLongitude",
-    Date_collected = "eventDate",
-    Scientific_name = "species"
-  )
-
-# Format dataframe to bdvis standards
-records_bdvis <- format_bdvis(records_df, config = conf)
-
-# Get cell id to estimate completeness
-records_cell_id <- getcellid(records_bdvis)
-
-# Estimate completeness based on Chao2 index of species richness
-bdcompleted <-
-  bdcomplete(
-    records_cell_id,
-    recs = 25,
-    gridscale = 0.1
-  )
-
-# Merge completeness estimate and cell id
-records_bdcomplete <- merge(records_cell_id, bdcompleted, all = T)
-
-records_bdcomplete_longlat <-
-  merge(records_longlat, records_bdcomplete)
-
-# Measurements ----
-
-grid_envi <- grid_forest %>% 
+grid_envi <- grid_bio %>% 
   mutate(
+    forest_cov = raster_extract(
+      x = st_as_stars(forest),
+      y = grid_bio,
+      fun = sum,
+      na.rm = TRUE
+    ),
     AMT = raster_extract(
-      x = st_as_stars(ccaf_environmet$AMT),
-      y = grid_forest,
+      x = st_as_stars(ccaf_environmet_rescaled$AMT),
+      y = grid_bio,
       fun = mean,
       na.rm = TRUE
     ),
     AP = raster_extract(
-      x = st_as_stars(ccaf_environmet$AP),
-      y = grid_forest,
+      x = st_as_stars(ccaf_environmet_rescaled$AP),
+      y = grid_bio,
       fun = mean,
       na.rm = TRUE
     ),
     elev = raster_extract(
-      x = st_as_stars(ccaf_elevation),
-      y = grid_forest,
+      x = st_as_stars(ccaf_elevation_rescaled),
+      y = grid_bio,
       fun = mean,
       na.rm = TRUE
     )
   )
 
-grid_envi_rec <-  st_join(grid_envi, records_bdcomplete_longlat) %>%
-  group_by(grid_id) %>%
-  mutate(nrec = n())
-
-grid_envi_rec_ri <-
-  research.institute.distance(grid_envi_rec, institutes_utm)
-
-grid_envi_rec_ri$CU <-  grid_envi_rec_ri %>%
+grid_envi$CU <-  grid_envi %>%
   st_intersects(cus_longlat) %>%
   lengths()
 
-clean_data <-  grid_envi_rec_ri %>%
+grid_data <-  grid_envi %>%
   group_by(grid_id) %>%
   mutate(
-    distance = mean(distance, na.rm = TRUE),
-    c = mean(c),
-    Sest = mean(Sest),
-    KM = (c + nrec / max(grid_envi_rec_ri$nrec, na.rm = TRUE)) / 2,
-    forest_perc = forest_area / as.numeric(st_area(geometry))
+    KL = (c + nrec / max(grid_envi$nrec, na.rm = TRUE)) / 2
   ) %>%
-  mutate(KM = ifelse(is.na(KM) | is.infinite(KM), 0, KM)) %>%
-  select(KM, nrec, c, CU, forest_area, forest_perc, Sest, elev, AMT, AP, distance, grid_id) %>%
-  distinct(grid_id, .keep_all = TRUE)
+  mutate(KL = ifelse(is.na(KL) | is.infinite(KL), 0, KL))
 
-processed_data <- clean_data %>%
+grid_data_processing <- grid_data %>%
   mutate(
-    elev_weight = abs(elev - filter(
-      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
+    elevd = abs(elev - filter(
+      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
     )$elev),
-    AMT_weight = abs(AMT - filter(
-      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
+    AMTd = abs(AMT - filter(
+      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
     )$AMT),
-    AP_weight = abs(AP - filter(
-      clean_data, KM == max(clean_data$KM, na.rm = TRUE)
+    APd = abs(AP - filter(
+      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
     )$AP)
   )
 
-processed_data <- processed_data %>%
+grid_data_processed <- grid_data_processing %>%
   mutate(
-    elev_weight = elev_weight / max(processed_data$elev_weight, na.rm = TRUE),
-    AMT_weight = AMT_weight / max(processed_data$AMT_weight, na.rm = TRUE),
-    AP_weight = AP_weight / max(processed_data$AP_weight, na.rm = TRUE)
+    elevd = elevd / max(grid_data_processing$elevd, na.rm = TRUE),
+    AMTd = AMTd / max(grid_data_processing$AMTd, na.rm = TRUE),
+    APd = APd / max(grid_data_processing$APd, na.rm = TRUE),
+    forestw = forest_cov / max(grid_data_processing$forest_cov, na.rm = TRUE)
   ) %>%
-  mutate(KG = forest_perc * mean(c(elev_weight, AMT_weight, AP_weight, (1 - KM))))
+  mutate(KG = forestw * mean(c(elevd, AMTd, APd, (1 - KL))))
 
+# Variables maps ----
 
-# Variable maps ----
-
-processed_data <- processed_data %>%
-  mutate(KL = ifelse(
-    KM > 0.8,
-    "Very high",
-    ifelse(
-      KM > 0.6 & KM < 0.8,
-      "High",
-      ifelse(
-        KM > 0.4 & KM < 0.6,
-        "Medium",
-        ifelse(
-          KM > 0.2 & KM < 0.4,
-          "Low",
-          "Very low"
-        )
-      )
-    )
-  )) %>%
-  mutate(GKL = ifelse(
+grid_data_classified <- grid_data_processed %>%
+  filter(!is.nan(KG)) %>%
+  mutate(KG_class = ifelse(
     KG > 0.8,
     "Very high",
     ifelse(
@@ -258,20 +258,37 @@ processed_data <- processed_data %>%
         )
       )
     )
+  )) %>%
+  mutate(KL_class = ifelse(
+    KL > 0.8,
+    "Very high",
+    ifelse(
+      KL > 0.6 & KL < 0.8,
+      "High",
+      ifelse(
+        KL > 0.4 & KL < 0.6,
+        "Medium",
+        ifelse(
+          KL > 0.2 & KL < 0.4,
+          "Low",
+          "Very low"
+        )
+      )
+    )
   ))
 
 levels <- c("Very high", "High", "Medium", "Low", "Very low")
 
-processed_data$KL <-
-  factor(processed_data$KL,
+grid_data_classified$KL_class <-
+  factor(grid_data_classified$KL_class,
          levels = levels)
-processed_data$GKL <-
-  factor(processed_data$GKL,
+grid_data_classified$KG_class <-
+  factor(grid_data_classified$KG_class,
          levels = levels)
 
-KL_map <- processed_data %>%
+KL_map <- grid_data_classified %>%
   ggplot() +
-  geom_sf(aes(fill = KL), color = NA) +
+  geom_sf(aes(fill = KL_class), color = NA) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus",
@@ -280,47 +297,47 @@ KL_map <- processed_data %>%
   theme_light() +
   labs(fill = "Knowledge level")
 
-GKL_map <- processed_data %>%
-  filter(!is.na(GKL)) %>%
+KG_map <- grid_data_classified %>%
   ggplot() +
-  geom_sf(aes(fill = GKL), color = NA) +
+  geom_sf(aes(fill = KG_class), color = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus",
                   discrete = TRUE,
                   direction = -1) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
-  labs(fill = "Gap in knowledge level")
+  labs(fill = "Study urgency level")
 
-nrec_map <- processed_data %>%
-  mutate(nrec = ifelse(nrec <= 1, 0, nrec)) %>%
-  filter(nrec > 0) %>%
+breaks <- c(
+  1,
+  round((max(grid_data_classified$nrec) - 1) / 4, 0),
+  round((max(grid_data_classified$nrec) - 1) * 2 / 4, 0),
+  round((max(grid_data_classified$nrec) - 1) * 3 / 4, 0),
+  max(grid_data_classified$nrec)
+)
+nrec_map <- grid_data_classified %>%
+  filter(nrec > 1) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = nrec)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(1, max(processed_data$nrec)),
-    breaks = c(
-      1,
-      round((max(processed_data$nrec) - 1) / 4, 0),
-      round((max(processed_data$nrec) - 1) * 2 / 4, 0),
-      round((max(processed_data$nrec) - 1) * 3 / 4, 0),
-      max(processed_data$nrec)
-    ),
-    labels = c(
-      1,
-      round((max(processed_data$nrec) - 1) / 4, 0),
-      round((max(processed_data$nrec) - 1) * 2 / 4, 0),
-      round((max(processed_data$nrec) - 1) * 3 / 4, 0),
-      max(processed_data$nrec)
-    )
+    limits = c(1, max(grid_data_classified$nrec)),
+    breaks = breaks,
+    labels = breaks
   ) +
   theme_light() +
-  labs(fill = "Number of records")
+  labs(fill = "nRec")
 
-c_map <- processed_data %>%
+breaks <- c(
+  0,
+  round((max(grid_data_classified$c, na.rm = TRUE)) / 4, 1),
+  round((max(grid_data_classified$c, na.rm = TRUE)) * 2 / 4, 1),
+  round((max(grid_data_classified$c, na.rm = TRUE)) * 3 / 4, 1),
+  max(grid_data_classified$c, na.rm = TRUE)
+)
+c_map <- grid_data_classified %>%
   filter(!is.na(c)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = c)) +
@@ -328,26 +345,14 @@ c_map <- processed_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(0, max(processed_data$c, na.rm = TRUE)),
-    breaks = c(
-      0,
-      round((max(processed_data$c, na.rm = TRUE)) / 4, 1),
-      round((max(processed_data$c, na.rm = TRUE)) * 2 / 4, 1),
-      round((max(processed_data$c, na.rm = TRUE)) * 3 / 4, 1),
-      max(processed_data$c, na.rm = TRUE)
-    ),
-    labels = c(
-      0,
-      round((max(processed_data$c, na.rm = TRUE)) / 4, 1),
-      round((max(processed_data$c, na.rm = TRUE)) * 2 / 4, 1),
-      round((max(processed_data$c, na.rm = TRUE)) * 3 / 4, 1),
-      max(processed_data$c, na.rm = TRUE)
-    )
+    limits = c(0, max(grid_data_classified$c, na.rm = TRUE)),
+    breaks = breaks,
+    labels = breaks
   ) +
   theme_light() +
-  labs(fill = "c-value")
+  labs(fill = "C")
 
-CU_map <- processed_data %>%
+CU_map <- grid_data_classified %>%
   mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
   ggplot() +
   geom_sf(color = NA, aes(fill = CU)) +
@@ -355,18 +360,50 @@ CU_map <- processed_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus", discrete = TRUE) +
   theme_light() +
-  labs(fill = "Conservation Unit")
+  labs(fill = "CU")
 
-forest_map <- processed_data %>%
+forest_map <- grid_data_classified %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = forest_area)) +
+  geom_sf(size = NA, aes(fill = forest_cov)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    breaks = c(0, max(grid_data_classified$forest_cov, na.rm = TRUE)),
+    labels = c("Low", "High")
+  ) +
   theme_light() +
   labs(fill = "Forest coverage")
 
-Sest_map <- processed_data %>%
+breaks <- c(
+  0,
+  round((max(grid_data_classified$Sobs, na.rm = TRUE)) / 4, 0),
+  round((max(grid_data_classified$Sobs, na.rm = TRUE)) * 2 / 4, 0),
+  round((max(grid_data_classified$Sobs, na.rm = TRUE)) * 3 / 4, 0),
+  max(grid_data_classified$Sobs, na.rm = TRUE)
+)
+Sobs_map <- grid_data_classified %>%
+  filter(!is.na(Sobs)) %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = Sobs)) +
+  geom_sf(data = cus_longlat, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(0, max(grid_data_classified$Sobs, na.rm = TRUE)),
+    breaks = breaks,
+    labels = breaks
+  ) +
+  theme_light()
+
+breaks <- c(
+  0,
+  round((max(grid_data_classified$Sest, na.rm = TRUE)) / 4, 0),
+  round((max(grid_data_classified$Sest, na.rm = TRUE)) * 2 / 4, 0),
+  round((max(grid_data_classified$Sest, na.rm = TRUE)) * 3 / 4, 0),
+  max(grid_data_classified$Sest, na.rm = TRUE)
+)
+Sest_map <- grid_data_classified %>%
   filter(!is.na(Sest)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = Sest)) +
@@ -374,25 +411,13 @@ Sest_map <- processed_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(0, max(processed_data$Sest, na.rm = TRUE)),
-    breaks = c(
-      0,
-      round((max(processed_data$Sest, na.rm = TRUE)) / 4, 0),
-      round((max(processed_data$Sest, na.rm = TRUE)) * 2 / 4, 0),
-      round((max(processed_data$Sest, na.rm = TRUE)) * 3 / 4, 0),
-      max(processed_data$Sest, na.rm = TRUE)
-    ),
-    labels = c(
-      0,
-      round((max(processed_data$Sest, na.rm = TRUE)) / 4, 0),
-      round((max(processed_data$Sest, na.rm = TRUE)) * 2 / 4, 0),
-      round((max(processed_data$Sest, na.rm = TRUE)) * 3 / 4, 0),
-      max(processed_data$Sest, na.rm = TRUE)
-    )
+    limits = c(0, max(grid_data_classified$Sest, na.rm = TRUE)),
+    breaks = breaks,
+    labels = breaks
   ) +
   theme_light()
 
-elev_map <- processed_data %>%
+elev_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = elev)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -401,27 +426,50 @@ elev_map <- processed_data %>%
   theme_light() +
   labs(fill = "Elevation")
 
-AMT_map <- processed_data %>%
+elev_distance_map <- grid_data_classified %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = elevd)) +
+  geom_sf(data = cus_longlat, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  theme_light() +
+  labs(fill = "Elevd")
+
+AMT_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AMT)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light() +
-  labs(fill = "Annual Mean \nTemperature")
+  theme_light()
 
-AP_map <- processed_data %>%
+AMT_distance_map <- grid_data_classified %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = AMTd)) +
+  geom_sf(data = cus_longlat, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  theme_light()
+
+AP_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AP)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light() +
-  labs(fill = "Annual Precipitation")
+  theme_light()
 
-distance_map <- processed_data %>%
+AP_distance_map <- grid_data_classified %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = distance)) +
+  geom_sf(size = NA, aes(fill = APd)) +
+  geom_sf(data = cus_longlat, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  theme_light()
+
+pri_prox_map <- grid_data_classified %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = proximity)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus") +
@@ -430,8 +478,8 @@ distance_map <- processed_data %>%
 
 # Variables graphs ----
 
-nrec_c_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
+nrec_c_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
   ggscatter(
     x = "nrec", y = "c",
     add = "reg.line",
@@ -441,10 +489,10 @@ nrec_c_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-KG_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
+KG_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
   ggscatter(
-    x = "KG", y = "KM",
+    x = "KG", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -452,10 +500,10 @@ KG_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-nrec_graph <- processed_data %>%
-  mutate(nrec = ifelse(is.na(nrec), 0, nrec)) %>%
+nrec_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
   ggscatter(
-    x = "nrec", y = "KM",
+    x = "nrec", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -463,9 +511,9 @@ nrec_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-c_graph <- processed_data %>%
+c_graph <- grid_data_classified %>%
   ggscatter(
-    x = "c", y = "KM",
+    x = "c", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -473,9 +521,9 @@ c_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-CU_graph <- processed_data %>%
+CU_graph <- grid_data_classified %>%
   ggscatter(
-    x = "CU", y = "KM",
+    x = "CU", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -483,9 +531,9 @@ CU_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-forest_graph <- processed_data %>%
+forest_graph <- grid_data_classified %>%
   ggscatter(
-    x = "forest_area", y = "KM",
+    x = "forestw", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -493,9 +541,9 @@ forest_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-Sest_graph <- processed_data %>%
+Sest_graph <- grid_data_classified %>%
   ggscatter(
-    x = "Sest", y = "KM",
+    x = "Sest", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -503,9 +551,9 @@ Sest_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-elev_graph <- processed_data %>%
+elev_graph <- grid_data_classified %>%
   ggscatter(
-    x = "elev", y = "KM",
+    x = "elev", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -513,9 +561,9 @@ elev_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-AMT_graph <- processed_data %>%
+AMT_graph <- grid_data_classified %>%
   ggscatter(
-    x = "AMT", y = "KM",
+    x = "AMT", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -523,9 +571,9 @@ AMT_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-AP_graph <- processed_data %>%
+AP_graph <- grid_data_classified %>%
   ggscatter(
-    x = "AP", y = "KM",
+    x = "AP", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -533,9 +581,9 @@ AP_graph <- processed_data %>%
   stat_cor(method = "pearson") +
   theme_light()
 
-distance_graph <- processed_data %>%
+ri_proximity_graph <- grid_data_classified %>%
   ggscatter(
-    x = "distance", y = "KM",
+    x = "proximity", y = "KL",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
@@ -546,9 +594,9 @@ distance_graph <- processed_data %>%
 # Fit model ----
 
 # Pre-process
-df_recipe <- processed_data %>%
+df_recipe <- grid_data_classified %>%
   st_drop_geometry() %>%
-  recipe(nrec ~ .) %>%
+  recipe(nrec ~ proximity + CU + forest_cov + Sest) %>%
   step_corr(all_predictors()) %>%
   step_center(all_predictors(), -all_outcomes()) %>%
   step_scale(all_predictors(), -all_outcomes()) %>%
@@ -564,7 +612,7 @@ lm_mod <-
 # Fit model
 lm_fit <-
   lm_mod %>%
-  fit(nrec ~ distance + CU + forest_perc + Sest, data = df_juice)
+  fit(nrec ~ proximity + CU + forest_cov + Sest, data = df_juice)
 
 tidy(lm_fit)
 
@@ -573,26 +621,26 @@ tidy(lm_fit)
 # New data
 new_points_CUp_dist <- expand.grid(
   CU = 1,
-  distance = seq(-5, 5, 0.2),
-  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
+  proximity = seq(-5, 5, 0.2),
+  forest_cov = mean(df_juice$forest_cov, na.rm = TRUE),
   Sest = max(df_juice$Sest, na.rm = TRUE)
 )
 new_points_CUp_Sest <- expand.grid(
   CU = 1,
-  distance = mean(df_juice$distance, na.rm = TRUE),
-  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
+  proximity = mean(df_juice$proximity, na.rm = TRUE),
+  forest_cov = mean(df_juice$forest_cov, na.rm = TRUE),
   Sest = seq(-5, 5, 0.2)
 )
 new_points_CUa_dist <- expand.grid(
   CU = 0,
-  distance = seq(-5, 5, 0.2),
-  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
+  proximity = seq(-5, 5, 0.2),
+  forest_cov = mean(df_juice$forest_cov, na.rm = TRUE),
   Sest = mean(df_juice$Sest, na.rm = TRUE)
 )
 new_points_CUa_Sest <- expand.grid(
   CU = 0,
-  distance = mean(df_juice$distance, na.rm = TRUE),
-  forest_perc = mean(df_juice$forest_perc, na.rm = TRUE),
+  proximity = mean(df_juice$proximity, na.rm = TRUE),
+  forest_cov = mean(df_juice$forest_cov, na.rm = TRUE),
   Sest = seq(-5, 5, 0.2)
 )
 # Predict mean
