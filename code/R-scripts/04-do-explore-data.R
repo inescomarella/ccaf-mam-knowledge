@@ -235,15 +235,34 @@ line_graph_collections <- records_df %>%
     y = "Cumulative number of records"
   )
 
-
 # Save ------------------------------------------------------------
 # Plot
 frst_lst_rcrd_graph +
-  geom_segment(aes(x = as.Date("1950", "%Y"), y = 37, xend = as.Date("1950", "%Y"), yend = 25),
-    arrow = arrow(length = unit(0.25, "cm"))
+  geom_segment(aes(
+    x = as.Date("1950", "%Y"),
+    y = 37,
+    xend = as.Date("1950", "%Y"),
+    yend = 25
+  ),
+  arrow = arrow(length = unit(0.25, "cm"))
   ) +
-  geom_segment(aes(x = as.Date("1988", "%Y"), y = 37, xend = as.Date("1988", "%Y"), yend = 25),
-    arrow = arrow(length = unit(0.25, "cm"))
+  geom_text(
+    x = as.Date("1950", "%Y"),
+    y = 41,
+    label = "A"
+  ) +
+  geom_segment(aes(
+    x = as.Date("1988", "%Y"),
+    y = 37,
+    xend = as.Date("1988", "%Y"),
+    yend = 25
+  ),
+  arrow = arrow(length = unit(0.25, "cm"))
+  ) +
+  geom_text(
+    x = as.Date("1988", "%Y"),
+    y = 41,
+    label = "B"
   )
 ggsave("../data/results/04-bar-graph-first-last-record.pdf",
   width = 8,
@@ -251,12 +270,33 @@ ggsave("../data/results/04-bar-graph-first-last-record.pdf",
 )
 
 line_graph_collections +
-  geom_segment(aes(x = as.Date("1950", "%Y"), y = 2500, xend = as.Date("1950", "%Y"), yend = 1500),
-    arrow = arrow(length = unit(0.25, "cm"))
+  geom_segment(aes(
+    x = as.Date("1950", "%Y"),
+    y = 2500,
+    xend = as.Date("1950", "%Y"),
+    yend = 1500
+  ),
+  arrow = arrow(length = unit(0.25, "cm"))
   ) +
-  geom_segment(aes(x = as.Date("1988", "%Y"), y = 3500, xend = as.Date("1988", "%Y"), yend = 2500),
-    arrow = arrow(length = unit(0.25, "cm"))
+  geom_text(
+    x = as.Date("1950", "%Y"),
+    y = 2650,
+    label = "A"
+  ) +
+  geom_segment(aes(
+    x = as.Date("1988", "%Y"),
+    y = 3500,
+    xend = as.Date("1988", "%Y"),
+    yend = 2500
+  ),
+  arrow = arrow(length = unit(0.25, "cm"))
+  ) +
+  geom_text(
+    x = as.Date("1988", "%Y"),
+    y = 3650,
+    label = "B"
   )
+
 ggsave("../data/results/04-line-graph-collections.pdf",
   width = 8,
   height = 6
@@ -264,8 +304,8 @@ ggsave("../data/results/04-line-graph-collections.pdf",
 
 bar_graph
 ggsave("../data/results/04-bar-grah-collections.pdf",
-       width = 8,
-       height = 6
+  width = 8,
+  height = 6
 )
 
 # Tables
