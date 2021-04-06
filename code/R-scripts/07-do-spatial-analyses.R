@@ -7,7 +7,6 @@ xfun::pkg_attach2(
     "sp",
     "fossil",
     "raster",
-    "elevatr",
     "patchwork",
     "cowplot",
     "openxlsx",
@@ -31,6 +30,7 @@ source("./R-scripts/functions/funs-spatial-analyses.R")
 
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
+utm <- CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
 # Load in data -----------
 br_longlat <-
@@ -89,12 +89,31 @@ institutes_utm <-
   )
 
 # Make grid ----
+cellsize <- sqrt(3500) * 1000
+
+# Make the hexagon grid with the expected area as simple feature
 grid <-
   ccaf %>%
-  st_make_grid(cellsize = 0.1) %>%
+  st_make_grid(cellsize = 0.55, square = T, offset = c(st_bbox(ccaf)[c("xmin")]-0.22, st_bbox(ccaf)[c("ymin")]-0.45)) %>%
   st_as_sf()
 
+grid %>% ggplot() + geom_sf() + 
+  geom_sf(data = ccaf, fill = NA)
+
 grid$grid_id <- seq(1, nrow(grid), 1)
+
+# Area
+grid$area <- grid %>% st_area()
+a <- grid$area[1]
+units(a) <- "km^2"
+a
+units(grid$area) <- "km^2"
+max(grid$area)
+min(grid$area)
+
+units(grid$area) <- NULL
+
+
 
 # Biological variables ----
 record_grid <- st_intersection(records_longlat, grid)
@@ -238,7 +257,7 @@ grid_data_processed <- grid_data_processing %>%
   ) %>%
   mutate(KG = forestw * mean(c(elevd, AMTd, APd, (1 - KL))))
 
-# Variables maps ----
+# Map variables ----
 
 grid_data_classified <- grid_data_processed %>%
   filter(!is.nan(KG)) %>%
@@ -281,40 +300,39 @@ levels <- c("Very high", "High", "Medium", "Low", "Very low")
 
 grid_data_classified$KL_class <-
   factor(grid_data_classified$KL_class,
-         levels = levels)
+    levels = levels
+  )
 grid_data_classified$KG_class <-
   factor(grid_data_classified$KG_class,
-         levels = levels)
+    levels = levels
+  )
 
 KL_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(aes(fill = KL_class), color = NA) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus",
-                  discrete = TRUE,
-                  direction = -1) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    discrete = TRUE,
+    direction = -1
+  ) +
   theme_light() +
   labs(fill = "Knowledge level")
 
 KG_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(aes(fill = KG_class), color = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus",
-                  discrete = TRUE,
-                  direction = -1) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    discrete = TRUE,
+    direction = -1
+  ) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
   labs(fill = "Study urgency level")
 
-breaks <- c(
-  1,
-  round((max(grid_data_classified$nrec) - 1) / 4, 0),
-  round((max(grid_data_classified$nrec) - 1) * 2 / 4, 0),
-  round((max(grid_data_classified$nrec) - 1) * 3 / 4, 0),
-  max(grid_data_classified$nrec)
-)
 nrec_map <- grid_data_classified %>%
   filter(nrec > 1) %>%
   ggplot() +
@@ -324,19 +342,12 @@ nrec_map <- grid_data_classified %>%
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(1, max(grid_data_classified$nrec)),
-    breaks = breaks,
-    labels = breaks
+    breaks = break_5points(st_drop_geometry(grid_data_classified), nrec, 0, 1),
+    labels = break_5points(st_drop_geometry(grid_data_classified), nrec, 0, 1)
   ) +
   theme_light() +
-  labs(fill = "nRec")
+  labs(fill = "Number of\nRecords")
 
-breaks <- c(
-  0,
-  round((max(grid_data_classified$c, na.rm = TRUE)) / 4, 1),
-  round((max(grid_data_classified$c, na.rm = TRUE)) * 2 / 4, 1),
-  round((max(grid_data_classified$c, na.rm = TRUE)) * 3 / 4, 1),
-  max(grid_data_classified$c, na.rm = TRUE)
-)
 c_map <- grid_data_classified %>%
   filter(!is.na(c)) %>%
   ggplot() +
@@ -346,11 +357,11 @@ c_map <- grid_data_classified %>%
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(0, max(grid_data_classified$c, na.rm = TRUE)),
-    breaks = breaks,
-    labels = breaks
+    breaks = break_5points(st_drop_geometry(grid_data_classified), c, 1, 0),
+    labels = break_5points(st_drop_geometry(grid_data_classified), c, 1, 0)
   ) +
   theme_light() +
-  labs(fill = "C")
+  labs(fill = "Completeness")
 
 CU_map <- grid_data_classified %>%
   mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
@@ -360,7 +371,7 @@ CU_map <- grid_data_classified %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus", discrete = TRUE) +
   theme_light() +
-  labs(fill = "CU")
+  labs(fill = "Conservation\nUnit")
 
 forest_map <- grid_data_classified %>%
   ggplot() +
@@ -373,36 +384,24 @@ forest_map <- grid_data_classified %>%
     labels = c("Low", "High")
   ) +
   theme_light() +
-  labs(fill = "Forest coverage")
+  labs(fill = "Relative forest coverage")
 
-breaks <- c(
-  0,
-  round((max(grid_data_classified$Sobs, na.rm = TRUE)) / 4, 0),
-  round((max(grid_data_classified$Sobs, na.rm = TRUE)) * 2 / 4, 0),
-  round((max(grid_data_classified$Sobs, na.rm = TRUE)) * 3 / 4, 0),
-  max(grid_data_classified$Sobs, na.rm = TRUE)
-)
 Sobs_map <- grid_data_classified %>%
   filter(!is.na(Sobs)) %>%
+  filter(Sobs > 1) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = Sobs)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(0, max(grid_data_classified$Sobs, na.rm = TRUE)),
-    breaks = breaks,
-    labels = breaks
+    limits = c(1, max(grid_data_classified$Sobs, na.rm = TRUE)),
+    breaks = break_5points(st_drop_geometry(grid_data_classified), Sobs, 0, 1),
+    labels = break_5points(st_drop_geometry(grid_data_classified), Sobs, 0, 1)
   ) +
-  theme_light()
+  theme_light() +
+  labs(fill = "Observed species\nrichness")
 
-breaks <- c(
-  0,
-  round((max(grid_data_classified$Sest, na.rm = TRUE)) / 4, 0),
-  round((max(grid_data_classified$Sest, na.rm = TRUE)) * 2 / 4, 0),
-  round((max(grid_data_classified$Sest, na.rm = TRUE)) * 3 / 4, 0),
-  max(grid_data_classified$Sest, na.rm = TRUE)
-)
 Sest_map <- grid_data_classified %>%
   filter(!is.na(Sest)) %>%
   ggplot() +
@@ -411,20 +410,28 @@ Sest_map <- grid_data_classified %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(0, max(grid_data_classified$Sest, na.rm = TRUE)),
-    breaks = breaks,
-    labels = breaks
+    limits = c(min(grid_data_classified$Sest, na.rm = TRUE), 
+               max(grid_data_classified$Sest, na.rm = TRUE)),
+    breaks = break_5points(st_drop_geometry(grid_data_classified), Sest, 0, min(grid_data_classified$Sest, na.rm = TRUE)),
+    labels = break_5points(st_drop_geometry(grid_data_classified), Sest, 0, min(grid_data_classified$Sest, na.rm = TRUE))
   ) +
-  theme_light()
+  theme_light() +
+  labs(fill = "Estimated species\nrichness")
 
 elev_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = elev)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(round(min(grid_data_classified$elev, na.rm = TRUE), 0), 
+               max(grid_data_classified$elev, na.rm = TRUE)),
+    breaks = break_5points(st_drop_geometry(grid_data_classified), elev, 0, round(min(grid_data_classified$elev, na.rm = TRUE), 0)),
+    labels = break_5points(st_drop_geometry(grid_data_classified), elev, 0, round(min(grid_data_classified$elev, na.rm = TRUE), 0))
+  ) +
   theme_light() +
-  labs(fill = "Elevation")
+  labs(fill = "Elevation (m)")
 
 elev_distance_map <- grid_data_classified %>%
   ggplot() +
@@ -435,13 +442,25 @@ elev_distance_map <- grid_data_classified %>%
   theme_light() +
   labs(fill = "Elevd")
 
+grid_data_classified <- grid_data_classified %>%
+  mutate(AMT = AMT / 10)
+
 AMT_map <- grid_data_classified %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AMT)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(
+      round(min(grid_data_classified$AMT, na.rm = TRUE), 1),
+      round(max(grid_data_classified$AMT, na.rm = TRUE), 1)
+    ),
+    breaks = break_5points(st_drop_geometry(grid_data_classified), AMT, 1, round(min(grid_data_classified$AMT, na.rm = TRUE), 1)),
+    labels = break_5points(st_drop_geometry(grid_data_classified), AMT, 1, round(min(grid_data_classified$AMT, na.rm = TRUE), 1))
+  ) +
+  theme_light() +
+  labs(fill = "Annual Mean\nTemperature (ºC)")
 
 AMT_distance_map <- grid_data_classified %>%
   ggplot() +
@@ -456,8 +475,15 @@ AP_map <- grid_data_classified %>%
   geom_sf(size = NA, aes(fill = AP)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(round(min(grid_data_classified$AP, na.rm = TRUE), 0), 
+               round(max(grid_data_classified$AP, na.rm = TRUE), 0)),
+    breaks = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0)),
+    labels = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0))
+  ) +
+  theme_light() +
+  labs(fill = "Annual precipitation (mm)")
 
 AP_distance_map <- grid_data_classified %>%
   ggplot() +
@@ -475,93 +501,115 @@ pri_prox_map <- grid_data_classified %>%
   scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Proximity to collection")
+# Graph nrec x variables ----
 
-# Variables graphs ----
-
-nrec_c_graph <- grid_data_classified %>%
+proximity_graph <- grid_data_classified %>%
   filter(!is.na(nrec)) %>%
   ggscatter(
-    x = "nrec", y = "c",
+    x = "proximity", y = "nrec",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
   ) + 
   stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Proximity to collection")
+
+CU_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
+  mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
+  ggscatter(
+    x = "CU", y = "nrec",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) + 
+  stat_cor(method = "pearson") +
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Conservation Unit")
+
+forest_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
+  ggscatter(
+    x = "forestw", y = "nrec",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) + 
+  stat_cor(method = "pearson") +
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Relative forest coverage")
+
+
+Sest_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
+  ggscatter(
+    x = "Sest", y = "nrec",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) + 
+  stat_cor(method = "pearson") +
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Chao2 species richness estimation")
+
+c_graph <- grid_data_classified %>%
+  filter(!is.na(nrec)) %>%
+  ggscatter(
+    x = "c", y = "nrec",
+    add = "reg.line",
+    add.params = list(color = "blue", fill = "lightgray"),
+    conf.int = TRUE
+  ) + 
+  stat_cor(method = "pearson") +
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Completeness")
 
 KG_graph <- grid_data_classified %>%
   filter(!is.na(nrec)) %>%
   ggscatter(
-    x = "KG", y = "KL",
+    x = "KG", y = "nrec",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
   ) +
   stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Knowledge gap index")
 
-nrec_graph <- grid_data_classified %>%
+KL_graph <- grid_data_classified %>%
   filter(!is.na(nrec)) %>%
   ggscatter(
-    x = "nrec", y = "KL",
+    x = "KL", y = "nrec",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
   ) +
   stat_cor(method = "pearson") +
-  theme_light()
-
-c_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "c", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light()
-
-CU_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "CU", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light()
-
-forest_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "forestw", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light()
-
-Sest_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "Sest", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Knowledge level index")
 
 elev_graph <- grid_data_classified %>%
   ggscatter(
-    x = "elev", y = "KL",
+    x = "elev", y = "nrec",
     add = "reg.line",
     add.params = list(color = "blue", fill = "lightgray"),
     conf.int = TRUE
   ) +
   stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Elevation (m)")
 
 AMT_graph <- grid_data_classified %>%
+  mutate(AMT = AMT / 10) %>%
   ggscatter(
     x = "AMT", y = "KL",
     add = "reg.line",
@@ -569,7 +617,9 @@ AMT_graph <- grid_data_classified %>%
     conf.int = TRUE
   ) +
   stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Annual Mean Temperature (ºC)")
 
 AP_graph <- grid_data_classified %>%
   ggscatter(
@@ -579,17 +629,9 @@ AP_graph <- grid_data_classified %>%
     conf.int = TRUE
   ) +
   stat_cor(method = "pearson") +
-  theme_light()
-
-ri_proximity_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "proximity", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light()
+  theme_light() +
+  labs(y = "Number of records",
+       x = "Annual Precipitation (mm)")
 
 # Fit model ----
 
@@ -733,29 +775,111 @@ tidy(lm_fit) %>%
   ) + theme_light()
 
 # Save results -------------
+nrec_map + theme_void() 
+ggsave("../data/results/07-nrec-map.pdf",
+       width = 8,
+       height = 6
+)
+
+Sobs_map + theme_void() + geom_sf(data = records_longlat, size = 0.2)
+ggsave("../data/results/07-Sobs-map.pdf",
+       width = 8,
+       height = 6
+)
+
+Sest_map + theme_void()  + geom_sf(data = records_longlat, size = 0.2)
+ggsave("../data/results/07-Sest-map.pdf",
+       width = 8,
+       height = 6
+)
+
+c_map + theme_void()  + geom_sf(data = records_longlat, size = 0.2)
+ggsave("../data/results/07-c-map.pdf",
+       width = 8,
+       height = 6
+)
+
+KL_map + theme_void() 
+ggsave("../data/results/07-KL-map.pdf",
+       width = 8,
+       height = 6
+)
+
+forest_map + theme_void() + labs(fill = "Relative forest\ncoverage")
+ggsave("../data/results/07-forest-map.pdf",
+       width = 8,
+       height = 6
+)
+
+elev_map + theme_void()
+ggsave("../data/results/07-elevation-map.pdf",
+       width = 8,
+       height = 6
+)
+
+AMT_map + theme_void()
+ggsave("../data/results/07-AMT-map.pdf",
+       width = 8,
+       height = 6
+)
+
+AP_map + theme_void()
+ggsave("../data/results/07-AMT-map.pdf",
+       width = 8,
+       height = 6
+)
+
+elev_distance_map + theme_void()
+ggsave("../data/results/07-elevation-distance-map.pdf",
+       width = 8,
+       height = 6
+)
+
+AMT_distance_map + theme_void()
+ggsave("../data/results/07-AMT-distance-map.pdf",
+       width = 8,
+       height = 6
+)
+
+AP_distance_map + theme_void()
+ggsave("../data/results/07-AMT-distance-map.pdf",
+       width = 8,
+       height = 6
+)
+
+KG_map + theme_void()
+ggsave("../data/results/07-KG-map.pdf",
+       width = 8,
+       height = 6
+)
 
 p1 <- KL_map  + theme_void() 
 p2 <- nrec_map  + theme_void()
 p3 <- c_map  + theme_void()
-
-p_grid <- plot_grid(p2, p3, ncol = 1, labels = c("B", "C"), label_size = 12)
-
-plot_grid(p1, p_grid, labels = c("A", ""), label_size = 12)
-ggsave("../data/results/07-KL-nrec-c-map.pdf",
-       width = 11.69,
-       height = 8.27
-)
-
-p1 <- GKL_map  + theme_void() 
-p2 <- forest_map  + theme_void()
-p3 <- elev_map  + theme_void()
-p4 <- AMT_map  + theme_void()
-p5 <- AP_map  + theme_void()
+p4 <- Sobs_map  + theme_void()
+p5 <- Sest_map  + theme_void()
 
 p_grid <- plot_grid(p2, p3, p4, p5, ncol = 2, labels = c("B", "C", "D", "E"), label_size = 12)
 
 plot_grid(p1, p_grid, labels = c("A", ""), label_size = 12)
-ggsave("../data/results/07-environment-map.pdf",
+ggsave("../data/results/07-bio-vars-map.pdf",
+       width = 11.69,
+       height = 8.27
+)
+
+p1 <- forest_map  + theme_void()+ labs(fill = "Relative forest\ncoverage")
+p2 <- elev_map  + theme_void()
+p3 <- AMT_map  + theme_void()
+p4 <- AP_map  + theme_void() + labs(fill = "Annual Precipation (mm)")
+p2d <- elev_distance_map  + theme_void()
+p3d <- AMT_distance_map  + theme_void()
+p4d <- AP_distance_map  + theme_void()
+plot_grid(p2, p3, p4, p1, p2d, p3d, p4d, 
+          ncol = 4, 
+          labels = c("A", "B", "C", "D", "E", "F"), 
+          label_size = 12)
+
+ggsave("../data/results/07-envi-vars-map.pdf",
        width = 11.69,
        height = 8.27
 )
