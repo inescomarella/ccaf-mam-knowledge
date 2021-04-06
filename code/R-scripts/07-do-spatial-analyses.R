@@ -30,7 +30,6 @@ source("./R-scripts/functions/funs-spatial-analyses.R")
 
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
-utm <- CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
 
 # Load in data -----------
 br_longlat <-
@@ -89,31 +88,20 @@ institutes_utm <-
   )
 
 # Make grid ----
-cellsize <- sqrt(3500) * 1000
-
-# Make the hexagon grid with the expected area as simple feature
 grid <-
   ccaf %>%
-  st_make_grid(cellsize = 0.55, square = T, offset = c(st_bbox(ccaf)[c("xmin")]-0.22, st_bbox(ccaf)[c("ymin")]-0.45)) %>%
+  st_make_grid(cellsize = 0.1) %>%
   st_as_sf()
-
-grid %>% ggplot() + geom_sf() + 
-  geom_sf(data = ccaf, fill = NA)
 
 grid$grid_id <- seq(1, nrow(grid), 1)
 
 # Area
 grid$area <- grid %>% st_area()
-a <- grid$area[1]
-units(a) <- "km^2"
-a
 units(grid$area) <- "km^2"
 max(grid$area)
 min(grid$area)
 
 units(grid$area) <- NULL
-
-
 
 # Biological variables ----
 record_grid <- st_intersection(records_longlat, grid)
@@ -190,11 +178,33 @@ names(worldclim_amt_ap) <-
 ccaf_environmet <- mask(crop(worldclim_amt_ap, ccaf), ccaf)
 ccaf_elevation <- mask(crop(elevation_data, ccaf), ccaf)
 
+# Create raster from grid
+reqGridBbox <- st_bbox(grid)
+
+# calculate number of rows/columns
+nCols <- (reqGridBbox[3] - reqGridBbox[1]) / 0.1
+nRows <- (reqGridBbox[4] - reqGridBbox[2]) / 0.1
+
+grid_raster <- raster(ncol = nCols, nrow = nRows)
+values(grid_raster) <- 1:ncell(grid_raster)
+extent(grid_raster) <- extent(ccaf)
+res(grid_raster) <- 0.1
+
 # Re-scale
-ccaf_environmet_rescaled <- disaggregate(ccaf_environmet, fact = 6/2.5, fun = "bilinear")
-ccaf_elevation_rescaled <- disaggregate(ccaf_elevation, fact = 6/2.5, fun = "bilinear")
+ccaf_environmet_rescaled <-
+  resample(x = ccaf_environmet, y = grid_raster, method = "bilinear")
+ccaf_elevation_rescaled <-
+  resample(x = ccaf_elevation, y = grid_raster, method = "bilinear")
 
 # Calculate variables ----
+grid_centroids <- grid_bio %>%
+  st_centroid()
+elev <- extract(ccaf_elevation_rescaled, grid_centroids)
+envi <- extract(ccaf_environmet_rescaled, grid_centroids)
+
+grid_bio$elev <- elev
+grid_bio$AMT <- envi[, 1]
+grid_bio$AP <- envi[, 2]
 
 grid_envi <- grid_bio %>% 
   mutate(
@@ -202,24 +212,6 @@ grid_envi <- grid_bio %>%
       x = st_as_stars(forest),
       y = grid_bio,
       fun = sum,
-      na.rm = TRUE
-    ),
-    AMT = raster_extract(
-      x = st_as_stars(ccaf_environmet_rescaled$AMT),
-      y = grid_bio,
-      fun = mean,
-      na.rm = TRUE
-    ),
-    AP = raster_extract(
-      x = st_as_stars(ccaf_environmet_rescaled$AP),
-      y = grid_bio,
-      fun = mean,
-      na.rm = TRUE
-    ),
-    elev = raster_extract(
-      x = st_as_stars(ccaf_elevation_rescaled),
-      y = grid_bio,
-      fun = mean,
       na.rm = TRUE
     )
   )
@@ -260,18 +252,20 @@ grid_data_processed <- grid_data_processing %>%
 # Map variables ----
 
 grid_data_classified <- grid_data_processed %>%
+  ungroup() %>%
   filter(!is.nan(KG)) %>%
+  mutate(grid_id = as.character(grid_id)) %>%
   mutate(KG_class = ifelse(
     KG > 0.8,
     "Very high",
     ifelse(
-      KG > 0.6 & KG < 0.8,
+      KG > 0.6 & KG <= 0.8,
       "High",
       ifelse(
-        KG > 0.4 & KG < 0.6,
+        KG > 0.4 & KG <= 0.6,
         "Medium",
         ifelse(
-          KG > 0.2 & KG < 0.4,
+          KG > 0.2 & KG <= 0.4,
           "Low",
           "Very low"
         )
@@ -282,13 +276,13 @@ grid_data_classified <- grid_data_processed %>%
     KL > 0.8,
     "Very high",
     ifelse(
-      KL > 0.6 & KL < 0.8,
+      KL > 0.6 & KL <= 0.8,
       "High",
       ifelse(
-        KL > 0.4 & KL < 0.6,
+        KL > 0.4 & KL <= 0.6,
         "Medium",
         ifelse(
-          KL > 0.2 & KL < 0.4,
+          KL > 0.2 & KL <= 0.4,
           "Low",
           "Very low"
         )
@@ -419,6 +413,7 @@ Sest_map <- grid_data_classified %>%
   labs(fill = "Estimated species\nrichness")
 
 elev_map <- grid_data_classified %>%
+  filter(!is.na(elev)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = elev)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -434,6 +429,7 @@ elev_map <- grid_data_classified %>%
   labs(fill = "Elevation (m)")
 
 elev_distance_map <- grid_data_classified %>%
+  filter(!is.na(elev)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = elevd)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -446,6 +442,7 @@ grid_data_classified <- grid_data_classified %>%
   mutate(AMT = AMT / 10)
 
 AMT_map <- grid_data_classified %>%
+  filter(!is.na(AMT)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AMT)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -463,6 +460,7 @@ AMT_map <- grid_data_classified %>%
   labs(fill = "Annual Mean\nTemperature (ºC)")
 
 AMT_distance_map <- grid_data_classified %>%
+  filter(!is.na(AMTd)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AMTd)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -471,14 +469,17 @@ AMT_distance_map <- grid_data_classified %>%
   theme_light()
 
 AP_map <- grid_data_classified %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = AP)) +
   geom_sf(data = cus_longlat, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(round(min(grid_data_classified$AP, na.rm = TRUE), 0), 
-               round(max(grid_data_classified$AP, na.rm = TRUE), 0)),
+    limits = c(
+      round(min(grid_data_classified$AP, na.rm = TRUE), 0),
+      round(max(grid_data_classified$AP, na.rm = TRUE), 0)
+    ),
     breaks = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0)),
     labels = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0))
   ) +
@@ -486,6 +487,7 @@ AP_map <- grid_data_classified %>%
   labs(fill = "Annual precipitation (mm)")
 
 AP_distance_map <- grid_data_classified %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = APd)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -494,6 +496,7 @@ AP_distance_map <- grid_data_classified %>%
   theme_light()
 
 pri_prox_map <- grid_data_classified %>%
+  filter(!is.na(proximity)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = proximity)) +
   geom_sf(data = cus_longlat, fill = NA) +
@@ -501,6 +504,7 @@ pri_prox_map <- grid_data_classified %>%
   scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light() +
   labs(fill = "Proximity to collection")
+
 # Graph nrec x variables ----
 
 proximity_graph <- grid_data_classified %>%
@@ -781,7 +785,7 @@ ggsave("../data/results/07-nrec-map.pdf",
        height = 6
 )
 
-Sobs_map + theme_void() + geom_sf(data = records_longlat, size = 0.2)
+Sobs_map + theme_void() 
 ggsave("../data/results/07-Sobs-map.pdf",
        width = 8,
        height = 6
