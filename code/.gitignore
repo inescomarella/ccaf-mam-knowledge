@@ -7,3 +7,11 @@
 *.docx
 *.bib
 *.png
+*.grd
+*.gri
+*.vrt
+*.json
+*.Rmd
+*.html
+*.Rproj
+*.db
