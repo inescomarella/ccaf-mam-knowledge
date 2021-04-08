@@ -21,6 +21,7 @@ conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
 source("./R-scripts/functions/funs-clean-all-data.R")
+source("./R-scripts/functions/funs-clean-papers-data.R")
 
 # Load in data
 data_paper <-
@@ -38,17 +39,46 @@ data_paper <- select(data_paper, -X)
 colnames(data_paper)[15] <- "year"
 
 # Correct eventDate
-data_downl_eventDate <-
-  data_downl %>% 
+data_downl_editing <- data_downl %>%
   mutate(eventDate = ymd_hms(eventDate)) %>% 
   mutate(eventDate = word(eventDate, 1)) %>%
   mutate(eventDate = ifelse(
-      is.na(eventDate) & !is.na(year), 
-      as.Date(as.character(year), "%Y"), 
-      eventDate)
-      ) 
+    !str_detect(eventDate, "[-]"),
+    NA,
+    eventDate)) %>%
+  mutate(eventDate = ifelse(
+    test = is.na(eventDate) & !is.na(year) & !is.na(month) & !is.na(day),
+    yes = paste0(year, "-", month, "-", day),
+    no = eventDate
+  )) %>% 
+  mutate(eventDate = ifelse(
+    test = is.na(eventDate) & !is.na(year) & !is.na(month) & !is.na(day),
+    yes = paste0(year, "-", month, "-", day),
+    no = eventDate
+  )) %>%
+  mutate(eventDate = ifelse(
+    test = is.na(eventDate) & !is.na(year) & !is.na(month) & is.na(day),
+    yes = paste0(year, "-", month),
+    no = eventDate
+  )) %>%
+  mutate(eventDate = ifelse(
+    test = is.na(eventDate) & !is.na(year) & is.na(month) & is.na(day),
+    yes = as.character(year),
+    no = eventDate
+  )) 
 
-# Binding data.frames
+data_downl_editing$eventDate_corrected <- ymd(data_downl_editing$eventDate)
+
+to_correct <- data_downl_editing %>% 
+  filter(is.na(eventDate_corrected))
+
+data_downl_editing <- anti_join(pls, to_correct)
+
+to_correct$eventDate_corrected <- as.Date(as.character(to_correct$eventDate), "%Y")
+
+data_downl_eventDate <- bind_rows(data_downl_editing, to_correct)
+
+# Binding data.frames ----------------------------------------
 data_all_raw <- rbind.fill(data_paper, data_downl_eventDate)
 
 # Keep data_paper columns, remove others
@@ -84,7 +114,7 @@ apply_synonyms_2 <- lapply(sp_list_all[56:110], rl.synonyms)
 apply_synonyms_3 <- lapply(sp_list_all[111:165], rl.synonyms)
 apply_synonyms_4 <- lapply(sp_list_all[166:220], rl.synonyms)
 apply_synonyms_5 <- lapply(sp_list_all[221:275], rl.synonyms)
-apply_synonyms_6 <- lapply(sp_list_all[276:330], rl.synonyms)
+apply_synonyms_6 <- lapply(sp_list_all[276:331], rl.synonyms)
 apply_synonyms_7 <- lapply(sp_list_all[331:length(sp_list_all)], rl.synonyms)
 
 synonyms_df_1 <- ldply(apply_synonyms_1, data.frame)
