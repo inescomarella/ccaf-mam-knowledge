@@ -202,31 +202,27 @@ data_modif <-
   mutate(UC = ifelse(str_detect(UC, "no"), "No", UC))
 
 # Standardize georeferencePrecision writing
-data_modif <-
-  data_modif %>%
-  mutate(georeferencePrecision = as.character(georeferencePrecision)) %>%
-  mutate(
-    georeferencePrecision = ifelse(
-      str_detect(georeferencePrecision, "calidade") |
-        georeferencePrecision == "precise",
-      "Precise",
-      georeferencePrecision
-    )
-  ) %>%
-  mutate(georeferencePrecision = ifelse(
-    str_detect(georeferencePrecision, "ot"),
-    "NotPrecise",
-    georeferencePrecision
-  )) %>%
-  mutate(georeferencePrecision = ifelse(
-    str_detect(georeferencePrecision, "[no data]"),
-    "",
-    georeferencePrecision
-  ))
+df_filter1 <- data_modif %>%
+  filter(str_detect(georeferencePrecision, "ot")) %>%
+  mutate(georeferencePrecision = "NotPrecise")
+
+df_filter2 <- data_modif %>%
+  filter(georeferencePrecision == "precise") %>%
+  mutate(georeferencePrecision = "Precise")
+
+df_filter3 <- data_modif %>%
+  filter(str_detect(georeferencePrecision, "calidade")) %>%
+  mutate(georeferencePrecision = "")
+
+df_filter4 <- data_modif %>%
+  filter(georeferencePrecision == "" | georeferencePrecision == "Precise")
+
+data_modif_corrected <-
+  bind_rows(df_filter1, df_filter2, df_filter3, df_filter4) 
 
 # Standardize collectionCode writing
 data_modif <-
-  data_modif %>%
+  data_modif_corrected %>%
   mutate(collectionCode = as.character(collectionCode)) %>%
   mutate(collectionCode = ifelse(
     str_detect(collectionCode, "Museu Nacional"),
