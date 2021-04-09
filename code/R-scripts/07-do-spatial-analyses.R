@@ -55,7 +55,7 @@ forest <-
     "../data/raw-data/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-2019.tif"
   ) %>%
   crop(as(ccaf, "Spatial")) %>%
-  mask(as(ccaf, "Spatial")) %in% 1:10
+  mask(as(ccaf, "Spatial")) %in% 1:8
 
 environment <- brick("../data/processed-data/worldclim-amt-ap.grd") 
 
@@ -204,7 +204,7 @@ grid_bio <- grid_bio %>%
 grid_data <-  grid_bio %>%
   group_by(grid_id) %>%
   mutate(
-    KL = (c + nrec / max(grid_envi$nrec, na.rm = TRUE)) / 2
+    KL = (c + nrec / max(grid_bio$nrec, na.rm = TRUE)) / 2
   ) %>%
   mutate(KL = ifelse(is.na(KL) | is.infinite(KL), 0, KL))
 
@@ -308,7 +308,7 @@ KG_map <- grid_data_classified %>%
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   theme_light() +
-  labs(fill = "Study urgency level")
+  labs(fill = "Study priority level")
 
 nrec_map <- grid_data_classified %>%
   filter(nrec > 1) %>%
@@ -480,148 +480,6 @@ AP_distance_map <- grid_data_classified %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(option = "Hypsypops_rubicundus") +
   theme_light()
-
-pri_prox_map <- grid_data_classified %>%
-  filter(!is.na(proximity)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = proximity)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light() +
-  labs(fill = "Proximity to collection")
-
-# Graph nrec x variables ----
-
-proximity_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "proximity", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) + 
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Proximity to collection")
-
-CU_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
-  ggscatter(
-    x = "CU", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) + 
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Conservation Unit")
-
-forest_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "forestw", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) + 
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Relative forest coverage")
-
-
-Sest_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "Sest", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) + 
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Chao2 species richness estimation")
-
-c_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "c", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) + 
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Completeness")
-
-KG_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "KG", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Knowledge gap index")
-
-KL_graph <- grid_data_classified %>%
-  filter(!is.na(nrec)) %>%
-  ggscatter(
-    x = "KL", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Knowledge level index")
-
-elev_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "elev", y = "nrec",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Elevation (m)")
-
-AMT_graph <- grid_data_classified %>%
-  mutate(AMT = AMT / 10) %>%
-  ggscatter(
-    x = "AMT", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Annual Mean Temperature (ºC)")
-
-AP_graph <- grid_data_classified %>%
-  ggscatter(
-    x = "AP", y = "KL",
-    add = "reg.line",
-    add.params = list(color = "blue", fill = "lightgray"),
-    conf.int = TRUE
-  ) +
-  stat_cor(method = "pearson") +
-  theme_light() +
-  labs(y = "Number of records",
-       x = "Annual Precipitation (mm)")
 
 # Save results -------------
 write_sf(grid_data_classified, "../data/processed-data/grid-data.shp")
