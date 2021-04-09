@@ -159,6 +159,14 @@ plot_data_dist <- bind_rows(plot_data_CUp_dist, plot_data_CUa_dist)
 plot_data_Sest <- bind_rows(plot_data_CUp_Sest, plot_data_CUa_Sest)
 
 # Plot prediction ------------------
+pri_prox_map <- grid_data %>%
+  filter(!is.na(proximity)) %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = proximity)) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(option = "Hypsypops_rubicundus") +
+  theme_light() +
+  labs(fill = "Proximity to collection")
 
 # Model predictions
 predict_collection <- ggplot(plot_data_dist, aes(x = distance, color = ID)) +
@@ -204,4 +212,4 @@ tidy(lm_fit) %>%
 OUT <- createWorkbook()
 addWorksheet(OUT, "Sheet1")
 writeData(OUT, sheet = "Sheet1", x = tidy(lm_fit))
-saveWorkbook(OUT, "../data/results/07-model.xlsx", overwrite = TRUE)
+saveWorkbook(OUT, "../data/results/08-model.xlsx", overwrite = TRUE)
