@@ -7,13 +7,8 @@ xfun::pkg_attach2(
     "sp",
     "fossil",
     "raster",
-    "patchwork",
-    "cowplot",
-    "dotwhisker",
     "geobgu",
-    "stars",
-    "fishualize",
-    "ggpubr"
+    "stars"
   )
 )
 
@@ -21,55 +16,33 @@ conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflict_prefer("extract", "raster")
 conflicted::conflict_prefer("raster_extract", "geobgu")
-conflicted::conflict_prefer("get_legend", "cowplot")
-
-source("./R-scripts/functions/funs-spatial-analyses.R")
 
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
 # Load in data -----------
-br <-
-  read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
-  filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
-  st_transform(longlat) %>%
-  st_combine()
+ccaf <- read_sf("data/processed/maps/ccaf_map.shp")
 
-ccaf <-
-  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
-  filter(str_detect(NOME1, "Mata")) %>%
-  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
-  st_set_crs(longlat) %>%
-  st_intersection(br) %>%
-  st_crop(
-    xmax = -38.7,
-    xmin = -41.87851,
-    ymax = -13.00164,
-    ymin = -21.30178
-  )
+environment <- brick("data/processed/maps/worldclim_amt_ap.grd") 
 
-rm(br)
-
-forest <-
-  raster(
-    "../data/raw-data/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-2019.tif"
-  ) %>%
-  crop(as(ccaf, "Spatial")) %>%
-  mask(as(ccaf, "Spatial")) %in% 1:8
-
-environment <- brick("../data/processed-data/worldclim-amt-ap.grd") 
-
-elevation <- raster("../data/processed-data/elevation.tif") 
+elevation <- raster("data/processed/maps/elevation.tif") 
 
 cus <-
-  read_sf("../data/processed-data/CUs-map.shp") %>%
+  read_sf("data/processed/maps/CUs_map.shp") %>%
   st_transform(longlat) %>%
   st_make_valid() %>%
   st_intersection(ccaf)
 
+forest <-
+  raster(
+    "data/raw/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-2019.tif"
+  ) %>%
+  crop(as(ccaf, "Spatial")) %>%
+  mask(as(ccaf, "Spatial")) %in% 1:8
+
 records <-
   st_read(
-    dsn = "../data/processed-data/clean-mammal-data.csv",
+    dsn = "data/processed/clean_database.csv",
     crs = longlat,
     options = c(
       "X_POSSIBLE_NAMES=decimalLongitude",
@@ -80,7 +53,7 @@ records <-
 
 institutes <-
   st_read(
-    dsn = "../data/raw-data/research-institutes.csv",
+    dsn = "data/raw/research_institutes.csv",
     crs = longlat,
     options = c(
       "X_POSSIBLE_NAMES=longitude",
@@ -95,14 +68,6 @@ grid <-
   st_as_sf()
 
 grid$grid_id <- seq(1, nrow(grid), 1)
-
-# Area
-grid$area <- grid %>% st_area()
-units(grid$area) <- "km^2"
-max(grid$area)
-min(grid$area)
-
-units(grid$area) <- NULL
 
 # Pre-process environment data ----
 
@@ -230,7 +195,6 @@ grid_data_processed <- grid_data_processing %>%
   ) %>%
   mutate(KG = forestw * mean(c(elevd, AMTd, APd, (1 - KL))))
 
-# Map variables ----
 
 grid_data_classified <- grid_data_processed %>%
   ungroup() %>%
@@ -275,324 +239,15 @@ levels <- c("Very high", "High", "Medium", "Low", "Very low")
 
 grid_data_classified$KL_class <-
   factor(grid_data_classified$KL_class,
-    levels = levels
+         levels = levels
   )
 grid_data_classified$KG_class <-
   factor(grid_data_classified$KG_class,
-    levels = levels
+         levels = levels
   )
 
-KL_map <- grid_data_classified %>%
-  filter(!is.na(elev)) %>%
-  ggplot() +
-  geom_sf(aes(fill = KL_class), color = NA) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    discrete = TRUE,
-    direction = -1
-  ) +
-  theme_light() +
-  labs(fill = "Knowledge level")
-
-KG_map <- grid_data_classified %>%
-  filter(!is.na(AMT)) %>%
-  ggplot() +
-  geom_sf(aes(fill = KG_class), color = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    discrete = TRUE,
-    direction = -1
-  ) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  theme_light() +
-  labs(fill = "Study priority level")
-
-nrec_map <- grid_data_classified %>%
-  filter(nrec > 1) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = nrec)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(1, max(grid_data_classified$nrec)),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), nrec, 0, 1),
-    labels = break_5points(st_drop_geometry(grid_data_classified), nrec, 0, 1)
-  ) +
-  theme_light() +
-  labs(fill = "Number of\nRecords")
-
-c_map <- grid_data_classified %>%
-  filter(!is.na(c)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = c)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(0, max(grid_data_classified$c, na.rm = TRUE)),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), c, 1, 0),
-    labels = break_5points(st_drop_geometry(grid_data_classified), c, 1, 0)
-  ) +
-  theme_light() +
-  labs(fill = "Completeness")
-
-CU_map <- grid_data_classified %>%
-  filter(!is.na(AMT)) %>%
-  mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
-  ggplot() +
-  geom_sf(color = NA, aes(fill = CU)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus", discrete = TRUE) +
-  theme_light() +
-  labs(fill = "Conservation\nUnit")
-
-forest_map <- grid_data_classified %>%
-  filter(!is.na(AMT)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = forest_cov)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(min(grid_data_classified$forest_cov, na.rm = TRUE), max(grid_data_classified$forest_cov, na.rm = TRUE)),
-    breaks = c(min(grid_data_classified$forest_cov, na.rm = TRUE), max(grid_data_classified$forest_cov, na.rm = TRUE)),
-    labels = c("Low", "High")
-  ) +
-  theme_light() +
-  labs(fill = "Relative forest coverage")
-
-Sobs_map <- grid_data_classified %>%
-  filter(!is.na(Sobs)) %>%
-  filter(Sobs > 1) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = Sobs)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(1, max(grid_data_classified$Sobs, na.rm = TRUE)),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), Sobs, 0, 1),
-    labels = break_5points(st_drop_geometry(grid_data_classified), Sobs, 0, 1)
-  ) +
-  theme_light() +
-  labs(fill = "Species richness\nobserved")
-
-Sest_map <- grid_data_classified %>%
-  filter(!is.na(Sest)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = Sest)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(min(grid_data_classified$Sest, na.rm = TRUE), 
-               max(grid_data_classified$Sest, na.rm = TRUE)),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), Sest, 0, min(grid_data_classified$Sest, na.rm = TRUE)),
-    labels = break_5points(st_drop_geometry(grid_data_classified), Sest, 0, min(grid_data_classified$Sest, na.rm = TRUE))
-  ) +
-  theme_light() +
-  labs(fill = "Species richness\nestimated")
-
-elev_map <- grid_data_classified %>%
-  filter(!is.na(elev)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = elev)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(round(min(grid_data_classified$elev, na.rm = TRUE), 0), 
-               max(grid_data_classified$elev, na.rm = TRUE)),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), elev, 0, round(min(grid_data_classified$elev, na.rm = TRUE), 0)),
-    labels = break_5points(st_drop_geometry(grid_data_classified), elev, 0, round(min(grid_data_classified$elev, na.rm = TRUE), 0))
-  ) +
-  theme_light() +
-  labs(fill = "Elevation (m)")
-
-elev_distance_map <- grid_data_classified %>%
-  filter(!is.na(elev)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = elevd)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light() +
-  labs(fill = "Elevd")
-
-grid_data_classified <- grid_data_classified %>%
-  mutate(AMT = AMT / 10)
-
-AMT_map <- grid_data_classified %>%
-  filter(!is.na(AMT)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = AMT)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(
-      round(min(grid_data_classified$AMT, na.rm = TRUE), 1),
-      round(max(grid_data_classified$AMT, na.rm = TRUE), 1)
-    ),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), AMT, 1, round(min(grid_data_classified$AMT, na.rm = TRUE), 1)),
-    labels = break_5points(st_drop_geometry(grid_data_classified), AMT, 1, round(min(grid_data_classified$AMT, na.rm = TRUE), 1))
-  ) +
-  theme_light() +
-  labs(fill = "Annual Mean\nTemperature (ºC)")
-
-AMT_distance_map <- grid_data_classified %>%
-  filter(!is.na(AMTd)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = AMTd)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
-
-AP_map <- grid_data_classified %>%
-  filter(!is.na(AP)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = AP)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(
-      round(min(grid_data_classified$AP, na.rm = TRUE), 0),
-      round(max(grid_data_classified$AP, na.rm = TRUE), 0)
-    ),
-    breaks = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0)),
-    labels = break_5points(st_drop_geometry(grid_data_classified), AP, 0, round(min(grid_data_classified$AP, na.rm = TRUE), 0))
-  ) +
-  theme_light() +
-  labs(fill = "Annual precipitation (mm)")
-
-AP_distance_map <- grid_data_classified %>%
-  filter(!is.na(AP)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = APd)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
-
-# Save results -------------
-write_sf(grid_data_classified, "../data/processed-data/grid-data.shp")
-
-nrec_map + theme_void() 
-ggsave("../data/results/07-nrec-map.pdf",
-       width = 8,
-       height = 6
-)
-
-Sobs_map + theme_void() 
-ggsave("../data/results/07-Sobs-map.pdf",
-       width = 8,
-       height = 6
-)
-
-Sest_map + theme_void()
-ggsave("../data/results/07-Sest-map.pdf",
-       width = 8,
-       height = 6
-)
-
-c_map + theme_void()
-ggsave("../data/results/07-c-map.pdf",
-       width = 8,
-       height = 6
-)
-
-KL_map + theme_void()
-ggsave("../data/results/07-KL-map.pdf",
-       width = 8,
-       height = 6
-)
-
-forest_map + theme_void() + labs(fill = "Relative forest\ncoverage")
-ggsave("../data/results/07-forest-map.pdf",
-       width = 8,
-       height = 6
-)
-
-elev_map + theme_void()
-ggsave("../data/results/07-elevation-map.pdf",
-       width = 8,
-       height = 6
-)
-
-AMT_map + theme_void()
-ggsave("../data/results/07-AMT-map.pdf",
-       width = 8,
-       height = 6
-)
-
-AP_map + theme_void()
-ggsave("../data/results/07-AP-map.pdf",
-       width = 8,
-       height = 6
-)
-
-elev_distance_map + theme_void()
-ggsave("../data/results/07-elevation-distance-map.pdf",
-       width = 8,
-       height = 6
-)
-
-AMT_distance_map + theme_void()
-ggsave("../data/results/07-AMT-distance-map.pdf",
-       width = 8,
-       height = 6
-)
-
-AP_distance_map + theme_void() +
-  labs(fill = "Annual Precipitation\n(mm)")
-ggsave("../data/results/07-AMT-distance-map.pdf",
-       width = 8,
-       height = 6
-)
-
-KG_map + theme_void()
-ggsave("../data/results/07-KG-map.pdf",
-       width = 8,
-       height = 6
-)
-
-p1 <- KL_map  + theme_void() 
-p2 <- nrec_map  + theme_void()
-p3 <- c_map  + theme_void()
-p4 <- Sobs_map  + theme_void()
-p5 <- Sest_map  + theme_void()
-
-p_grid <- plot_grid(p2, p3, p4, p5, ncol = 2, labels = c("B", "C", "D", "E"), label_size = 12)
-
-plot_grid(p1, p_grid, labels = c("A", ""), label_size = 12)
-ggsave("../data/results/07-bio-vars-map.pdf",
-       width = 11.69,
-       height = 8.27
-)
-
-p1 <- forest_map  + theme_void() + 
-  labs(fill = "Relative forest\ncoverage")
-p2 <- elev_map  + theme_void()
-p3 <- AMT_map  + theme_void() +
-  labs(fill = "Annual Mean\nTemperature (ºC)")
-p4 <- AP_map  + theme_void() + 
-  labs(fill = "Annual Precipation\n(mm)")
-plot_grid(p1, p2, p3, p4, 
-          ncol = 4, 
-          labels = c("A", "B", "C", "D"), 
-          label_size = 12)
-
-ggsave("../data/results/07-envi-vars-map.pdf",
-       width = 13,
-       height = 5
-)
+# Export grid ---------------------------
+write_sf(grid_data_classified, "./data/processed/maps/grid_data.shp")
 
 # Save workspace ----
-save.image("~/tcc-ccma/code/spatial-analyses.RData")
+save.image("~/tcc-ccma/code/workspaces/spatial_analyses.RData")

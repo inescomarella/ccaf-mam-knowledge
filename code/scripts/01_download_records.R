@@ -15,9 +15,9 @@ conflicted::conflict_prefer("filter", "dplyr")
 # GBIF data ---------------------------------------------------
 
 # Set GBIF profile
-options(gbif_user = "inescomarella")
+options(gbif_user = "***")
 options(gbif_pwd = "***")
-options(gbif_email = "inesmottacomarella@gmail.com")
+options(gbif_email = "***@gmail.com")
 
 # Spin up a download request for GBIF occurrence data
 # This might take a while
@@ -37,13 +37,13 @@ gbif_mamm_occ_down <-
 gbif_mamm_occ_get <-
   occ_download_get(
     key = "0103075-200613084148143",
-    path = "../data/processed-data/",
+    path = "data/raw/",
     overwrite = TRUE
   )
 
 # Import downloaded file from GBIF
 gbif_mamm_occ_imported <-
-  occ_download_import(gbif_mamm_occ_get, path = "../data/processed-data/")
+  occ_download_import(gbif_mamm_occ_get, path = "data/raw/")
 
 # speciesLink data --------------------------------------------
 
@@ -51,27 +51,28 @@ gbif_mamm_occ_imported <-
 # Takes 244.321s to run
 spLink_animals_down <-
   rspeciesLink(
-    dir = "../data/processed-data/",
-    filename = "broken-spLink-animals-data",
+    dir = "data/raw/",
+    filename = "spLink_animals_data",
     stateProvince = c("Espirito Santo", "Espírito Santo", "ES", "Bahia", "BA", "BAHIA", "ESPIRITO SANTO"),
     Coordinates = "Yes",
     Scope = "animals",
     Synonyms = "species2000"
   )
 
-# There is come bug in the rocc::rspeciesLink() download, so just use the object
-file.remove("../data/processed-data/broken-spLink-animals-data.csv")
+file.remove("data/raw/spLink_animals_data.csv")
 
 # Just mammal data
 spLink_mamm_filtered <-
   spLink_animals_down %>%
   filter(class == "Mammalia")
 
-# Save data ---------------------------------------------------
 gbif_mamm_occ_imported <-
   gbif_mamm_occ_imported %>%
   mutate(scientificName = species)
 
 mamm_binded <- rbind.fill(spLink_mamm_filtered, gbif_mamm_occ_imported)
 
-write.csv(mamm_binded, "../data/processed-data/downloaded-data.csv")
+# Export data ---------------------------------------------------
+
+write.csv(mamm_binded, "data/raw/downloaded_data.csv")
+

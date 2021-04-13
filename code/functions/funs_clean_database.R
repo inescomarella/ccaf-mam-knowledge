@@ -15,14 +15,6 @@ xfun::pkg_attach(c(
 conflicted::conflict_prefer("summarise", "dplyr")
 conflicted::conflict_prefer("filter", "dplyr")
 
-remove.fossil.iNaturalist <- function(dataset) {
-  to_remove <-
-    dataset %>%
-    filter(basisOfRecord == "FOSSIL_SPECIMEN" |
-             str_detect(institutionCode, "iNaturalist"))
-  
-  anti_join(dataset, to_remove)
-}
 
 rl.synonyms <- function(x) {
   # Manipulate rl_synonyms() S4 object to get "results" and "name" as a
@@ -64,21 +56,7 @@ clip.ccaf <- function(pts) {
   #   pts: dataframe with decimalLongitude and decimalLatitude columns
   #   specifying coordinates
 
-  br_longlat <-
-    get_brmap(geo = "Brazil") %>%
-    st_as_sf() %>%
-    st_transform(CRS("+proj=longlat +datum=WGS84"))
-  
-  ccaf <-
-    st_read(
-      dsn = "../data/raw-data/maps/MMA/corredores_ppg7",
-      layer = "corredores_ppg7",
-      check_ring_dir = TRUE
-    ) %>%
-    st_set_crs(CRS("+proj=longlat +datum=WGS84")) %>%
-    filter(str_detect(NOME1, "Mata")) %>%
-    st_intersection(br_longlat) %>%
-    mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica")
+  ccaf <- read_sf("data/processed/maps/ccaf_map.shp")
   
   to_remove <-
     pts %>%

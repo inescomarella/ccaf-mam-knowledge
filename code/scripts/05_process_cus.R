@@ -5,10 +5,8 @@
 xfun::pkg_attach(c(
   "tidyverse",
   "sf",
-  "brazilmaps",
   "openxlsx",
   "ggspatial",
-  "cowplot",
   "qgisprocess"
 ))
 
@@ -21,39 +19,28 @@ utm <-
 
 # Load and pre-process maps ----------------------------------
 
-br_longlat <-
-  read_sf("../data/raw-data/maps/IBGE/br_unidades_da_federacao/BRUFE250GC_SIR.shp") %>%
-  filter(CD_GEOCUF == "32" | CD_GEOCUF == "29") %>%
-  st_transform(longlat) %>%
-  st_combine()
-
 ccaf_utm <-
-  read_sf("../data/raw-data/maps/MMA/corredores_ppg7/corredores_ppg7.shp") %>%
-  filter(str_detect(NOME1, "Mata")) %>%
-  mutate(NOME1 = "Corredor Ecologico Central da Mata Atlantica") %>%
-  st_set_crs(longlat) %>%
-  st_intersection(br_longlat) %>%
-  st_crop(xmax = -38.7, xmin = -41.87851, ymax = -13.00164, ymin = -21.30178) %>%
+  read_sf("data/processed/maps/ccaf_map.shp") %>%
   st_transform(utm)
 
 cus_es_ICMBio_utm <-
-  read_sf("../data/raw-data/maps/ICMBio/ES/ES.shp") %>%
+  read_sf("data/raw/maps/ICMBio/ES/ES.shp") %>%
   st_transform(utm) %>%
   st_intersection(ccaf_utm)
 
 cus_es_IEMA_utm <-
-  read_sf("../data/raw-data/maps/IEMA/20190510_UCs_estaduais090519shp/UCs_Estaduais190418.shp") %>%
+  read_sf("data/raw/maps/IEMA/20190510_UCs_estaduais090519shp/UCs_Estaduais190418.shp") %>%
   st_transform(utm) %>%
   st_intersection(ccaf_utm)
 
 cus_br_ICMBio_utm <-
-  read_sf("../data/raw-data/maps/ICMBio/UC_fed_julho_2019/UC_fed_julho_2019.shp") %>%
+  read_sf("data/raw/maps/ICMBio/UC_fed_julho_2019/UC_fed_julho_2019.shp") %>%
   st_transform(utm) %>%
   st_intersection(ccaf_utm)
 
-cus_ba_ICMBio <- read_sf("../data/raw-data/maps/ICMBio/BA/BA.shp")
+cus_ba_ICMBio <- read_sf("data/raw/maps/ICMBio/BA/BA.shp")
 
-cus_af_MMA <- read_sf("../data/raw-data/maps/MMA/ucstodas/ucstodas.shp")
+cus_af_MMA <- read_sf("data/raw/maps/MMA/ucstodas/ucstodas.shp")
 
 # Fix geometries ----------------------------------------------
 
@@ -707,19 +694,6 @@ cus_std <-
 # Dissolve internal lines to write shapefile
 st_write(
   st_union(cus_std),
-  paste0("../data/processed-data/", "/", "CUs-map.shp"),
+  paste0("data/processed/maps/", "/", "CUs_map.shp"),
   delete_layer = TRUE
 )
-
-# List of CUs in CCAF
-cu_list <-
-  st_drop_geometry(cus_std) %>%
-  select(name_cu, acronym, CU_type) %>%
-  unique() %>%
-  arrange(name_cu) %>%
-  tibble()
-
-OUT <- createWorkbook()
-addWorksheet(OUT, "Sheet1")
-writeData(OUT, sheet = "Sheet1", x = cu_list)
-saveWorkbook(OUT, "../data/results/CUs-list.xlsx", overwrite = TRUE)

@@ -20,15 +20,15 @@ conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
 conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
-source("./R-scripts/functions/funs-clean-all-data.R")
-source("./R-scripts/functions/funs-clean-papers-data.R")
+source("functions/funs-clean-all-data.R")
 
 # Load in data
 data_paper <-
-  read.csv("../data/processed-data/clean-papers-data.csv")
+  read.csv("data/raw/literature_records.csv")
 data_downl <-
-  read.csv("../data/processed-data/downloaded-data.csv")
+  read.csv("data/raw/downloaded_records.csv")
 
+# Token sent by IUCN Red List
 rlkey <-
   "*****"
 
@@ -72,7 +72,7 @@ data_downl_editing$eventDate_corrected <- ymd(data_downl_editing$eventDate)
 to_correct <- data_downl_editing %>% 
   filter(is.na(eventDate_corrected))
 
-data_downl_editing <- anti_join(pls, to_correct)
+data_downl_editing <- anti_join(data_downl_editing, to_correct)
 
 to_correct$eventDate_corrected <- as.Date(as.character(to_correct$eventDate), "%Y")
 
@@ -90,9 +90,6 @@ to_remove <-
   filter(basisOfRecord == "FOSSIL_SPECIMEN")
 
 data_all_first_clean <- anti_join(data_all, to_remove)
-
-# Data after first clean = 41173
-nrow(data_all_first_clean)
 
 # Keep only identified species and remove hybrids
 data_all_only_indetified_species <-
@@ -993,10 +990,10 @@ nrow(data_all_sp_clean)
 # Final number of unique records = 12326
 nrow(clean_data_distincted)
 
-# Save data.frame ----------------------------------------------------
+# Export data ----------------------------------------------------
 write.csv(
   clean_data_distincted,
-  "../data/processed-data/clean-mammal-data.csv"
+  "data/processed/clean_database.csv"
 )
 
-save.image("~/tcc-ccma/code/03-do-clean-all-data.RData")
+save.image("~/tcc-ccma/code/workspaces/clean_data_base.RData")
