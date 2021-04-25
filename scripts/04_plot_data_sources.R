@@ -3,6 +3,7 @@
 
 # Load in libraries
 library(tidyverse)
+library(cowplot)
 
 # Load data --------------------------------------------------------
 
@@ -14,14 +15,14 @@ data <-
 
 records_df <- data %>%
   mutate(Collection = ifelse(institutionCode == "UFES" | str_detect(institutionCode, "CEPLAC") | institutionCode == "MEL" | institutionCode == "UESC" | institutionCode == "MBML",
-    "Local collections",
+    "Local\ncollections",
     ifelse(institutionCode == "",
-      "Scientific literature",
+      "Scientific\nliterature",
       ifelse(institutionCode == "KU" | institutionCode == "LACM" | institutionCode == "USNM" | institutionCode == "BNHM" | institutionCode == "MCZ" | institutionCode == "ROM" | institutionCode == "FMNH" | institutionCode == "CLO" | institutionCode == "UMMZ",
-        "International collections",
+        "International\ncollections",
         ifelse(str_detect(institutionCode, "iNat"),
           "iNaturalist",
-          "National collections"
+          "National\ncollections"
         )
       )
     )
@@ -53,11 +54,16 @@ bar_graph <- colection_contri %>%
     y = n
   ),
   stat = "identity",
-  width = 0.8
+  width = 0.8) +
+  theme_light() +
+  labs(
+    color = element_blank(),
+    x = element_blank(),
+    y = "Total number of records"
   ) +
-  xlab(element_blank()) +
-  ylab(element_blank()) +
-  theme_light()
+  theme(legend.text=element_text(size=15),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15))
 
 line_graph_collections <- records_df %>%
   filter(year != "NA") %>%
@@ -74,7 +80,10 @@ line_graph_collections <- records_df %>%
     color = element_blank(),
     x = element_blank(),
     y = "Cumulative number of records"
-  )
+  ) +
+  theme(legend.text=element_text(size=15),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15))
 
 frst_lst_rcrd_graph <-
   data %>%
@@ -96,54 +105,28 @@ frst_lst_rcrd_graph <-
   geom_histogram(aes(x = year, fill = record)) +
   theme_light() +
   ylab("Number of species") +
-  xlab("Years") +
-  theme(legend.title = element_blank())
+  xlab(element_blank()) +
+  theme(legend.title = element_blank(),
+        legend.text=element_text(size=15),
+        axis.text = element_text(size=15),
+        axis.title = element_text(size=15))
 
 # Save ------------------------------------------------------------
 # Plot
 frst_lst_rcrd_graph
-ggsave("figs/04_first_last_record.pdf",
+ggsave("figs/04_first_last_record.png",
   width = 8,
   height = 6
 )
 
-bar_graph
-ggsave("figs/04_bar_grah_collections.pdf",
-  width = 8,
-  height = 6
-)
+plot_grid(bar_graph, line_graph_collections, 
+          ncol = 2, 
+          labels = c("(a)", "(b)"), 
+          label_size = 15)
 
-line_graph_collections +
-  geom_segment(aes(
-    x = as.Date("1950", "%Y"),
-    y = 2500,
-    xend = as.Date("1950", "%Y"),
-    yend = 1500
-  ),
-  arrow = arrow(length = unit(0.25, "cm"))
-  ) +
-  geom_text(
-    x = as.Date("1950", "%Y"),
-    y = 2650,
-    label = "A"
-  ) +
-  geom_segment(aes(
-    x = as.Date("1988", "%Y"),
-    y = 3500,
-    xend = as.Date("1988", "%Y"),
-    yend = 2500
-  ),
-  arrow = arrow(length = unit(0.25, "cm"))
-  ) +
-  geom_text(
-    x = as.Date("1988", "%Y"),
-    y = 3650,
-    label = "B"
-  )
-
-ggsave("figs/04_line_graph_collections.pdf",
-  width = 8,
-  height = 6
+ggsave("figs/04_data_sources.png",
+       width = 16,
+       height = 6
 )
 
 # Save workspace ----
