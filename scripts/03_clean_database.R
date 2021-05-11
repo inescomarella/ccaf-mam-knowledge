@@ -20,17 +20,16 @@ conflicted::conflict_prefer(name = "mutate", winner = "dplyr")
 conflicted::conflict_prefer(name = "arrange", winner = "dplyr")
 
 # Source functions
-source("functions/funs-clean-all-data.R")
+source("functions/funs_clean_database.R")
+
+# Token sent by IUCN Red List
+rlkey <- "*****"
 
 # Load in data
 data_paper <-
-  read.csv("data/raw/literature_records.csv")
+  read.csv("data/raw/literature_data.csv")
 data_downl <-
-  read.csv("data/raw/downloaded_records.csv")
-
-# Token sent by IUCN Red List
-rlkey <-
-  "*****"
+  read.csv("data/raw/downloaded_data.csv")
 
 # Pre-process data ----------------------------------------
 
@@ -893,7 +892,9 @@ clean_data_completed <-
     species == "Sphiggurus villosus",
     "Coendou spinosus",
     species
-  ))
+  )) %>%
+  mutate(species = gsub("Pecari", "Dicotyles", x = species)) %>%
+  mutate(scientificName = ifelse(str_detect(species, "Dicotyles"), "Dicotyles tajacu (Linnaeus)", species))
 
 
 # Select columns of interest
@@ -996,4 +997,4 @@ write.csv(
   "data/processed/clean_database.csv"
 )
 
-save.image("~/tcc-ccma/code/workspaces/clean_data_base.RData")
+save.image("~/tcc-ccma/workspaces/clean_data_base.RData")
