@@ -16,8 +16,6 @@ conflicted::conflict_prefer("filter", "dplyr")
 conflicted::conflict_prefer("select", "dplyr")
 conflicted::conflict_prefer("get_legend", "cowplot")
 
-source("functions/break_5points.R")
-
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
 # Load in data -------------------------------------------
@@ -35,9 +33,9 @@ cus <-
 class <- factor(c("Very high", "High", "Medium", "Low", "Very low"))
 
 KL_map <- grid_data %>%
-  filter(!is.na(AMT)) %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
-  geom_sf(aes(fill = factor(KL_class, levels = class)), color = NA) +
+  geom_sf(aes(fill = factor(KL_clss, levels = class)), color = NA) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
@@ -49,9 +47,9 @@ KL_map <- grid_data %>%
   labs(fill = "Knowledge level")
 
 KG_map <- grid_data %>%
-  filter(!is.na(AMT)) %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
-  geom_sf(aes(fill = factor(KG_class, levels = class)), color = NA) +
+  geom_sf(aes(fill = factor(KG_clss, levels = class)), color = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     discrete = TRUE,
@@ -70,9 +68,9 @@ nrec_map <- grid_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(1, max(grid_data$nrec)),
-    breaks = break_points(st_drop_geometry(grid_data), nrec, 0, 1),
-    labels = break_points(st_drop_geometry(grid_data), nrec, 0, 1)
+    limits = c(1, max(pretty(grid_data$nrec))),
+    breaks = pretty(grid_data$nrec),
+    labels = pretty(grid_data$nrec)
   ) +
   theme_light() +
   labs(fill = "Number of\nRecords")
@@ -85,34 +83,25 @@ c_map <- grid_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(0, max(grid_data$c, na.rm = TRUE)),
-    breaks = break_points(st_drop_geometry(grid_data), c, 1, 0),
-    labels = break_points(st_drop_geometry(grid_data), c, 1, 0)
+    limits = c(0, 1),
+    breaks = pretty(grid_data$c),
+    labels = pretty(grid_data$c)
   ) +
   theme_light() +
   labs(fill = "Completeness")
 
-CU_map <- grid_data %>%
-  filter(!is.na(AMT)) %>%
-  mutate(CU = ifelse(CU == 1, "Present", "Absent")) %>%
-  ggplot() +
-  geom_sf(color = NA, aes(fill = CU)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus", discrete = TRUE) +
-  theme_light() +
-  labs(fill = "Conservation\nUnit")
-
 forest_map <- grid_data %>%
-  filter(!is.na(AMT)) %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = forest_cov)) +
+  geom_sf(size = NA, aes(fill = frst_cv)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(min(grid_data$forest_cov, na.rm = TRUE), max(grid_data$forest_cov, na.rm = TRUE)),
-    breaks = c(min(grid_data$forest_cov, na.rm = TRUE), max(grid_data$forest_cov, na.rm = TRUE)),
+    limits = c(min(pretty(grid_data$frst_cv)), 
+               max(pretty(grid_data$frst_cv))),
+    breaks = c(min(pretty(grid_data$frst_cv)), 
+               max(pretty(grid_data$frst_cv))),
     labels = c("Low", "High")
   ) +
   theme_light() +
@@ -127,9 +116,10 @@ Sobs_map <- grid_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(1, max(grid_data$Sobs, na.rm = TRUE)),
-    breaks = break_points(st_drop_geometry(grid_data), Sobs, 0, 1),
-    labels = break_points(st_drop_geometry(grid_data), Sobs, 0, 1)
+    limits = c(min(pretty(grid_data$Sobs)), 
+               max(pretty(grid_data$Sobs))),
+    breaks = pretty(grid_data$Sobs),
+    labels = pretty(grid_data$Sobs)
   ) +
   theme_light() +
   labs(fill = "Species richness\nobserved")
@@ -142,10 +132,10 @@ Sest_map <- grid_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(min(grid_data$Sest, na.rm = TRUE), 
-               max(grid_data$Sest, na.rm = TRUE)),
-    breaks = break_points(st_drop_geometry(grid_data), Sest, 0, min(grid_data$Sest, na.rm = TRUE)),
-    labels = break_points(st_drop_geometry(grid_data), Sest, 0, min(grid_data$Sest, na.rm = TRUE))
+    limits = c(min(pretty(grid_data$Sest)), 
+               max(pretty(grid_data$Sest))),
+    breaks = pretty(grid_data$Sest),
+    labels = pretty(grid_data$Sest)
   ) +
   theme_light() +
   labs(fill = "Species richness\nestimated")
@@ -158,53 +148,53 @@ elev_map <- grid_data %>%
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
-    limits = c(round(min(grid_data$elev, na.rm = TRUE), 0), 
-               max(grid_data$elev, na.rm = TRUE)),
-    breaks = break_points(st_drop_geometry(grid_data), elev, 0, round(min(grid_data$elev, na.rm = TRUE), 0)),
-    labels = break_points(st_drop_geometry(grid_data), elev, 0, round(min(grid_data$elev, na.rm = TRUE), 0))
+    limits = c(min(pretty(grid_data$elev)), 
+               max(pretty(grid_data$elev))),
+    breaks = pretty(grid_data$elev),
+    labels = pretty(grid_data$elev)
   ) +
   theme_light() +
   labs(fill = "Elevation (m)")
 
-elev_distance_map <- grid_data %>%
-  filter(!is.na(elev)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = elevd)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light() +
-  labs(fill = "Elevd")
-
 grid_data <- grid_data %>%
-  mutate(AMT = AMT / 10)
+  mutate(MTWM = MTWM * 10,
+         MTCM = MTCM * 10)
 
-AMT_map <- grid_data %>%
-  filter(!is.na(AMT)) %>%
+MTWM_map <- grid_data %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = AMT)) +
+  geom_sf(size = NA, aes(fill = MTWM)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(
-      round(min(grid_data$AMT, na.rm = TRUE), 1),
-      round(max(grid_data$AMT, na.rm = TRUE), 1)
+      min(pretty(grid_data$MTWM)),
+      max(pretty(grid_data$MTWM))
     ),
-    breaks = break_points(st_drop_geometry(grid_data), AMT, 1, round(min(grid_data$AMT, na.rm = TRUE), 1)),
-    labels = break_points(st_drop_geometry(grid_data), AMT, 1, round(min(grid_data$AMT, na.rm = TRUE), 1))
+    breaks = pretty(grid_data$MTWM),
+    labels = pretty(grid_data$MTWM)
   ) +
   theme_light() +
-  labs(fill = "Annual Mean\nTemperature (ºC)")
+  labs(fill = "Max. Temp.\nWarm. Month(ºC)")
 
-AMT_distance_map <- grid_data %>%
-  filter(!is.na(AMTd)) %>%
+MTCM_map <- grid_data %>%
+  filter(!is.na(AP)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = AMTd)) +
+  geom_sf(size = NA, aes(fill = MTCM)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(
+      min(pretty(grid_data$MTCM)),
+      max(pretty(grid_data$MTCM))
+    ),
+    breaks = pretty(grid_data$MTCM),
+    labels = pretty(grid_data$MTCM)
+  ) +
+  theme_light() +
+  labs(fill = "Min. Temp.\nCold. Month(ºC)")
 
 AP_map <- grid_data %>%
   filter(!is.na(AP)) %>%
@@ -215,23 +205,14 @@ AP_map <- grid_data %>%
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(
-      round(min(grid_data$AP, na.rm = TRUE), 0),
-      round(max(grid_data$AP, na.rm = TRUE), 0)
+      min(pretty(grid_data$AP)),
+      max(pretty(grid_data$AP))
     ),
-    breaks = break_points(st_drop_geometry(grid_data), AP, 0, round(min(grid_data$AP, na.rm = TRUE), 0)),
-    labels = break_points(st_drop_geometry(grid_data), AP, 0, round(min(grid_data$AP, na.rm = TRUE), 0))
+    breaks = pretty(grid_data$AP),
+    labels = pretty(grid_data$AP)
   ) +
   theme_light() +
   labs(fill = "Annual precipitation (mm)")
-
-AP_distance_map <- grid_data %>%
-  filter(!is.na(AP)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = APd)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(option = "Hypsypops_rubicundus") +
-  theme_light()
 
 # Save results ------------
 KG_map + theme_void() +
@@ -253,7 +234,7 @@ p3 <- c_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
 
-plot_grid(p1, p2, p3, ncol = 3, labels = c("(a)", "(b)", "(b)"), label_size = 15)
+plot_grid(p1, p2, p3, ncol = 3, labels = c("(a)", "(b)", "(c)"), label_size = 15)
 ggsave("figs/07_bio_vars_map.png",
        width = 13,
        height = 8.27
@@ -266,20 +247,22 @@ p1 <- forest_map  + theme_void() +
 p2 <- elev_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p3 <- AMT_map  + theme_void() +
-  labs(fill = "Annual Mean\nTemperature (ºC)") +
+p3 <- MTWM_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p4 <- AP_map  + theme_void() + 
+p4 <- MTCM_map  + theme_void() +
+  theme(legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15))
+p5 <- AP_map  + theme_void() + 
   labs(fill = "Annual\nPrecipation (mm)") +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-plot_grid(p1, p2, p3, p4, 
-          ncol = 4, 
-          labels = c("(a)", "(b)", "(c)", "(d)"), 
+plot_grid(p1, p2, p3, p4, p5,
+          ncol = 3, 
+          labels = c("(a)", "(b)", "(c)", "(d)", "(e)"), 
           label_size = 15)
 ggsave("figs/07_envi_vars_map.png",
        width = 15,
-       height = 5
+       height = 10
 )
 
