@@ -30,13 +30,13 @@ gbif_mamm_occ_down <-
     # greaterThanOrEquals
     pred_gte("year", 1500),
     # lessThanOrEquals
-    pred_lte("year", 2020)
+    pred_lte("year", 2021)
   )
 
 # Get download from GBIF
 gbif_mamm_occ_get <-
   occ_download_get(
-    key = "0103075-200613084148143",
+    key = "0273519-200613084148143",
     path = "data/raw/",
     overwrite = TRUE
   )
