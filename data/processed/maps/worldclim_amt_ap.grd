@@ -1,6 +1,6 @@
 [general]
 creator=R package 'raster'
-created=2021-04-13 13:58:22
+created=2021-05-11 17:13:57
 [georeference]
 nrows=199
 ncols=73
@@ -12,14 +12,14 @@ projection=+proj=longlat +datum=WGS84 +no_defs
 [data]
 datatype=FLT4S
 byteorder=little
-nbands=2
+nbands=3
 bandorder=BIL
-minvalue=123:744
-maxvalue=249:2414
+minvalue=204:35:744
+maxvalue=332:199:2414
 nodatavalue=-3.4e+38
 [legend]
 legendtype=
 values=
 color=
 [description]
-layername=AMT:AP
+layername=MTWM:MTCM:AP
