@@ -8,7 +8,9 @@ xfun::pkg_attach2(
     "fossil",
     "raster",
     "geobgu",
-    "stars"
+    "stars",
+    "recipes",
+    "fields"
   )
 )
 
@@ -23,9 +25,9 @@ longlat <- CRS("+proj=longlat +datum=WGS84")
 # Load in data -----------
 ccaf <- read_sf("data/processed/maps/ccaf_map.shp")
 
-environment <- brick("data/processed/maps/worldclim_amt_ap.grd") 
+environment <- brick("data/processed/maps/worldclim_amt_ap.grd")
 
-elevation <- raster("data/processed/maps/elevation.tif") 
+elevation <- raster("data/processed/maps/elevation.tif")
 
 cus <-
   read_sf("data/processed/maps/CUs_map.shp") %>%
@@ -50,16 +52,6 @@ records <-
     )
   ) %>%
   mutate(id = seq(1, nrow(.)))
-
-institutes <-
-  st_read(
-    dsn = "data/raw/research_institutes.csv",
-    crs = longlat,
-    options = c(
-      "X_POSSIBLE_NAMES=longitude",
-      "Y_POSSIBLE_NAMES=latitude"
-    )
-  )
 
 # Make grid ----
 grid <-
@@ -99,10 +91,11 @@ envi <- extract(environmet_resampled, grid_centroids)
 
 grid_envi <- grid
 grid_envi$elev <- elev
-grid_envi$AMT <- envi[, 1]
-grid_envi$AP <- envi[, 2]
+grid_envi$MTWM <- envi[, 1]
+grid_envi$MTCM <- envi[, 2]
+grid_envi$AP <- envi[, 3]
 
-grid_envi <- grid_envi %>% 
+grid_envi <- grid_envi %>%
   mutate(
     forest_cov = raster_extract(
       x = st_as_stars(forest),
@@ -112,7 +105,7 @@ grid_envi <- grid_envi %>%
     )
   )
 
-grid_envi$CU <-  grid_envi %>%
+grid_envi$CU <- grid_envi %>%
   st_intersects(cus) %>%
   lengths()
 
@@ -122,81 +115,92 @@ grid_bio <- grid_envi
 record_grid <- st_intersection(records, grid_bio)
 
 for (i in 1:nrow(grid)) {
-  
   grid_bio$nrec[i] <- record_grid %>%
     filter(grid_id == i) %>%
     nrow()
-  
+
   nrec <- record_grid %>%
     filter(grid_id == i) %>%
     filter(!is.na(eventDate)) %>%
     nrow()
-  
+
   cell_df <- record_grid %>%
     filter(grid_id == i) %>%
     select(eventDate, species) %>%
     st_drop_geometry() %>%
     unique()
-  
+
   grid_bio$Sobs[i] <- length(unique(cell_df$species))
-  
+
   if (nrec >= 25) {
-    
     cell_df_expended <- cell_df %>%
       expand(eventDate, species)
-    
+
     cell_df_expended_absent <- anti_join(cell_df_expended, cell_df)
-    
+
     cell_df$State <- 1
     cell_df_expended_absent$State <- 0
-    
+
     cell_df_State <- bind_rows(cell_df, cell_df_expended_absent)
-    
+
     sp_by_saple_df <- cell_df_State %>%
       arrange(eventDate, species) %>%
       spread(key = eventDate, value = State)
-    
+
     grid_bio$Sest[i] <- chao2(sp_by_saple_df[, -1])
   } else {
     grid_bio$Sest[i] <- NA
   }
-  
 }
 
 grid_bio <- grid_bio %>%
-  mutate(c = Sobs/Sest)
+  mutate(c = Sobs / Sest)
 
-grid_data <-  grid_bio %>%
+# Calculate knowledge level
+grid_data <- grid_bio %>%
   group_by(grid_id) %>%
   mutate(
     KL = (c + nrec / max(grid_bio$nrec, na.rm = TRUE)) / 2
   ) %>%
   mutate(KL = ifelse(is.na(KL) | is.infinite(KL), 0, KL))
 
-grid_data_processing <- grid_data %>%
+# Test for correlation between elevation and temperature
+grid_data %>%
+  st_drop_geometry() %>%
+  recipe(elev ~ MTWM + MTCM + AP) %>%
+  step_corr(all_predictors()) %>%
+  prep()
+
+# Select environment conditions of the most recorded cell
+max_nrec_environment <- grid_data %>%
+  st_drop_geometry() %>%
+  filter(nrec == max(grid_data$nrec, na.rm = TRUE)) %>%
+  ungroup() %>%
+  select(elev, MTWM, MTCM, AP) %>%
+  as.matrix()
+
+# Measure Euclidean distance from local environment conditions and the most recorded cell
+grid_data_distance <- grid_data %>%
   mutate(
-    elevd = abs(elev - filter(
-      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
-    )$elev),
-    AMTd = abs(AMT - filter(
-      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
-    )$AMT),
-    APd = abs(AP - filter(
-      grid_data, nrec == max(grid_data$nrec, na.rm = TRUE)
-    )$AP)
+    elev_distance = rdist(elev, max_nrec_environment[, 1]),
+    MTWM_distance = rdist(MTWM, max_nrec_environment[, 2]),
+    MTCM_distance = rdist(MTCM, max_nrec_environment[, 3]),
+    AP_distance = rdist(AP, max_nrec_environment[, 4])
   )
 
-grid_data_processed <- grid_data_processing %>%
+# Environment gap scalling from 0 to 1
+grid_data_relative <- grid_data_distance %>%
+  mutate(Elevd = elev_distance / max(grid_envi_distance$elev_distance, na.rm = TRUE)) %>%
+  mutate(MTWMd = MTWM_distance / max(grid_envi_distance$MTWM_distance, na.rm = TRUE)) %>%
+  mutate(MTCMd = MTCM_distance / max(grid_envi_distance$MTCM_distance, na.rm = TRUE)) %>%
+  mutate(APd = AP_distance / max(grid_envi_distance$AP_distance, na.rm = TRUE)) %>%
   mutate(
-    elevd = elevd / max(grid_data_processing$elevd, na.rm = TRUE),
-    AMTd = AMTd / max(grid_data_processing$AMTd, na.rm = TRUE),
-    APd = APd / max(grid_data_processing$APd, na.rm = TRUE),
-    forestw = forest_cov / max(grid_data_processing$forest_cov, na.rm = TRUE)
+    forestw = forest_cov / max(grid_data_distance$forest_cov, na.rm = TRUE)
   ) %>%
-  mutate(KG = forestw * mean(c(elevd, AMTd, APd, (1 - KL))))
+  mutate(KG = forestw * mean(c(Elevd, MTWMd, MTCMd, APd, (1 - KL))))
 
-
-grid_data_classified <- grid_data_processed %>%
+# Classify index
+grid_data_classified <- grid_data_relative %>%
   ungroup() %>%
   filter(!is.nan(KG)) %>%
   mutate(grid_id = as.character(grid_id)) %>%
@@ -239,15 +243,15 @@ levels <- c("Very high", "High", "Medium", "Low", "Very low")
 
 grid_data_classified$KL_class <-
   factor(grid_data_classified$KL_class,
-         levels = levels
+    levels = levels
   )
 grid_data_classified$KG_class <-
   factor(grid_data_classified$KG_class,
-         levels = levels
+    levels = levels
   )
 
 # Export grid ---------------------------
 write_sf(grid_data_classified, "./data/processed/maps/grid_data.shp")
 
 # Save workspace ----
-save.image("~/tcc-ccma/code/workspaces/spatial_analyses.RData")
+save.image("~/tcc-ccma/workspaces/spatial_analyses.RData")
