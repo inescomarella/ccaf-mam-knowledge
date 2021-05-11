@@ -19,11 +19,12 @@ elevation_data <-
 # Get environment data
 worldclim_data <- getData("worldclim", var = "bio", res = 2.5)
 
-# BIO1 = Annual Mean Temperature
+# BIO5 = Max Temperature of Warmest Month
+# BIO6 = Min Temperature of Coldest Month
 # BIO12 = Annual Precipitation
-worldclim_amt_ap <- worldclim_data[[c(1, 12)]]
+worldclim_amt_ap <- worldclim_data[[c(5, 6, 12)]]
 names(worldclim_amt_ap) <-
-  c("AMT", "AP")
+  c("MTWM", "MTCM", "AP")
 
 # Crop raster ----------------------------
 environment_cropped <- mask(crop(worldclim_amt_ap, ccaf), ccaf)
