@@ -45,6 +45,25 @@ colection_contri %>%
   select(per) %>%
   sum()
 
+# 10 years sequence
+yseq <- seq(1810, 2030, 10)
+
+# Dataframe to first last records plot
+frst_lst_rcrd_df_10y <- data.frame()
+
+for (i in 1:length(yseq)) {
+  df_10y <- frst_lst_rcrd_df %>%
+    filter(year >= as.Date(as.character(yseq[i]), "%Y") && year < as.Date(as.character(yseq[i + 1]), "%Y")) %>%
+    group_by(record) %>%
+    summarise(n = sum(n)) %>%
+    mutate(year = as.Date(as.character(yseq[i]), "%Y"))
+  
+  frst_lst_rcrd_df_10y <- bind_rows(frst_lst_rcrd_df_10y, df_10y)
+}
+
+breaks_values <- 
+  pretty(frst_lst_rcrd_df_10y$n, n = 10)
+
 # Plot ------------------------------------------------------------
 
 line_graph_collections <- records_df %>%
@@ -84,23 +103,6 @@ frst_lst_rcrd_df <- data %>%
   summarise(n = n()) %>%
   mutate(n = ifelse(record == "last_record", -n, n))
 
-yseq <- seq(1810, 2030, 10)
-
-frst_lst_rcrd_df_10y <- data.frame()
-
-for (i in 1:length(yseq)) {
-    df_10y <- frst_lst_rcrd_df %>%
-      filter(year >= as.Date(as.character(yseq[i]), "%Y") && year < as.Date(as.character(yseq[i + 1]), "%Y")) %>%
-      group_by(record) %>%
-      summarise(n = sum(n)) %>%
-      mutate(year = as.Date(as.character(yseq[i]), "%Y"))
-
-    frst_lst_rcrd_df_10y <- bind_rows(frst_lst_rcrd_df_10y, df_10y)
-}
-
-breaks_values <- 
-  pretty(frst_lst_rcrd_df_10y$n, n = 10)
-
 frst_lst_rcrd_graph <- frst_lst_rcrd_df_10y %>%
   ggplot(aes(x = year, y = n, fill = record)) +
   scale_x_date(date_labels = "%Y") +
@@ -133,5 +135,5 @@ ggsave("figs/04_data_sources.png",
        height = 6
 )
 
-# Save workspace ----
+# Save workspace ------------------------------------------------------------
 save.image("~/tcc-ccma/workspaces/explore_data.RData")

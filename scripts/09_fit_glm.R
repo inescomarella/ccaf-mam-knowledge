@@ -7,7 +7,7 @@ source("functions/get_nearest_dist.R")
 # Set projections
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
-# Load in data --------------------------------
+# Load in data ------------------------------------------------------------
 
 grid_data <- read_sf("data/processed/maps/grid_data.shp")
 
@@ -21,7 +21,7 @@ institutes <-
     )
   )
 
-# Pre-process data --------------------------------
+# Pre-process data ------------------------------------------------------------
 
 # Euclidean distances
 grid_data_dist <- get_nearest_dist(institutes, grid_data)
@@ -31,7 +31,7 @@ data <- grid_data_dist %>%
   filter(!is.na(AP)) %>%
   select(nrec, dist_inst)
 
-# Fit model --------------------------------
+# Fit model ------------------------------------------------------------
 
 # Linear regression model
 lm_mod <-
@@ -49,7 +49,7 @@ tidy(lm_fit)
 predicted <- lm_fit %>%
   predict(data) 
 
-# Export plot  --------------------------------
+# Export plot ------------------------------------------------------------
 
 # Plot predicted and observed number of recordd
 bind_cols(data, predicted) %>%
@@ -63,3 +63,6 @@ bind_cols(data, predicted) %>%
   theme_light()
 
 ggsave("figs/glm_plot.png")
+
+# Save workspace ------------------------------------------------------------
+save.image("~/tcc-ccma/workspaces/fit_glm.RData")

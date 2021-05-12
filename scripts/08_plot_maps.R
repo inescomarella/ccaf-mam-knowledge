@@ -19,6 +19,7 @@ conflicted::conflict_prefer("get_legend", "cowplot")
 longlat <- CRS("+proj=longlat +datum=WGS84")
 
 # Load in data -------------------------------------------
+
 grid_data <- read_sf("data/processed/maps/grid_data.shp")
 
 ccaf <- read_sf("data/processed/maps/ccaf_map.shp")
@@ -29,7 +30,8 @@ cus <-
   st_make_valid() %>%
   st_intersection(ccaf)
 
-# Map variables ----
+# Map variables -------------------------------------------
+
 class <- factor(c("Very high", "High", "Medium", "Low", "Very low"))
 
 KL_map <- grid_data %>%
@@ -156,11 +158,8 @@ elev_map <- grid_data %>%
   theme_light() +
   labs(fill = "Elevation (m)")
 
-grid_data <- grid_data %>%
-  mutate(MTWM = MTWM * 10,
-         MTCM = MTCM * 10)
-
 MTWM_map <- grid_data %>%
+  mutate(MTWM = MTWM / 10) %>%
   filter(!is.na(AP)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = MTWM)) +
@@ -179,6 +178,7 @@ MTWM_map <- grid_data %>%
   labs(fill = "Max. Temp.\nWarm. Month(ºC)")
 
 MTCM_map <- grid_data %>%
+  mutate(MTWM = MTCM / 10) %>%
   filter(!is.na(AP)) %>%
   ggplot() +
   geom_sf(size = NA, aes(fill = MTCM)) +
@@ -214,7 +214,7 @@ AP_map <- grid_data %>%
   theme_light() +
   labs(fill = "Annual precipitation (mm)")
 
-# Save results ------------
+# Save results -------------------------------------------
 KG_map + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
