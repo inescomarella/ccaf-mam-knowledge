@@ -35,13 +35,6 @@ cus <-
   st_make_valid() %>%
   st_intersection(ccaf)
 
-forest <-
-  raster(
-    "data/raw/maps/mapbiomas/mapbiomas-brazil-collection-50-mataatlantica-2019.tif"
-  ) %>%
-  crop(as(ccaf, "Spatial")) %>%
-  mask(as(ccaf, "Spatial")) %in% 1:8
-
 records <-
   st_read(
     dsn = "data/processed/clean_database.csv",
@@ -94,16 +87,6 @@ grid_envi$elev <- elev
 grid_envi$MTWM <- envi[, 1]
 grid_envi$MTCM <- envi[, 2]
 grid_envi$AP <- envi[, 3]
-
-grid_envi <- grid_envi %>%
-  mutate(
-    forest_cov = raster_extract(
-      x = st_as_stars(forest),
-      y = grid_envi,
-      fun = sum,
-      na.rm = TRUE
-    )
-  )
 
 grid_envi$CU <- grid_envi %>%
   st_intersects(cus) %>%
@@ -190,14 +173,11 @@ grid_data_distance <- grid_data %>%
 
 # Environment gap scalling from 0 to 1
 grid_data_relative <- grid_data_distance %>%
-  mutate(Elevd = elev_distance / max(grid_envi_distance$elev_distance, na.rm = TRUE)) %>%
-  mutate(MTWMd = MTWM_distance / max(grid_envi_distance$MTWM_distance, na.rm = TRUE)) %>%
-  mutate(MTCMd = MTCM_distance / max(grid_envi_distance$MTCM_distance, na.rm = TRUE)) %>%
-  mutate(APd = AP_distance / max(grid_envi_distance$AP_distance, na.rm = TRUE)) %>%
-  mutate(
-    forestw = forest_cov / max(grid_data_distance$forest_cov, na.rm = TRUE)
-  ) %>%
-  mutate(KG = forestw * mean(c(Elevd, MTWMd, MTCMd, APd, (1 - KL))))
+  mutate(Elevd = elev_distance / max(grid_data_distance$elev_distance, na.rm = TRUE)) %>%
+  mutate(MTWMd = MTWM_distance / max(grid_data_distance$MTWM_distance, na.rm = TRUE)) %>%
+  mutate(MTCMd = MTCM_distance / max(grid_data_distance$MTCM_distance, na.rm = TRUE)) %>%
+  mutate(APd = AP_distance / max(grid_data_distance$AP_distance, na.rm = TRUE)) %>%
+  mutate(KG = mean(c(Elevd, MTWMd, MTCMd, APd, (1 - KL))))
 
 # Classify index
 grid_data_classified <- grid_data_relative %>%
