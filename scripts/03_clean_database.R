@@ -731,6 +731,9 @@ data_all_sp_clean <-
     species
   ))
 
+# Fix problem with M. nemorivaga
+data_all_sp_clean <- data_all_sp_clean %>%
+  mutate(species = ifelse(str_detect(citation, "de Oliveira et al. (2020)"), scientificName, species))
 
 # scientificName as the scientific name containing the species author, not as
 # the key to the raw data reference anymore
@@ -976,19 +979,19 @@ clean_data_distincted <- clean_data_distincted %>%
 
 # Track number of records -------------------------------------------
 
-# Total records downloaded = 41258
+# Total records downloaded = 44478
 nrow(data_all)
 
-# Records after removing no-identified species = 38280
+# Records after removing no-identified species = 41475
 nrow(data_all_only_indetified_species)
 
-# Records after geographic clean = 14487
+# Records after geographic clean = 14588
 nrow(data_all_clipped)
 
-# Records after taxonomic clean (and removing marine species) = 13993
+# Records after taxonomic clean (and removing marine species) = 14078
 nrow(data_all_sp_clean)
 
-# Final number of unique records = 12326
+# Final number of unique records = 12263
 nrow(clean_data_distincted)
 
 # Export data ----------------------------------------------------
