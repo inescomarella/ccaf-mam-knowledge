@@ -51,6 +51,23 @@ yseq <- seq(1810, 2030, 10)
 # Dataframe to first last records plot
 frst_lst_rcrd_df_10y <- data.frame()
 
+frst_lst_rcrd_df <- data %>%
+  filter(!is.na(year), year != "", year != "NA") %>%
+  mutate(year = as.Date(as.character(year), "%Y")) %>%
+  group_by(species) %>%
+  summarise(
+    first_record = min(year),
+    last_record = max(year)
+  ) %>%
+  pivot_longer(
+    cols = -c(species),
+    names_to = "record",
+    values_to = "year"
+  ) %>%
+  group_by(year, record) %>%
+  summarise(n = n()) %>%
+  mutate(n = ifelse(record == "last_record", -n, n))
+
 for (i in 1:length(yseq)) {
   df_10y <- frst_lst_rcrd_df %>%
     filter(year >= as.Date(as.character(yseq[i]), "%Y") && year < as.Date(as.character(yseq[i + 1]), "%Y")) %>%

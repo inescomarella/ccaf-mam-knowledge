@@ -25,9 +25,7 @@ longlat <- CRS("+proj=longlat +datum=WGS84")
 # Load in data -----------
 ccaf <- read_sf("data/processed/maps/ccaf_map.shp")
 
-environment <- brick("data/processed/maps/worldclim_amt_ap.grd")
-
-elevation <- raster("data/processed/maps/elevation.tif")
+environment <- brick("data/processed/maps/worldclim_ccaf.grd")
 
 cus <-
   read_sf("data/processed/maps/CUs_map.shp") %>%
@@ -71,22 +69,22 @@ res(grid_raster) <- 0.1
 # Re-scale
 environmet_resampled <-
   resample(x = environment, y = grid_raster, method = "bilinear")
-elevation_resampled <-
-  resample(x = elevation, y = grid_raster, method = "bilinear")
 
 # Extract environment data ---------------------
 
 grid_centroids <- grid %>%
   st_centroid()
 
-elev <- extract(elevation_resampled, grid_centroids)
 envi <- extract(environmet_resampled, grid_centroids)
 
-grid_envi <- grid
-grid_envi$elev <- elev
-grid_envi$MTWM <- envi[, 1]
-grid_envi$MTCM <- envi[, 2]
-grid_envi$AP <- envi[, 3]
+# Filter environment condition variables ---------------------
+# Remove variables highly correlated (|r|≥0.80)
+envi_filtered <- recipe( ~ ., data = envi) %>%
+  step_corr(all_predictors(), threshold = .8) %>%
+  prep(., training = envi) %>%
+  bake(., envi)
+
+grid_envi <- bind_cols(grid, envi_filtered)
 
 grid_envi$CU <- grid_envi %>%
   st_intersects(cus) %>%
@@ -147,37 +145,34 @@ grid_data <- grid_bio %>%
   ) %>%
   mutate(KL = ifelse(is.na(KL) | is.infinite(KL), 0, KL))
 
-# Test for correlation between elevation and temperature
-grid_data %>%
-  st_drop_geometry() %>%
-  recipe(elev ~ MTWM + MTCM + AP) %>%
-  step_corr(all_predictors()) %>%
-  prep()
-
 # Select environment conditions of the most recorded cell
 max_nrec_environment <- grid_data %>%
   st_drop_geometry() %>%
   filter(nrec == max(grid_data$nrec, na.rm = TRUE)) %>%
   ungroup() %>%
-  select(elev, MTWM, MTCM, AP) %>%
+  select(starts_with("bio")) %>%
   as.matrix()
 
 # Measure Euclidean distance from local environment conditions and the most recorded cell
 grid_data_distance <- grid_data %>%
   mutate(
-    elev_distance = rdist(elev, max_nrec_environment[, 1]),
-    MTWM_distance = rdist(MTWM, max_nrec_environment[, 2]),
-    MTCM_distance = rdist(MTCM, max_nrec_environment[, 3]),
-    AP_distance = rdist(AP, max_nrec_environment[, 4])
+    bio3_distance = rdist(bio3, max_nrec_environment[, 1]),
+    bio4_distance = rdist(bio4, max_nrec_environment[, 2]),
+    bio8_distance = rdist(bio8, max_nrec_environment[, 3]),
+    bio12_distance = rdist(bio12, max_nrec_environment[, 4]),
+    bio13_distance = rdist(bio13, max_nrec_environment[, 5]),
+    bio18_distance = rdist(bio18, max_nrec_environment[, 6])
   )
-
+    
 # Environment gap scalling from 0 to 1
 grid_data_relative <- grid_data_distance %>%
-  mutate(Elevd = elev_distance / max(grid_data_distance$elev_distance, na.rm = TRUE)) %>%
-  mutate(MTWMd = MTWM_distance / max(grid_data_distance$MTWM_distance, na.rm = TRUE)) %>%
-  mutate(MTCMd = MTCM_distance / max(grid_data_distance$MTCM_distance, na.rm = TRUE)) %>%
-  mutate(APd = AP_distance / max(grid_data_distance$AP_distance, na.rm = TRUE)) %>%
-  mutate(KG = mean(c(Elevd, MTWMd, MTCMd, APd, (1 - KL))))
+  mutate(bio3d = bio3_distance / max(grid_data_distance$bio3_distance, na.rm = TRUE)) %>%
+  mutate(bio4d = bio4_distance / max(grid_data_distance$bio4_distance, na.rm = TRUE)) %>%
+  mutate(bio8d = bio8_distance / max(grid_data_distance$bio8_distance, na.rm = TRUE)) %>%
+  mutate(bio12d = bio12_distance / max(grid_data_distance$bio12_distance, na.rm = TRUE)) %>%
+  mutate(bio12d = bio13_distance / max(grid_data_distance$bio13_distance, na.rm = TRUE)) %>%
+  mutate(bio18d = bio18_distance / max(grid_data_distance$bio18_distance, na.rm = TRUE)) %>%
+  mutate(KG = mean(c((1 - KL), bio3d, bio4d, bio8d, bio12d, bio12d, bio18d)))
 
 # Classify index
 grid_data_classified <- grid_data_relative %>%

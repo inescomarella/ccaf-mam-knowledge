@@ -35,7 +35,7 @@ cus <-
 class <- factor(c("Very high", "High", "Medium", "Low", "Very low"))
 
 KL_map <- grid_data %>%
-  filter(!is.na(AP)) %>%
+  filter(!is.na(KG)) %>%
   ggplot() +
   geom_sf(aes(fill = factor(KL_clss, levels = class)), color = NA) +
   geom_sf(data = cus, fill = NA) +
@@ -49,7 +49,7 @@ KL_map <- grid_data %>%
   labs(fill = "Knowledge level")
 
 KG_map <- grid_data %>%
-  filter(!is.na(AP)) %>%
+  filter(!is.na(KG)) %>%
   ggplot() +
   geom_sf(aes(fill = factor(KG_clss, levels = class)), color = NA) +
   scale_fill_fish(
@@ -92,23 +92,6 @@ c_map <- grid_data %>%
   theme_light() +
   labs(fill = "Completeness")
 
-forest_map <- grid_data %>%
-  filter(!is.na(AP)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = frst_cv)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(min(pretty(grid_data$frst_cv)), 
-               max(pretty(grid_data$frst_cv))),
-    breaks = c(min(pretty(grid_data$frst_cv)), 
-               max(pretty(grid_data$frst_cv))),
-    labels = c("Low", "High")
-  ) +
-  theme_light() +
-  labs(fill = "Relative forest coverage")
-
 Sobs_map <- grid_data %>%
   filter(!is.na(Sobs)) %>%
   filter(Sobs > 1) %>%
@@ -142,77 +125,123 @@ Sest_map <- grid_data %>%
   theme_light() +
   labs(fill = "Species richness\nestimated")
 
-elev_map <- grid_data %>%
-  filter(!is.na(elev)) %>%
+#BIO3 = Isothermality (BIO2/BIO7) (×100)
+bio3_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = elev)) +
-  geom_sf(data = cus, fill = NA) +
-  geom_sf(data = ccaf, fill = NA) +
-  scale_fill_fish(
-    option = "Hypsypops_rubicundus",
-    limits = c(min(pretty(grid_data$elev)), 
-               max(pretty(grid_data$elev))),
-    breaks = pretty(grid_data$elev),
-    labels = pretty(grid_data$elev)
-  ) +
-  theme_light() +
-  labs(fill = "Elevation (m)")
-
-MTWM_map <- grid_data %>%
-  mutate(MTWM = MTWM / 10) %>%
-  filter(!is.na(AP)) %>%
-  ggplot() +
-  geom_sf(size = NA, aes(fill = MTWM)) +
+  geom_sf(size = NA, aes(fill = bio3)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(
-      min(pretty(grid_data$MTWM)),
-      max(pretty(grid_data$MTWM))
+      min(pretty(grid_data$bio3)),
+      max(pretty(grid_data$bio3))
     ),
-    breaks = pretty(grid_data$MTWM),
-    labels = pretty(grid_data$MTWM)
+    breaks = pretty(grid_data$bio3),
+    labels = pretty(grid_data$bio3)
   ) +
   theme_light() +
-  labs(fill = "Max. Temp.\nWarm. Month(ºC)")
+  labs(fill = "Isothermality\n(×100)")
 
-MTCM_map <- grid_data %>%
-  mutate(MTWM = MTCM / 10) %>%
-  filter(!is.na(AP)) %>%
+#BIO4 = Temperature Seasonality (standard deviation ×100)
+bio4_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = MTCM)) +
+  geom_sf(size = NA, aes(fill = bio4)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(
-      min(pretty(grid_data$MTCM)),
-      max(pretty(grid_data$MTCM))
+      min(pretty(grid_data$bio4)),
+      max(pretty(grid_data$bio4))
     ),
-    breaks = pretty(grid_data$MTCM),
-    labels = pretty(grid_data$MTCM)
+    breaks = pretty(grid_data$bio4),
+    labels = pretty(grid_data$bio4)
   ) +
   theme_light() +
-  labs(fill = "Min. Temp.\nCold. Month(ºC)")
+  labs(fill = "Temperature\nSeasonality")
 
-AP_map <- grid_data %>%
-  filter(!is.na(AP)) %>%
+#BIO8 = Mean Temperature of Wettest Quarter
+grid_data <- grid_data %>%
+  mutate(bio8 = bio8/10)
+
+bio8_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
   ggplot() +
-  geom_sf(size = NA, aes(fill = AP)) +
+  geom_sf(size = NA, aes(fill = bio8)) +
   geom_sf(data = cus, fill = NA) +
   geom_sf(data = ccaf, fill = NA) +
   scale_fill_fish(
     option = "Hypsypops_rubicundus",
     limits = c(
-      min(pretty(grid_data$AP)),
-      max(pretty(grid_data$AP))
+      min(pretty(grid_data$bio8)),
+      max(pretty(grid_data$bio8))
     ),
-    breaks = pretty(grid_data$AP),
-    labels = pretty(grid_data$AP)
+    breaks = pretty(grid_data$bio8),
+    labels = pretty(grid_data$bio8)
   ) +
   theme_light() +
-  labs(fill = "Annual precipitation (mm)")
+  labs(fill = "Mean Temperature of\nWettest Quarter (ºC)")
+
+
+#BIO12 = Annual Precipitation
+bio12_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = bio12)) +
+  geom_sf(data = cus, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(
+      min(pretty(grid_data$bio12)),
+      max(pretty(grid_data$bio12))
+    ),
+    breaks = pretty(grid_data$bio12),
+    labels = pretty(grid_data$bio12)
+  ) +
+  theme_light() +
+  labs(fill = "Annual Precipitation\n(mm)")
+
+#BIO13 = Precipitation of Wettest Month
+bio13_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = bio13)) +
+  geom_sf(data = cus, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(
+      min(pretty(grid_data$bio13)),
+      max(pretty(grid_data$bio13))
+    ),
+    breaks = pretty(grid_data$bio13),
+    labels = pretty(grid_data$bio13)
+  ) +
+  theme_light() +
+  labs(fill = "Precipitation of\nWettest Month (mm)")
+
+#BIO18 = Precipitation of Warmest Quarter
+bio18_map <- grid_data %>%
+  filter(!is.na(KG)) %>%
+  ggplot() +
+  geom_sf(size = NA, aes(fill = bio18)) +
+  geom_sf(data = cus, fill = NA) +
+  geom_sf(data = ccaf, fill = NA) +
+  scale_fill_fish(
+    option = "Hypsypops_rubicundus",
+    limits = c(
+      min(pretty(grid_data$bio18)),
+      max(pretty(grid_data$bio18))
+    ),
+    breaks = pretty(grid_data$bio18),
+    labels = pretty(grid_data$bio18)
+  ) +
+  theme_light() +
+  labs(fill = "Precipitation of\nWarmest Month (mm)")
 
 # Save results -------------------------------------------
 KG_map + theme_void() +
@@ -240,26 +269,30 @@ ggsave("figs/07_bio_vars_map.png",
        height = 8.27
 )
 
-p1 <- forest_map  + theme_void() + 
-  labs(fill = "Relative forest\ncover") +
+colnames(grid_data)
+
+p1 <- bio3_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p2 <- elev_map  + theme_void() +
+p2 <- bio4_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p3 <- MTWM_map  + theme_void() +
+p3 <- bio8_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p4 <- MTCM_map  + theme_void() +
+p4 <- bio12_map  + theme_void() + 
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-p5 <- AP_map  + theme_void() + 
-  labs(fill = "Annual\nPrecipation (mm)") +
+p5 <- bio13_map  + theme_void() +
   theme(legend.text = element_text(size = 15),
         legend.title = element_text(size = 15))
-plot_grid(p1, p2, p3, p4, p5,
+p6 <- bio18_map  + theme_void() +
+  theme(legend.text = element_text(size = 15),
+        legend.title = element_text(size = 15))
+
+plot_grid(p1, p2, p3, p4, p5, p6,
           ncol = 3, 
-          labels = c("(a)", "(b)", "(c)", "(d)", "(e)"), 
+          labels = c("(a)", "(b)", "(c)", "(d)", "(e)", "(f)"), 
           label_size = 15)
 ggsave("figs/07_envi_vars_map.png",
        width = 15,

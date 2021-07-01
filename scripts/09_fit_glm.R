@@ -28,7 +28,7 @@ grid_data_dist <- get_nearest_dist(institutes, grid_data)
 
 data <- grid_data_dist %>%
   st_drop_geometry() %>%
-  filter(!is.na(AP)) %>%
+  filter(!is.na(KG)) %>%
   select(nrec, dist_inst)
 
 # Fit model ------------------------------------------------------------
@@ -53,11 +53,12 @@ predicted <- lm_fit %>%
 
 # Plot predicted and observed number of recordd
 bind_cols(data, predicted) %>%
+  mutate(dist_inst = dist_inst / 10^3) %>%
   ggplot(aes(x = dist_inst)) +
   geom_point(aes(y = nrec), alpha = 0.3) +
   geom_line(aes(y = .pred), color = "red", size = 1) +
   labs(
-    x = "Distance to nearest collection",
+    x = "Distance to nearest collection (km)",
     y = "Number of records"
   ) +
   theme_light()
