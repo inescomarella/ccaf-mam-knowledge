@@ -10,7 +10,13 @@ get_nearest_dist <- function(pts, polygon) {
   #   polygon sf with an extra column called "dist_inst" containing the distance
   #   to the nearest research institute
   
-  # Get centroid points to measure distance
+  utm <-
+    sp::CRS("+proj=utm +zone=24 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+  
+  polygon <- polygon %>% st_transform(utm)
+  pts <- pts %>% st_transform(utm)
+
+    # Get centroid points to measure distance
   centroid <- coordinates(as(polygon, "Spatial"))
   pts_coords <- st_coordinates(pts)
   
